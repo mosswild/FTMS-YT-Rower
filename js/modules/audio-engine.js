@@ -20,6 +20,7 @@ export class AudioEngine {
       this.audio.preservesPitch = true;
       this.audio.volume = 1.0;
       this.audio.muted = false;
+      this.audio.loop = true;
     }
 
     this.mode = "original"; // "original" | "custom" | "mute"
