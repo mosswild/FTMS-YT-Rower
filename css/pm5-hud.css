@@ -1461,6 +1461,7 @@ body {
 [data-theme="cyberpunk"] .modal-card,
 [data-theme="cyberpunk"] .stat-card,
 [data-theme="cyberpunk"] .ingestion-box,
+[data-theme="cyberpunk"] .track-card,
 [data-theme="cyberpunk"] .track-card-compact {
   border-color: rgba(0, 240, 255, 0.35);
   background: rgba(6, 9, 24, 0.88);
@@ -1706,6 +1707,7 @@ body {
 [data-theme="retro-pm5"] .modal-card,
 [data-theme="retro-pm5"] .stat-card,
 [data-theme="retro-pm5"] .ingestion-box,
+[data-theme="retro-pm5"] .track-card,
 [data-theme="retro-pm5"] .track-card-compact {
   background: #181c20;
   border: 2px solid #283036;
@@ -2234,21 +2236,56 @@ body[data-theme="nordic"],
   color: #64748b !important;
 }
 
+[data-theme="nordic"] .track-card,
 [data-theme="nordic"] .track-card-compact {
   background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1.5px solid #e2e8f0 !important;
   border-radius: 16px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+  padding: 1.15rem !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04) !important;
+  color: #0f172a !important;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+[data-theme="nordic"] .track-card:hover,
+[data-theme="nordic"] .track-card-compact:hover {
+  transform: translateY(-2px) !important;
+  border-color: #bae6fd !important;
+  box-shadow: 0 8px 25px rgba(2, 132, 199, 0.12) !important;
 }
 
 [data-theme="nordic"] .track-card-title {
   color: #0f172a !important;
   font-family: 'Outfit', sans-serif !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
+  font-size: 1.05rem !important;
 }
 
 [data-theme="nordic"] .track-card-meta {
   color: #64748b !important;
+  font-family: 'Outfit', sans-serif !important;
+}
+
+[data-theme="nordic"] .track-card-meta strong {
+  color: #334155 !important;
+}
+
+[data-theme="nordic"] .track-card img {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="nordic"] .download-task-card {
+  background: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="nordic"] .progress-bar-bg {
+  background: #e2e8f0 !important;
 }
 
 /* Workout Lifetime Stat Cards */
