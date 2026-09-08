@@ -1,0 +1,20 @@
+services:
+  ftms-rower:
+    image: ftms-rower:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ftms-rower
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+      - PORT=${PORT:-8000}
+      - DATA_DIR=/config/data
+      - MEDIA_DIR=/config/media
+    volumes:
+      # Exposes database (sessions.db) and downloaded media (videos, audio) to host
+      - ./config:/config

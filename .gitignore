@@ -1,0 +1,30 @@
+# Virtual environment & caches
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.env
+
+# Application databases & persistent configs
+data/*.db
+data/*.db-journal
+config/
+
+# Ignore ALL video and audio media files
+*.mp4
+*.m4a
+*.mp3
+*.webm
+*.mov
+*.mkv
+*.avi
+*.wav
+*.flac
+*.ogg
+*.opus
+
+# Ignore downloaded media directory
+media/
+video/

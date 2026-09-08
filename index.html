@@ -1,109 +1,418 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <title>FTMS Rower | Concept</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/main.css">
-	<link rel="stylesheet" href="css/video-js.min.css">
-    <script src="js/video.min.js"></script>
-    <script type="text/javascript" src="js/ftms-rower.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FTMS Rower | Scenic Dashboard & Telemetry HUD</title>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/pm5-hud.css">
 </head>
-
 <body>
-    <h1>FTMS Rower | Concept</h1>
 
-    <h2>Connect rower</h2>
-    <p><button id="bleConnectionButton">Connect FTMS BLE Rower</button></p>
-
-	<h2>Training stats</h2>
-    <div class="cards">
-        <div class="card">
-            <div class="name">Pace</div>
-            <div class="unit" id="avg-pace">0:00</div>
-            <div class="value" id="pace">0:00</div>
-        </div>
-
-        <div class="card">
-            <div class="name">Stroke rate</div>
-            <div class="unit" id="tot-strokes">0</div>
-            <div class="value" id="stroke-rate">0.0</div>
-        </div>
-
-        <div class="card">
-            <div class="name">Power</div>
-            <div class="unit" id="avg-power">0</div>
-            <div class="value" id="power">0.0</div>
-        </div>
-
-        <div class="card">
-            <div class="name">Distance</div>
-            <div class="unit">m</div>
-            <div class="value" id="tot-distance">0</div>
-        </div>
+  <!-- Top App Navigation -->
+  <header class="app-header">
+    <div class="brand">
+      <svg class="brand-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12h20M2 12l5-5M2 12l5 5M22 12l-5-5M22 12l5 5"/>
+        <circle cx="12" cy="12" r="4"/>
+      </svg>
+      <span>FTMS Rower</span>
     </div>
-	
-	<h2>Rowing video</h2>
-	<video id="rowing_video" class="video-js" controls preload="none" width="640" height="480" poster="video/posters/video.png" data-setup="{}">
-		<source src="video/video.mp4" type="video/mp4">
-		<p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p>
-    </video>
 
+    <nav class="nav-links">
+      <button class="nav-btn active" data-view="cockpit">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        Cockpit
+      </button>
+      <button class="nav-btn" data-view="media">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Media Center
+      </button>
+      <button class="nav-btn" data-view="history">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+        Workout History
+      </button>
+    </nav>
+
+    <div class="header-status">
+      <div id="status-rower" class="status-pill">
+        <span class="status-dot"></span>
+        <span class="status-text">Rower Disconnected</span>
+      </div>
+      <div id="status-hr" class="status-pill">
+        <span class="status-dot"></span>
+        <span class="status-text">HR Disconnected</span>
+      </div>
+      <button id="btn-open-settings" class="hud-icon-btn" title="Dashboard Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- VIEW 1: COCKPIT -->
+  <main id="view-cockpit" class="cockpit-view">
+    <div id="viewport-container" class="scenic-viewport-container">
+      <!-- Muted Scenic Video (Speed modulates dynamically) -->
+      <video id="scenic-video" class="scenic-video" playsinline preload="auto" muted loop></video>
+
+      <!-- Independent Decoupled Soundtrack Audio (Fixed 1.0x native speed) -->
+      <audio id="soundtrack" style="display:none;" preload="auto" loop></audio>
+
+      <!-- PM5-Style Telemetry HUD Overlay -->
+      <div class="pm5-hud-overlay">
+        <!-- Top Bar -->
+        <div class="hud-top-bar">
+          <div class="hud-left-tags">
+            <span id="hud-speed-badge" class="speed-badge normal">1.00×</span>
+            <span id="hud-video-title" class="hud-info-badge hud-title-badge">Scenic Row</span>
+            <span id="hud-audio-badge" class="hud-info-badge">Audio: Original 1.0×</span>
+          </div>
+
+          <div class="hud-right-actions">
+            <button id="hud-fullscreen-btn" class="hud-icon-btn" title="Toggle Fullscreen">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Center Alert: Auto-Pause -->
+        <div id="hud-autopause-badge" class="hud-center-alert" style="display: none;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>
+          <span>AUTO-PAUSED — PULL TO RESUME</span>
+        </div>
+
+        <!-- Floating Autoplay Unmute Prompt (if blocked by browser) -->
+        <div id="audio-unmute-banner" class="unmute-banner" style="display: none;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <span>Audio paused by browser — Click to enable 1.0× sound</span>
+        </div>
+
+        <!-- PM5 High-Contrast Bottom Metrics Grid -->
+        <div class="pm5-metrics-panel">
+          <div class="pm5-grid">
+            <!-- Cell 1: Stroke Rate -->
+            <div class="pm5-cell highlight">
+              <div class="pm5-cell-header">
+                <span class="pm5-label">Stroke Rate</span>
+                <span id="hud-spm-pulse" class="pm5-pulse-dot"></span>
+              </div>
+              <div class="pm5-value" id="hud-spm">--</div>
+              <span class="pm5-unit">s/m</span>
+            </div>
+
+            <!-- Cell 2: /500m Split -->
+            <div class="pm5-cell">
+              <div class="pm5-cell-header">
+                <span class="pm5-label">Split Pace</span>
+                <span class="pm5-unit">/500m</span>
+              </div>
+              <div class="pm5-value" id="hud-split">--:--.-</div>
+            </div>
+
+            <!-- Cell 3: Power -->
+            <div class="pm5-cell">
+              <div class="pm5-cell-header">
+                <span class="pm5-label">Power</span>
+                <span class="pm5-unit">watts</span>
+              </div>
+              <div class="pm5-value" id="hud-watts">--</div>
+            </div>
+
+            <!-- Cell 4: Distance -->
+            <div class="pm5-cell">
+              <div class="pm5-cell-header">
+                <span class="pm5-label">Distance</span>
+                <span class="pm5-unit">meters</span>
+              </div>
+              <div class="pm5-value" id="hud-distance">0</div>
+            </div>
+
+            <!-- Cell 5: Elapsed Time -->
+            <div class="pm5-cell">
+              <div class="pm5-cell-header">
+                <span class="pm5-label">Elapsed Time</span>
+                <span class="pm5-unit">time</span>
+              </div>
+              <div class="pm5-value" id="hud-time">00:00</div>
+            </div>
+
+            <!-- Cell 6: Heart Rate -->
+            <div class="pm5-cell">
+              <div class="pm5-cell-header">
+                <span class="pm5-label">Heart Rate</span>
+                <svg id="hud-hr-icon" class="pm5-heart-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </div>
+              <div class="pm5-value" id="hud-hr">--</div>
+              <span class="pm5-unit">bpm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cockpit Track Transport Bar (Start/End trim, pan -10s/+10s, scrubber, restart) -->
+    <div class="cockpit-track-bar">
+      <span id="track-active-badge" class="track-name-badge">Full Scenic Video</span>
+      <button id="btn-track-restart" class="track-btn" title="Start track from beginning">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"/></svg>
+        Restart
+      </button>
+      <button id="btn-track-back10" class="track-btn" title="Pan back 10 seconds">⏪ -10s</button>
+      <button id="btn-track-fwd10" class="track-btn" title="Pan forward 10 seconds">⏩ +10s</button>
+      <input type="range" id="track-scrubber" class="track-scrubber" min="0" max="100" value="0" step="0.1" title="Scrub Track Position">
+      <span id="track-time-display" class="track-time-readout">00:00 / 00:00</span>
+    </div>
+
+    <!-- Quick Controls Bar -->
+    <div class="cockpit-controls-bar">
+      <div class="control-group">
+        <button id="btn-connect-rower" class="btn btn-primary">Connect FTMS Rower</button>
+        <button id="btn-connect-hr" class="btn btn-secondary">Connect HR Strap</button>
+        <button id="btn-toggle-sim" class="btn btn-secondary">Start Simulator</button>
+      </div>
+
+      <div class="control-group">
+        <div class="audio-controls">
+          <button id="btn-toggle-audio" class="btn btn-audio paused" title="Toggle 1.0x soundtrack">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            <span id="btn-audio-label">Play Audio</span>
+          </button>
+          <select id="audio-track-select" class="select-dropdown" style="max-width: 200px;">
+            <option value="original">Original Video Audio (1.0×)</option>
+            <option value="mute">Mute</option>
+          </select>
+          <input type="range" id="audio-volume-slider" class="volume-slider" min="0" max="1" step="0.05" value="1.0" title="Soundtrack Volume">
+        </div>
+        <button id="btn-toggle-workout" class="btn btn-success">Start Workout</button>
+      </div>
+    </div>
+
+    <!-- Simulator Interactive Controls & Dynamic Program Bar -->
+    <div class="sim-controls-bar">
+      <span style="font-weight: 600; color: var(--text-dim);">Simulator:</span>
+      <button id="btn-toggle-sim-mode" class="btn btn-secondary btn-sm">Mode: Dynamic Program</button>
+      <span id="sim-phase-badge" class="sim-phase-badge">Phase: Cruise (22 SPM)</span>
+      <button id="btn-sim-pause-rowing" class="btn btn-secondary btn-sm" title="Test Auto-Pause watchdog">Pause Pulling</button>
+      <div id="sim-manual-controls" style="display: none; align-items: center; gap: 0.75rem; flex: 1;">
+        <span style="color: var(--text-dim);">Manual SPM:</span>
+        <input type="range" id="sim-spm-range" min="14" max="38" value="22" style="flex:1; accent-color: var(--accent-blue);">
+        <span style="font-family: var(--font-mono); color: var(--accent-blue);"><strong id="sim-spm-val">22</strong> SPM</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- VIEW 2: MEDIA INGESTION & LIBRARY -->
+  <section id="view-media" class="view-panel" style="display: none;">
+    <div class="panel-header">
+      <h2 class="panel-title">Media Ingestion & Cached Library</h2>
+    </div>
+
+    <!-- YouTube Ingestion Box -->
+    <div class="ingestion-box">
+      <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">Download from YouTube</h3>
+      <p style="font-size: 0.85rem; color: var(--text-dim);">Submit any YouTube URL to extract high-quality scenic video and decoupled 1.0× standalone audio soundtrack.</p>
+
+      <form id="form-download" class="ingestion-form">
+        <input type="url" id="input-youtube-url" class="input-text" placeholder="https://www.youtube.com/watch?v=..." required>
+        <select id="select-download-type" class="select-dropdown">
+          <option value="both">Both Video & Standalone Audio</option>
+          <option value="video">Scenic Video Only (MP4)</option>
+          <option value="audio">Music / Soundtrack Only (M4A)</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Start Ingestion</button>
+      </form>
+
+      <!-- Active / Recent Tasks -->
+      <div id="download-tasks" class="download-tasks-container"></div>
+    </div>
+
+    <!-- Configured Scenic Tracks Section -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <div>
+        <h3 style="font-size: 1.15rem; font-weight: 700;">Configured Scenic Tracks</h3>
+        <p style="font-size: 0.82rem; color: var(--text-dim);">Custom video segments with trimmed start/end positions and assigned default audio soundtracks.</p>
+      </div>
+      <button id="btn-open-create-track" class="btn btn-primary btn-sm">+ Create New Track</button>
+    </div>
+    <div id="library-tracks" class="library-grid" style="margin-bottom: 2.5rem;"></div>
+
+    <!-- Raw Downloaded Videos -->
+    <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">Downloaded Scenic Videos</h3>
+    <div id="library-videos" class="library-grid" style="margin-bottom: 2.5rem;"></div>
+
+    <!-- Raw Downloaded Audio -->
+    <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">Downloaded Soundtracks & Music</h3>
+    <div id="library-audio" class="library-grid"></div>
+  </section>
+
+  <!-- VIEW 3: WORKOUT HISTORY & ANALYTICS -->
+  <section id="view-history" class="view-panel" style="display: none;">
+    <div class="panel-header">
+      <h2 class="panel-title">Workout History & Export</h2>
+    </div>
+
+    <!-- Lifetime Stats Banner -->
+    <div class="lifetime-banner">
+      <div class="stat-card">
+        <div class="stat-label">Lifetime Distance</div>
+        <div id="stat-total-meters" class="stat-num">0 m</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Workouts Completed</div>
+        <div id="stat-total-workouts" class="stat-num">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Time Rowed</div>
+        <div id="stat-total-time" class="stat-num">0h 0m</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Average Power</div>
+        <div id="stat-avg-watts" class="stat-num">0 W</div>
+      </div>
+    </div>
+
+    <!-- Sessions Table -->
+    <table class="sessions-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Duration</th>
+          <th>Distance</th>
+          <th>Avg Split</th>
+          <th>Avg Watts</th>
+          <th>Avg SPM</th>
+          <th>Avg HR</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="history-table-body">
+        <!-- Injected via JavaScript -->
+      </tbody>
+    </table>
+  </section>
+
+  <!-- DASHBOARD SETTINGS MODAL -->
+  <div id="modal-settings" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Telemetry & Audio Settings</h3>
+        <button id="btn-close-settings" class="close-btn">&times;</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Baseline SPM</label>
+        <div class="range-with-val">
+          <input type="range" id="setting-baseline-spm" min="16" max="32" value="20" step="1">
+          <span id="setting-baseline-spm-val" class="range-val-badge">20</span>
+        </div>
+        <p class="form-hint">Stroke rate that corresponds to standard 1.0× playback speed.</p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Rate Smoothing Alpha (&alpha;)</label>
+        <div class="range-with-val">
+          <input type="range" id="setting-alpha" min="0.10" max="0.75" value="0.25" step="0.05">
+          <span id="setting-alpha-val" class="range-val-badge">0.25</span>
+        </div>
+        <p class="form-hint">Lower values prevent visual stutter; higher values respond faster to surges.</p>
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 1.5rem;">
+        <div>
+          <label class="form-label" style="margin-bottom: 0;">Pause Audio on Stroke Stop</label>
+          <p class="form-hint">If disabled (default), soundtrack plays continuously at 1.0× even when you rest.</p>
+        </div>
+        <input type="checkbox" id="setting-pause-audio-on-stop" style="width: 20px; height: 20px; accent-color: var(--accent-blue);">
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE SCENIC TRACK MODAL -->
+  <div id="modal-create-track" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Configure Scenic Track</h3>
+        <button id="btn-close-create-track" class="close-btn">&times;</button>
+      </div>
+
+      <form id="form-create-track">
+        <input type="hidden" id="input-track-id" value="">
+        <div class="form-group">
+          <label class="form-label">Track Name</label>
+          <input type="text" id="input-track-name" class="input-text" style="width: 100%;" placeholder="e.g. Glacier Lake Sprint Section" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Scenic Video</label>
+          <select id="select-track-video" class="select-dropdown" style="width: 100%;" required>
+            <!-- Populated via JS -->
+          </select>
+          <!-- Video Thumbnail Preview Card -->
+          <div id="track-video-preview" style="margin-top: 0.6rem; display: flex; align-items: center; gap: 0.85rem; background: rgba(0,0,0,0.3); border: 1px solid var(--surface-border); border-radius: 8px; padding: 0.5rem 0.75rem;">
+            <img id="track-video-preview-thumb" src="" alt="Thumbnail" style="width: 110px; height: 62px; object-fit: cover; border-radius: 6px; background: #000; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="flex: 1; min-width: 0; font-size: 0.82rem;">
+              <div id="track-video-preview-title" style="font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.25rem;"></div>
+              <div id="track-video-preview-meta" style="color: var(--text-muted); display: flex; gap: 0.75rem; font-family: var(--font-mono); font-size: 0.78rem;">
+                <span id="track-video-preview-duration"></span>
+                <span id="track-video-preview-size"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Start Position</label>
+            <input type="text" id="input-track-start" class="input-text" style="width: 100%;" value="0" placeholder="0 or 0:30">
+            <p class="form-hint">Seconds (e.g. 30) or MM:SS (e.g. 0:30)</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">End Position</label>
+            <input type="text" id="input-track-end" class="input-text" style="width: 100%;" value="0" placeholder="0 or 2:30">
+            <p class="form-hint">Seconds or MM:SS (0 = full video duration)</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Default Audio Track</label>
+          <select id="select-track-default-audio" class="select-dropdown" style="width: 100%;">
+            <option value="original">Original Video Audio</option>
+            <option value="mute">Muted</option>
+          </select>
+          <p class="form-hint">Plays at native 1.0× speed when this track starts.</p>
+
+          <!-- Audio Preview & Scrubber Bar -->
+          <div id="modal-audio-preview-bar" style="margin-top: 0.65rem; display: flex; align-items: center; gap: 0.75rem; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--surface-border); border-radius: 8px; padding: 0.5rem 0.85rem;">
+            <button type="button" id="btn-modal-audio-play" class="btn btn-secondary btn-sm" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+              <span id="modal-audio-play-icon">▶</span>
+              <span id="modal-audio-play-text">Preview</span>
+            </button>
+            <input type="range" id="modal-audio-scrubber" min="0" max="100" value="0" step="0.1" style="flex: 1; accent-color: var(--accent-emerald); cursor: pointer;" title="Slide to preview different parts of audio">
+            <span id="modal-audio-time" style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;">0:00 / 0:00</span>
+            <audio id="modal-preview-audio" preload="auto" style="display: none;"></audio>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Alternative Allowed Soundtracks</label>
+          <div id="container-track-allowed-audios" style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 6px; border: 1px solid var(--surface-border);">
+            <!-- Checkboxes injected via JS -->
+          </div>
+          <p class="form-hint">Available audio tracks the rower can switch between while on this route.</p>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" id="btn-cancel-create-track" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Track</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script type="module" src="js/app.js"></script>
 </body>
-
-<script>
-
-//hide player controls in video.js
-const player = videojs('rowing_video');
-player.bigPlayButton.hide(); //just don't show it
-player.controlBar.playToggle.dispose(); //remove completely
-player.controlBar.progressControl.disable(); //show, but disallow user to use it
-player.controlBar.fullscreenToggle.dispose();
-player.controlBar.pictureInPictureToggle.dispose();
-player.controlBar.playbackRateMenuButton.disable();
-
-    function handleNotifications(event) {
-        let data = parseRowerData(event.target.value);
-
-		if (typeof data['Instantaneous Pace'] != "undefined") {
-			document.querySelector('#pace').textContent = data['Instantaneous Pace'];
-			if (data['Instantaneous Pace'] == 0) {
-				//training has not yet started, or training is paused or stopped
-				player.pause();
-			} else {
-				//training has started or training is in progress
-				player.play();
-			}
-		}
-		if (typeof data['Average Pace'] != "undefined") {
-			document.querySelector('#avg-pace').textContent = data['Average Pace'];
-		}
-		if (typeof data['Stroke Count'] != "undefined") {
-			document.querySelector('#tot-strokes').textContent = data['Stroke Count'];
-		}
-		if (typeof data['Stroke Rate'] != "undefined") {
-			document.querySelector('#stroke-rate').textContent = data['Stroke Rate'];
-		}
-		if (typeof data['Average Power'] != "undefined") {
-			document.querySelector('#avg-power').textContent = data['Average Power'];
-		}
-		if (typeof data['Instantaneous Power'] != "undefined") {
-			document.querySelector('#power').textContent = data['Instantaneous Power'];
-		}
-		if (typeof data['Total Distance'] != "undefined") {
-		    document.querySelector('#tot-distance').textContent = data['Total Distance'];
-		}
-    }
-
-    function what() {
-        connect().then(characteristic =>
-            characteristic.addEventListener('characteristicvaluechanged', handleNotifications)
-        )
-    }
-
-    document.querySelector('#bleConnectionButton').addEventListener('click', what);
-	
-</script>
-
 </html>
