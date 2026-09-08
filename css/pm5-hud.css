@@ -297,6 +297,70 @@ body {
   50% { opacity: 1; transform: scale(1.02); }
 }
 
+/* Floating HUD Notification Toast */
+.hud-notice-toast {
+  position: absolute;
+  top: 4.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--surface-border);
+  border-radius: 24px;
+  padding: 0.45rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ffffff;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  z-index: 60;
+  pointer-events: none;
+  animation: toastFadeIn 0.25s ease-out;
+  white-space: nowrap;
+}
+
+@keyframes toastFadeIn {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ----------------- Immersive Mode (HUD Hidden) ----------------- */
+.scenic-viewport-container.hud-hidden .pm5-metrics-panel,
+.scenic-viewport-container.hud-hidden .hud-left-tags,
+.scenic-viewport-container.hud-hidden #hud-autopause-badge,
+.scenic-viewport-container.hud-hidden #audio-unmute-banner {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(16px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.scenic-viewport-container.hud-hidden .hud-top-bar {
+  pointer-events: none;
+}
+
+.scenic-viewport-container.hud-hidden .hud-right-actions {
+  pointer-events: auto;
+  opacity: 0.35;
+  transition: opacity 0.3s ease;
+}
+
+.scenic-viewport-container.hud-hidden:hover .hud-right-actions {
+  opacity: 1;
+}
+
+.scenic-viewport-container.hud-hidden.hud-idle .hud-right-actions {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#hud-toggle-visibility-btn.active-immersive {
+  background: rgba(2, 132, 199, 0.35);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+}
+
 /* ----------------- PM5 High-Contrast Bottom Metrics Grid ----------------- */
 /* ----------------- PM5 High-Contrast Bottom Metrics Grid ----------------- */
 .pm5-metrics-panel {
@@ -1305,6 +1369,14 @@ body {
   filter: drop-shadow(0 0 8px #ff007f);
 }
 
+[data-theme="cyberpunk"] .hud-notice-toast {
+  background: rgba(6, 10, 26, 0.95);
+  border-color: #00f0ff;
+  color: #00f0ff;
+  font-family: 'Orbitron', sans-serif;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
+}
+
 /* Animated ECG Pulse Waveform in Heart Rate Cell */
 [data-theme="cyberpunk"] .cyber-ecg-container {
   display: block;
@@ -1663,6 +1735,14 @@ body {
   -webkit-backdrop-filter: blur(16px);
   border: 2px solid rgba(44, 56, 63, 0.6);
   border-radius: 6px;
+}
+
+[data-theme="retro-pm5"] .hud-notice-toast {
+  background: #181c20;
+  border: 2px solid #364a38;
+  color: #b8f572;
+  font-family: 'Share Tech Mono', monospace;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
 }
 
 [data-theme="retro-pm5"] .track-btn {
@@ -2030,6 +2110,14 @@ body[data-theme="nordic"],
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
   border-radius: 14px !important;
   font-family: 'Outfit', sans-serif !important;
+}
+
+[data-theme="nordic"] .hud-notice-toast {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  font-family: 'Outfit', sans-serif !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
 }
 
 [data-theme="nordic"] .unmute-banner {

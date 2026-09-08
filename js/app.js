@@ -1209,16 +1209,94 @@ document.querySelectorAll(".theme-choice-card").forEach((card) => {
   });
 });
 
-// Quick cycle button listener
+const THEME_NAMES = {
+  "default": "Modern Slate",
+  "cyberpunk": "Neon Cyberpunk",
+  "retro-pm5": "Concept2 PM5 LCD",
+  "nordic": "Nordic Minimalist"
+};
+
+let hudToastTimeout = null;
+function showHudToast(text, duration = 1800) {
+  const toast = document.getElementById("hud-notice-toast");
+  if (!toast) return;
+  toast.textContent = text;
+  toast.style.display = "block";
+  clearTimeout(hudToastTimeout);
+  hudToastTimeout = setTimeout(() => {
+    toast.style.display = "none";
+  }, duration);
+}
+
+function cycleTheme() {
+  const current = getActiveTheme();
+  const curIdx = THEMES.indexOf(current);
+  const nextIdx = (curIdx + 1) % THEMES.length;
+  const nextTheme = THEMES[nextIdx];
+  applyTheme(nextTheme);
+  showHudToast(`Theme: ${THEME_NAMES[nextTheme] || nextTheme}`);
+}
+
+// Quick cycle button listeners (both in header and within cockpit HUD)
 const btnQuickTheme = document.getElementById("btn-quick-theme");
 if (btnQuickTheme) {
-  btnQuickTheme.addEventListener("click", () => {
-    const current = getActiveTheme();
-    const curIdx = THEMES.indexOf(current);
-    const nextIdx = (curIdx + 1) % THEMES.length;
-    applyTheme(THEMES[nextIdx]);
-  });
+  btnQuickTheme.addEventListener("click", cycleTheme);
 }
+
+const btnHudCycleTheme = document.getElementById("hud-cycle-theme-btn");
+if (btnHudCycleTheme) {
+  btnHudCycleTheme.addEventListener("click", cycleTheme);
+}
+
+// Cockpit Immersive Mode (Toggle HUD Visibility)
+let isHudHidden = false;
+function toggleHudVisibility() {
+  isHudHidden = !isHudHidden;
+  const viewport = document.getElementById("viewport-container");
+  const eyeVisible = document.getElementById("hud-eye-icon-visible");
+  const eyeHidden = document.getElementById("hud-eye-icon-hidden");
+  const toggleBtn = document.getElementById("hud-toggle-visibility-btn");
+
+  if (viewport) {
+    viewport.classList.toggle("hud-hidden", isHudHidden);
+  }
+  if (eyeVisible && eyeHidden) {
+    eyeVisible.style.display = isHudHidden ? "none" : "block";
+    eyeHidden.style.display = isHudHidden ? "block" : "none";
+  }
+  if (toggleBtn) {
+    toggleBtn.title = isHudHidden ? "Show HUD (H)" : "Hide HUD for Immersive View (H)";
+    if (isHudHidden) {
+      toggleBtn.classList.add("active-immersive");
+    } else {
+      toggleBtn.classList.remove("active-immersive");
+    }
+  }
+  showHudToast(isHudHidden ? "Immersive View: HUD Hidden" : "HUD Restored");
+}
+
+const btnHudToggleVisibility = document.getElementById("hud-toggle-visibility-btn");
+if (btnHudToggleVisibility) {
+  btnHudToggleVisibility.addEventListener("click", toggleHudVisibility);
+}
+
+// Keyboard shortcuts for cockpit & fullscreen: 'T' = Cycle Theme, 'H' = Toggle HUD, 'F' = Fullscreen
+window.addEventListener("keydown", (e) => {
+  const tag = (document.activeElement && document.activeElement.tagName) || "";
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+  if (e.key === "t" || e.key === "T") {
+    e.preventDefault();
+    cycleTheme();
+  } else if (e.key === "h" || e.key === "H") {
+    e.preventDefault();
+    toggleHudVisibility();
+  } else if (e.key === "f" || e.key === "F") {
+    e.preventDefault();
+    const btnFs = document.getElementById("hud-fullscreen-btn");
+    if (btnFs) btnFs.click();
+  }
+});
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", async () => {
