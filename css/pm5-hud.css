@@ -364,7 +364,7 @@ body {
 }
 
 .pm5-cell.highlight .pm5-value {
-  color: #38bdf8;
+  color: var(--accent-blue);
 }
 
 .pm5-pulse-dot {
@@ -376,9 +376,9 @@ body {
 }
 
 .pm5-pulse-dot.pulse {
-  background: #38bdf8;
+  background: var(--accent-blue);
   transform: scale(1.6);
-  box-shadow: 0 0 10px #38bdf8;
+  box-shadow: 0 0 10px var(--accent-blue);
 }
 
 .pm5-heart-icon {
@@ -1038,3 +1038,318 @@ body {
     gap: 0.75rem;
   }
 }
+
+/* ==========================================================================
+   HUD Visual Theme Selector & Multi-Theme Definitions
+   ========================================================================== */
+
+/* Theme Selector Grid in Settings Modal */
+.theme-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 580px) {
+  .theme-selector-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.theme-choice-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: inherit;
+  font-family: inherit;
+}
+
+.theme-choice-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.theme-choice-card.active {
+  border-color: var(--accent-blue);
+  background: rgba(56, 189, 248, 0.1);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+
+.theme-swatch {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.swatch-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: inline-block;
+}
+
+.theme-choice-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.theme-default-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.2);
+  color: var(--accent-blue);
+  text-transform: uppercase;
+}
+
+.theme-choice-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+/* --------------------------------------------------------------------------
+   THEME 1: Neon Cyberpunk / Synthwave
+   -------------------------------------------------------------------------- */
+[data-theme="cyberpunk"] {
+  --bg-dark: #060713;
+  --surface-dark: #0b0d1e;
+  --surface-border: rgba(0, 240, 255, 0.25);
+  --pm5-bg: rgba(6, 8, 22, 0.88);
+  --pm5-border: rgba(0, 240, 255, 0.45);
+  --accent-blue: #00f0ff;
+  --accent-emerald: #05ffa1;
+  --accent-amber: #ffe600;
+  --accent-rose: #ff007f;
+  --text-main: #ffffff;
+  --text-muted: #94a3b8;
+  --text-dim: #7075a6;
+}
+
+[data-theme="cyberpunk"] .pm5-metrics-panel {
+  border: 1px solid rgba(0, 240, 255, 0.45);
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.22), 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(255, 0, 127, 0.09);
+}
+
+[data-theme="cyberpunk"] .pm5-cell.highlight .pm5-value {
+  color: #00f0ff;
+  text-shadow: 0 0 12px rgba(0, 240, 255, 0.75), 0 0 22px rgba(0, 240, 255, 0.4);
+}
+
+[data-theme="cyberpunk"] .pm5-value {
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+}
+
+[data-theme="cyberpunk"] .pm5-pulse-dot.pulse {
+  background: #00f0ff;
+  box-shadow: 0 0 14px #00f0ff, 0 0 24px rgba(0, 240, 255, 0.6);
+}
+
+[data-theme="cyberpunk"] .pm5-heart-icon {
+  color: #ff007f;
+  filter: drop-shadow(0 0 8px #ff007f);
+}
+
+[data-theme="cyberpunk"] .speed-badge {
+  background: rgba(5, 255, 161, 0.15);
+  color: #05ffa1;
+  border-color: rgba(5, 255, 161, 0.5);
+  box-shadow: 0 0 18px rgba(5, 255, 161, 0.35);
+}
+
+[data-theme="cyberpunk"] .speed-badge.high {
+  background: rgba(0, 240, 255, 0.2);
+  color: #00f0ff;
+  border-color: rgba(0, 240, 255, 0.6);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.4);
+}
+
+[data-theme="cyberpunk"] .speed-badge.low {
+  background: rgba(255, 230, 0, 0.15);
+  color: #ffe600;
+  border-color: rgba(255, 230, 0, 0.5);
+  box-shadow: 0 0 18px rgba(255, 230, 0, 0.3);
+}
+
+[data-theme="cyberpunk"] .cockpit-track-bar {
+  border-color: rgba(0, 240, 255, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(0, 240, 255, 0.05);
+}
+
+[data-theme="cyberpunk"] .app-header {
+  border-bottom: 1px solid rgba(0, 240, 255, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   THEME 2: Retro Concept2 PM5 Monochrome LCD
+   -------------------------------------------------------------------------- */
+[data-theme="retro-pm5"] {
+  --bg-dark: #121619;
+  --surface-dark: #192024;
+  --surface-border: #2c383f;
+  --pm5-bg: #1c271e;
+  --pm5-border: #364839;
+  --accent-blue: #a3e635;
+  --accent-emerald: #84cc16;
+  --accent-amber: #eab308;
+  --accent-rose: #ef4444;
+  --text-main: #b8f572;
+  --text-muted: #799a7b;
+  --text-dim: #4d664f;
+}
+
+[data-theme="retro-pm5"] .pm5-metrics-panel {
+  background: #19241b;
+  border: 3px solid #28332a;
+  border-radius: 4px;
+  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.85), 0 8px 24px rgba(0, 0, 0, 0.7);
+  outline: 1px solid #101511;
+}
+
+[data-theme="retro-pm5"] .pm5-cell:not(:last-child)::after {
+  background: rgba(184, 245, 114, 0.18);
+}
+
+[data-theme="retro-pm5"] .pm5-label {
+  color: #799a7b;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+[data-theme="retro-pm5"] .pm5-unit {
+  color: #5b795d;
+}
+
+[data-theme="retro-pm5"] .pm5-value {
+  color: #b8f572;
+  text-shadow: 0 0 5px rgba(184, 245, 114, 0.45);
+  font-family: var(--font-mono);
+}
+
+[data-theme="retro-pm5"] .pm5-cell.highlight .pm5-value {
+  color: #d9f99d;
+  text-shadow: 0 0 7px rgba(217, 249, 157, 0.6);
+}
+
+[data-theme="retro-pm5"] .pm5-pulse-dot.pulse {
+  background: #b8f572;
+  box-shadow: 0 0 8px #b8f572;
+}
+
+[data-theme="retro-pm5"] .pm5-heart-icon {
+  color: #b8f572;
+}
+
+[data-theme="retro-pm5"] .speed-badge {
+  background: #253327;
+  color: #b8f572;
+  border: 1px solid #48614a;
+  box-shadow: none;
+  border-radius: 3px;
+}
+
+[data-theme="retro-pm5"] .speed-badge.high {
+  background: #2b3d2e;
+  color: #d9f99d;
+  border-color: #5c7c5f;
+}
+
+[data-theme="retro-pm5"] .hud-info-badge,
+[data-theme="retro-pm5"] .hud-icon-btn,
+[data-theme="retro-pm5"] .cockpit-track-bar {
+  background: #192024;
+  border-color: #2c383f;
+  border-radius: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   THEME 3: Nordic Minimalist Frosted Glass
+   -------------------------------------------------------------------------- */
+[data-theme="nordic"] {
+  --bg-dark: #0b0f17;
+  --surface-dark: rgba(255, 255, 255, 0.05);
+  --surface-border: rgba(255, 255, 255, 0.12);
+  --pm5-bg: rgba(255, 255, 255, 0.08);
+  --pm5-border: rgba(255, 255, 255, 0.2);
+  --accent-blue: #7dd3fc;
+  --accent-emerald: #34d399;
+  --accent-amber: #f6ad55;
+  --accent-rose: #fb7185;
+  --text-main: #ffffff;
+  --text-muted: #cbd5e1;
+  --text-dim: #94a3b8;
+}
+
+[data-theme="nordic"] .pm5-metrics-panel {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 16px;
+  box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="nordic"] .pm5-cell:not(:last-child)::after {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="nordic"] .pm5-value {
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+[data-theme="nordic"] .pm5-cell.highlight .pm5-value {
+  color: #7dd3fc;
+}
+
+[data-theme="nordic"] .pm5-pulse-dot.pulse {
+  background: #7dd3fc;
+  box-shadow: 0 0 10px rgba(125, 211, 252, 0.6);
+}
+
+[data-theme="nordic"] .speed-badge {
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="nordic"] .speed-badge.high {
+  background: rgba(125, 211, 252, 0.2);
+  color: #bae6fd;
+  border-color: rgba(125, 211, 252, 0.4);
+}
+
+[data-theme="nordic"] .speed-badge.low {
+  background: rgba(246, 173, 85, 0.2);
+  color: #fed7aa;
+  border-color: rgba(246, 173, 85, 0.4);
+}
+
+[data-theme="nordic"] .hud-info-badge,
+[data-theme="nordic"] .hud-icon-btn,
+[data-theme="nordic"] .cockpit-track-bar {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+

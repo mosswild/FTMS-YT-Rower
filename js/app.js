@@ -1148,8 +1148,56 @@ if (settingPauseAudio) {
   });
 }
 
+// ----------------- HUD Visual Theme Management -----------------
+const THEMES = ["default", "cyberpunk", "retro-pm5", "nordic"];
+
+function getActiveTheme() {
+  return localStorage.getItem("ftms_hud_theme") || "default";
+}
+
+function applyTheme(themeId) {
+  if (!THEMES.includes(themeId)) themeId = "default";
+
+  if (themeId === "default") {
+    document.documentElement.removeAttribute("data-theme");
+  } else {
+    document.documentElement.setAttribute("data-theme", themeId);
+  }
+
+  localStorage.setItem("ftms_hud_theme", themeId);
+
+  // Update active state in settings modal
+  document.querySelectorAll(".theme-choice-card").forEach((card) => {
+    if (card.getAttribute("data-theme-id") === themeId) {
+      card.classList.add("active");
+    } else {
+      card.classList.remove("active");
+    }
+  });
+}
+
+// Theme cards click listener
+document.querySelectorAll(".theme-choice-card").forEach((card) => {
+  card.addEventListener("click", () => {
+    const chosenTheme = card.getAttribute("data-theme-id");
+    applyTheme(chosenTheme);
+  });
+});
+
+// Quick cycle button listener
+const btnQuickTheme = document.getElementById("btn-quick-theme");
+if (btnQuickTheme) {
+  btnQuickTheme.addEventListener("click", () => {
+    const current = getActiveTheme();
+    const curIdx = THEMES.indexOf(current);
+    const nextIdx = (curIdx + 1) % THEMES.length;
+    applyTheme(THEMES[nextIdx]);
+  });
+}
+
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", async () => {
+  applyTheme(getActiveTheme());
   await loadLibraryUI();
   await loadTracksUI();
 
