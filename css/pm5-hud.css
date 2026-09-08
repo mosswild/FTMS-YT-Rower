@@ -1330,6 +1330,151 @@ body {
   color: #00f0ff;
 }
 
+/* Cyberpunk Surrounding Website Controls */
+[data-theme="cyberpunk"] .app-header {
+  background: rgba(5, 7, 18, 0.88);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 240, 255, 0.15);
+}
+
+[data-theme="cyberpunk"] .brand {
+  font-family: 'Orbitron', sans-serif;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+[data-theme="cyberpunk"] .brand-icon {
+  color: #00f0ff;
+  filter: drop-shadow(0 0 6px #00f0ff);
+}
+
+[data-theme="cyberpunk"] .nav-btn {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+[data-theme="cyberpunk"] .nav-btn.active {
+  color: #00f0ff;
+  background: rgba(0, 240, 255, 0.15);
+  border: 1px solid #00f0ff;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+}
+
+[data-theme="cyberpunk"] .status-pill {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.72rem;
+  border-radius: 0;
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+  background: rgba(5, 7, 20, 0.75);
+  border-color: rgba(0, 240, 255, 0.35);
+}
+
+[data-theme="cyberpunk"] .status-pill.online {
+  border-color: #05ffa1;
+  color: #05ffa1;
+  box-shadow: 0 0 10px rgba(5, 255, 161, 0.3);
+}
+
+[data-theme="cyberpunk"] .cockpit-controls-bar,
+[data-theme="cyberpunk"] .sim-controls-bar {
+  background: rgba(6, 9, 26, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 0;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 240, 255, 0.15);
+}
+
+[data-theme="cyberpunk"] .btn {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  border-radius: 0;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  transition: all 0.2s ease;
+}
+
+[data-theme="cyberpunk"] .btn-primary {
+  background: #00f0ff;
+  color: #04060c;
+  border: 1px solid #00f0ff;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.6);
+}
+
+[data-theme="cyberpunk"] .btn-primary:hover {
+  background: #5cf4ff;
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.8);
+}
+
+[data-theme="cyberpunk"] .btn-success {
+  background: #05ffa1;
+  color: #04060c;
+  border: 1px solid #05ffa1;
+  box-shadow: 0 0 16px rgba(5, 255, 161, 0.6);
+}
+
+[data-theme="cyberpunk"] .btn-secondary {
+  background: rgba(0, 240, 255, 0.08);
+  color: #00f0ff;
+  border: 1px solid rgba(0, 240, 255, 0.4);
+}
+
+[data-theme="cyberpunk"] .btn-secondary:hover {
+  background: rgba(0, 240, 255, 0.2);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
+}
+
+[data-theme="cyberpunk"] .btn-audio {
+  border-radius: 0;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  background: rgba(255, 0, 127, 0.15);
+  color: #ff007f;
+  border: 1px solid rgba(255, 0, 127, 0.5);
+  box-shadow: 0 0 12px rgba(255, 0, 127, 0.3);
+}
+
+[data-theme="cyberpunk"] .select-dropdown,
+[data-theme="cyberpunk"] .input-text {
+  font-family: 'Orbitron', monospace, sans-serif;
+  font-size: 0.82rem;
+  border-radius: 0;
+  border-color: rgba(0, 240, 255, 0.4);
+  background: rgba(6, 9, 24, 0.8);
+  color: #ffffff;
+}
+
+[data-theme="cyberpunk"] .sim-phase-badge {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  border-radius: 0;
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+  background: rgba(0, 240, 255, 0.12);
+  color: #00f0ff;
+  border: 1px solid rgba(0, 240, 255, 0.4);
+}
+
+[data-theme="cyberpunk"] .view-panel,
+[data-theme="cyberpunk"] .modal-card,
+[data-theme="cyberpunk"] .stat-card,
+[data-theme="cyberpunk"] .ingestion-box,
+[data-theme="cyberpunk"] .track-card-compact {
+  border-color: rgba(0, 240, 255, 0.35);
+  background: rgba(6, 9, 24, 0.88);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+}
+
+[data-theme="cyberpunk"] .panel-title,
+[data-theme="cyberpunk"] .modal-title,
+[data-theme="cyberpunk"] .stat-val {
+  font-family: 'Orbitron', sans-serif;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
 /* --------------------------------------------------------------------------
    THEME 2: Retro Concept2 PM5 Monochrome LCD (Compact Sleek HUD)
    -------------------------------------------------------------------------- */
@@ -1442,6 +1587,136 @@ body {
 [data-theme="retro-pm5"] .track-time-readout {
   font-family: 'Share Tech Mono', monospace;
   color: #b4f766;
+}
+
+/* Retro PM5 Surrounding Website Controls */
+[data-theme="retro-pm5"] .app-header {
+  background: #14171a;
+  border-bottom: 2px solid #283036;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="retro-pm5"] .brand {
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+}
+
+[data-theme="retro-pm5"] .brand-icon {
+  color: #e11d48;
+}
+
+[data-theme="retro-pm5"] .nav-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.95rem;
+  border-radius: 4px;
+}
+
+[data-theme="retro-pm5"] .nav-btn.active {
+  color: #b8f572;
+  background: rgba(184, 245, 114, 0.12);
+  border: 1px solid rgba(184, 245, 114, 0.35);
+}
+
+[data-theme="retro-pm5"] .status-pill {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  background: #181c20;
+  border: 1px solid #2c383f;
+  border-radius: 4px;
+  color: #799a7b;
+}
+
+[data-theme="retro-pm5"] .status-pill.online {
+  border-color: #a3e635;
+  color: #b8f572;
+}
+
+[data-theme="retro-pm5"] .cockpit-controls-bar,
+[data-theme="retro-pm5"] .sim-controls-bar {
+  background: rgba(22, 26, 30, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px solid #283036;
+  border-radius: 6px;
+}
+
+[data-theme="retro-pm5"] .btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.92rem;
+  border-radius: 4px;
+}
+
+[data-theme="retro-pm5"] .btn-primary {
+  background: #a3e635;
+  color: #101511;
+  border: 1px solid #84cc16;
+  font-weight: 700;
+}
+
+[data-theme="retro-pm5"] .btn-primary:hover {
+  background: #bef264;
+}
+
+[data-theme="retro-pm5"] .btn-success {
+  background: #84cc16;
+  color: #101511;
+  border: 1px solid #65a30d;
+  font-weight: 700;
+}
+
+[data-theme="retro-pm5"] .btn-secondary {
+  background: #20262c;
+  border: 1px solid #343e47;
+  color: #cbd5e1;
+}
+
+[data-theme="retro-pm5"] .btn-secondary:hover {
+  background: #2c353d;
+  color: #ffffff;
+}
+
+[data-theme="retro-pm5"] .btn-audio {
+  background: rgba(184, 245, 114, 0.15);
+  color: #b8f572;
+  border-color: rgba(184, 245, 114, 0.35);
+}
+
+[data-theme="retro-pm5"] .select-dropdown,
+[data-theme="retro-pm5"] .input-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+  background: #14171a;
+  border: 1px solid #2c383f;
+  color: #b8f572;
+  border-radius: 4px;
+}
+
+[data-theme="retro-pm5"] .sim-phase-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  background: #1a251c;
+  border: 1px solid #364a38;
+  color: #b8f572;
+  border-radius: 4px;
+}
+
+[data-theme="retro-pm5"] .view-panel,
+[data-theme="retro-pm5"] .modal-card,
+[data-theme="retro-pm5"] .stat-card,
+[data-theme="retro-pm5"] .ingestion-box,
+[data-theme="retro-pm5"] .track-card-compact {
+  background: #181c20;
+  border: 2px solid #283036;
+  border-radius: 6px;
+}
+
+[data-theme="retro-pm5"] .panel-title,
+[data-theme="retro-pm5"] .modal-title,
+[data-theme="retro-pm5"] .stat-val {
+  font-family: 'Share Tech Mono', monospace;
+  color: #b8f572;
 }
 
 /* --------------------------------------------------------------------------
@@ -1620,6 +1895,147 @@ body {
 [data-theme="nordic"] .track-time-readout {
   font-family: 'Outfit', sans-serif;
   color: #cbd5e1;
+}
+
+/* Nordic Minimalist Surrounding Website Controls */
+[data-theme="nordic"] .app-header {
+  background: rgba(11, 15, 23, 0.7);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="nordic"] .brand {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+}
+
+[data-theme="nordic"] .brand-icon {
+  color: #7dd3fc;
+}
+
+[data-theme="nordic"] .nav-btn {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 500;
+  border-radius: 20px;
+  padding: 0.45rem 1rem;
+}
+
+[data-theme="nordic"] .nav-btn.active {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="nordic"] .status-pill {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 400;
+  font-size: 0.8rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+}
+
+[data-theme="nordic"] .status-pill.online {
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #34d399;
+}
+
+[data-theme="nordic"] .cockpit-controls-bar,
+[data-theme="nordic"] .sim-controls-bar {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="nordic"] .btn {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 500;
+  border-radius: 20px;
+  padding: 0.5rem 1.15rem;
+  transition: all 0.25s ease;
+}
+
+[data-theme="nordic"] .btn-primary {
+  background: #38bdf8;
+  color: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+}
+
+[data-theme="nordic"] .btn-primary:hover {
+  background: #7dd3fc;
+}
+
+[data-theme="nordic"] .btn-success {
+  background: #10b981;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="nordic"] .btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+[data-theme="nordic"] .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="nordic"] .select-dropdown,
+[data-theme="nordic"] .input-text {
+  font-family: 'Outfit', sans-serif;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+[data-theme="nordic"] .sim-phase-badge {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 500;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #7dd3fc;
+}
+
+[data-theme="nordic"] .view-panel,
+[data-theme="nordic"] .modal-card,
+[data-theme="nordic"] .stat-card,
+[data-theme="nordic"] .ingestion-box,
+[data-theme="nordic"] .track-card-compact {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="nordic"] .panel-title,
+[data-theme="nordic"] .modal-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+[data-theme="nordic"] .stat-val {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 300;
+  color: #ffffff;
 }
 
 
