@@ -1043,6 +1043,14 @@ body {
    HUD Visual Theme Selector & Multi-Theme Definitions
    ========================================================================== */
 
+/* Decorative Theme HUD Elements - Hidden by default in Modern Slate */
+.pm5-bezel-header,
+.pm5-lcd-statusbar,
+.cyber-corner,
+.cyber-ecg-container {
+  display: none;
+}
+
 /* Theme Selector Grid in Settings Modal */
 .theme-selector-grid {
   display: grid;
@@ -1124,40 +1132,116 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   THEME 1: Neon Cyberpunk / Synthwave
+   THEME 1: Neon Cyberpunk / Synthwave (Faithful to Mockup)
    -------------------------------------------------------------------------- */
 [data-theme="cyberpunk"] {
-  --bg-dark: #060713;
-  --surface-dark: #0b0d1e;
-  --surface-border: rgba(0, 240, 255, 0.25);
-  --pm5-bg: rgba(6, 8, 22, 0.88);
-  --pm5-border: rgba(0, 240, 255, 0.45);
+  --bg-dark: #050711;
+  --surface-dark: #090c1f;
+  --surface-border: rgba(0, 240, 255, 0.3);
+  --pm5-bg: rgba(6, 9, 24, 0.94);
+  --pm5-border: #00f0ff;
   --accent-blue: #00f0ff;
   --accent-emerald: #05ffa1;
   --accent-amber: #ffe600;
   --accent-rose: #ff007f;
   --text-main: #ffffff;
-  --text-muted: #94a3b8;
-  --text-dim: #7075a6;
+  --text-muted: #818cf8;
+  --text-dim: #6366f1;
 }
 
 [data-theme="cyberpunk"] .pm5-metrics-panel {
-  border: 1px solid rgba(0, 240, 255, 0.45);
-  box-shadow: 0 0 25px rgba(0, 240, 255, 0.22), 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(255, 0, 127, 0.09);
+  position: relative;
+  background: linear-gradient(135deg, rgba(6, 9, 26, 0.96) 0%, rgba(12, 16, 42, 0.94) 100%),
+              repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 240, 255, 0.05) 3px, rgba(0, 240, 255, 0.05) 6px);
+  border: 1.5px solid #00f0ff;
+  border-radius: 0;
+  clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px), 0 16px);
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.4), 0 0 60px rgba(0, 240, 255, 0.15), inset 0 0 25px rgba(255, 0, 127, 0.2);
+  padding: 1.25rem 1.5rem;
+}
+
+/* Cyberpunk Corner Crosshair Brackets */
+[data-theme="cyberpunk"] .cyber-corner {
+  display: block;
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  z-index: 5;
+}
+[data-theme="cyberpunk"] .cyber-corner-tl {
+  top: 3px;
+  left: 3px;
+  border-top: 3px solid #ff007f;
+  border-left: 3px solid #ff007f;
+}
+[data-theme="cyberpunk"] .cyber-corner-tr {
+  top: 3px;
+  right: 3px;
+  border-top: 3px solid #00f0ff;
+  border-right: 3px solid #00f0ff;
+}
+[data-theme="cyberpunk"] .cyber-corner-bl {
+  bottom: 3px;
+  left: 3px;
+  border-bottom: 3px solid #00f0ff;
+  border-left: 3px solid #00f0ff;
+}
+[data-theme="cyberpunk"] .cyber-corner-br {
+  bottom: 3px;
+  right: 3px;
+  border-bottom: 3px solid #ff007f;
+  border-right: 3px solid #ff007f;
+}
+
+/* Cyberpunk Typography: Bold Sci-Fi Orbitron */
+[data-theme="cyberpunk"] .pm5-value {
+  font-family: 'Orbitron', monospace, sans-serif !important;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.8), 0 0 22px rgba(0, 240, 255, 0.4);
 }
 
 [data-theme="cyberpunk"] .pm5-cell.highlight .pm5-value {
   color: #00f0ff;
-  text-shadow: 0 0 12px rgba(0, 240, 255, 0.75), 0 0 22px rgba(0, 240, 255, 0.4);
+  text-shadow: 0 0 12px #00f0ff, 0 0 30px rgba(0, 240, 255, 0.8);
 }
 
-[data-theme="cyberpunk"] .pm5-value {
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+[data-theme="cyberpunk"] .pm5-cell-split .pm5-value {
+  color: #ffffff;
+  text-shadow: 0 0 12px #ffffff, 0 0 24px #00f0ff;
+}
+
+[data-theme="cyberpunk"] .pm5-cell-watts .pm5-value {
+  color: #ffe600;
+  text-shadow: 0 0 12px #ffe600, 0 0 20px rgba(255, 230, 0, 0.6);
+}
+
+[data-theme="cyberpunk"] .pm5-cell-hr .pm5-value {
+  color: #ff007f;
+  text-shadow: 0 0 12px #ff007f, 0 0 26px rgba(255, 0, 127, 0.7);
+}
+
+[data-theme="cyberpunk"] .pm5-label {
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #818cf8;
+  text-transform: uppercase;
+}
+
+[data-theme="cyberpunk"] .pm5-unit {
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #00f0ff;
 }
 
 [data-theme="cyberpunk"] .pm5-pulse-dot.pulse {
   background: #00f0ff;
-  box-shadow: 0 0 14px #00f0ff, 0 0 24px rgba(0, 240, 255, 0.6);
+  box-shadow: 0 0 14px #00f0ff, 0 0 28px #00f0ff;
 }
 
 [data-theme="cyberpunk"] .pm5-heart-icon {
@@ -1165,38 +1249,83 @@ body {
   filter: drop-shadow(0 0 8px #ff007f);
 }
 
+/* Animated ECG Pulse Waveform in Heart Rate Cell */
+[data-theme="cyberpunk"] .cyber-ecg-container {
+  display: block;
+  width: 100%;
+  height: 20px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+[data-theme="cyberpunk"] .cyber-ecg-svg {
+  width: 100%;
+  height: 100%;
+}
+
+[data-theme="cyberpunk"] .cyber-ecg-path {
+  fill: none;
+  stroke: #ff007f;
+  stroke-width: 2.2;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: cyberEcgPulse 1.8s infinite linear;
+  filter: drop-shadow(0 0 5px #ff007f);
+}
+
+@keyframes cyberEcgPulse {
+  0% { stroke-dashoffset: 200; opacity: 0.4; }
+  50% { stroke-dashoffset: 100; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0.4; }
+}
+
 [data-theme="cyberpunk"] .speed-badge {
-  background: rgba(5, 255, 161, 0.15);
+  font-family: 'Orbitron', sans-serif !important;
+  font-weight: 800;
+  border-radius: 0;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  background: rgba(5, 255, 161, 0.18);
   color: #05ffa1;
-  border-color: rgba(5, 255, 161, 0.5);
-  box-shadow: 0 0 18px rgba(5, 255, 161, 0.35);
+  border: 1px solid #05ffa1;
+  box-shadow: 0 0 20px rgba(5, 255, 161, 0.45);
 }
 
 [data-theme="cyberpunk"] .speed-badge.high {
-  background: rgba(0, 240, 255, 0.2);
+  background: rgba(0, 240, 255, 0.22);
   color: #00f0ff;
-  border-color: rgba(0, 240, 255, 0.6);
-  box-shadow: 0 0 18px rgba(0, 240, 255, 0.4);
+  border-color: #00f0ff;
+  box-shadow: 0 0 22px rgba(0, 240, 255, 0.55);
 }
 
-[data-theme="cyberpunk"] .speed-badge.low {
-  background: rgba(255, 230, 0, 0.15);
-  color: #ffe600;
-  border-color: rgba(255, 230, 0, 0.5);
-  box-shadow: 0 0 18px rgba(255, 230, 0, 0.3);
+[data-theme="cyberpunk"] .hud-info-badge {
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 0.75rem;
+  border-radius: 0;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  border-color: rgba(0, 240, 255, 0.4);
+  background: rgba(6, 9, 24, 0.85);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
 }
 
 [data-theme="cyberpunk"] .cockpit-track-bar {
-  border-color: rgba(0, 240, 255, 0.25);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(0, 240, 255, 0.05);
+  border-radius: 0;
+  clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  background: rgba(6, 9, 24, 0.88);
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.15), inset 0 0 15px rgba(255, 0, 127, 0.08);
 }
 
-[data-theme="cyberpunk"] .app-header {
-  border-bottom: 1px solid rgba(0, 240, 255, 0.25);
+[data-theme="cyberpunk"] .track-scrubber {
+  accent-color: #00f0ff;
+}
+
+[data-theme="cyberpunk"] .track-time-readout {
+  font-family: 'Orbitron', monospace;
+  color: #00f0ff;
 }
 
 /* --------------------------------------------------------------------------
-   THEME 2: Retro Concept2 PM5 Monochrome LCD
+   THEME 2: Retro Concept2 PM5 Monochrome LCD (Compact Sleek HUD)
    -------------------------------------------------------------------------- */
 [data-theme="retro-pm5"] {
   --bg-dark: #121619;
@@ -1215,8 +1344,8 @@ body {
 
 [data-theme="retro-pm5"] .pm5-metrics-panel {
   background: #19241b;
-  border: 3px solid #28332a;
-  border-radius: 4px;
+  border: 2px solid #28332a;
+  border-radius: 6px;
   box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.85), 0 8px 24px rgba(0, 0, 0, 0.7);
   outline: 1px solid #101511;
 }
@@ -1238,7 +1367,9 @@ body {
 [data-theme="retro-pm5"] .pm5-value {
   color: #b8f572;
   text-shadow: 0 0 5px rgba(184, 245, 114, 0.45);
-  font-family: var(--font-mono);
+  font-family: 'VT323', 'Share Tech Mono', monospace !important;
+  font-size: 2.6rem;
+  line-height: 1;
 }
 
 [data-theme="retro-pm5"] .pm5-cell.highlight .pm5-value {
@@ -1260,7 +1391,8 @@ body {
   color: #b8f572;
   border: 1px solid #48614a;
   box-shadow: none;
-  border-radius: 3px;
+  border-radius: 4px;
+  font-family: 'Share Tech Mono', monospace;
 }
 
 [data-theme="retro-pm5"] .speed-badge.high {
@@ -1274,18 +1406,41 @@ body {
 [data-theme="retro-pm5"] .cockpit-track-bar {
   background: #192024;
   border-color: #2c383f;
-  border-radius: 4px;
+  border-radius: 6px;
+}
+
+[data-theme="retro-pm5"] .track-btn {
+  background: #22282e;
+  border: 1px solid #343e47;
+  color: #cbd5e1;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  border-radius: 3px;
+}
+
+[data-theme="retro-pm5"] .track-btn:hover {
+  background: #2d353d;
+  color: #ffffff;
+}
+
+[data-theme="retro-pm5"] .track-scrubber {
+  accent-color: #b4f766;
+}
+
+[data-theme="retro-pm5"] .track-time-readout {
+  font-family: 'Share Tech Mono', monospace;
+  color: #b4f766;
 }
 
 /* --------------------------------------------------------------------------
-   THEME 3: Nordic Minimalist Frosted Glass
+   THEME 3: Nordic Minimalist Frosted Glass (Faithful to Mockup)
    -------------------------------------------------------------------------- */
 [data-theme="nordic"] {
   --bg-dark: #0b0f17;
-  --surface-dark: rgba(255, 255, 255, 0.05);
-  --surface-border: rgba(255, 255, 255, 0.12);
-  --pm5-bg: rgba(255, 255, 255, 0.08);
-  --pm5-border: rgba(255, 255, 255, 0.2);
+  --surface-dark: rgba(255, 255, 255, 0.06);
+  --surface-border: rgba(255, 255, 255, 0.15);
+  --pm5-bg: transparent;
+  --pm5-border: transparent;
   --accent-blue: #7dd3fc;
   --accent-emerald: #34d399;
   --accent-amber: #f6ad55;
@@ -1295,61 +1450,164 @@ body {
   --text-dim: #94a3b8;
 }
 
+/* Floating Translucent Pill Cards Container */
 [data-theme="nordic"] .pm5-metrics-panel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+[data-theme="nordic"] .pm5-grid {
+  display: flex !important;
+  gap: 0.85rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Individual Floating Frosted Glass Cards */
+[data-theme="nordic"] .pm5-cell {
+  flex: 1;
+  min-width: 145px;
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
   border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 16px;
-  box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 1rem 1.15rem;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
 }
 
-[data-theme="nordic"] .pm5-cell:not(:last-child)::after {
-  background: rgba(255, 255, 255, 0.1);
+[data-theme="nordic"] .pm5-cell:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
+[data-theme="nordic"] .pm5-cell::after {
+  display: none !important;
+}
+
+/* Scandinavian Airy Typography */
 [data-theme="nordic"] .pm5-value {
+  font-family: 'Outfit', -apple-system, sans-serif !important;
+  font-weight: 300;
+  font-size: 2.35rem;
+  letter-spacing: -0.03em;
   color: #ffffff;
-  font-weight: 600;
-  letter-spacing: -0.02em;
 }
 
+[data-theme="nordic"] .pm5-label {
+  font-family: 'Outfit', sans-serif !important;
+  font-weight: 500;
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+}
+
+[data-theme="nordic"] .pm5-unit {
+  font-family: 'Outfit', sans-serif !important;
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+/* Delicate Accent Card Borders */
+[data-theme="nordic"] .pm5-cell-split {
+  border-color: rgba(246, 173, 85, 0.38);
+}
+[data-theme="nordic"] .pm5-cell-split .pm5-unit {
+  color: #f6ad55;
+  font-weight: 600;
+}
+
+[data-theme="nordic"] .pm5-cell.highlight {
+  border-color: rgba(125, 211, 252, 0.4);
+}
 [data-theme="nordic"] .pm5-cell.highlight .pm5-value {
   color: #7dd3fc;
 }
 
-[data-theme="nordic"] .pm5-pulse-dot.pulse {
-  background: #7dd3fc;
-  box-shadow: 0 0 10px rgba(125, 211, 252, 0.6);
+[data-theme="nordic"] .pm5-cell-hr {
+  border-color: rgba(251, 113, 133, 0.35);
+}
+[data-theme="nordic"] .pm5-cell-hr .pm5-heart-icon {
+  color: #fb7185;
 }
 
+[data-theme="nordic"] .pm5-pulse-dot.pulse {
+  background: #7dd3fc;
+  box-shadow: 0 0 10px rgba(125, 211, 252, 0.8);
+}
+
+/* Rounded Pill Badges */
 [data-theme="nordic"] .speed-badge {
-  border-radius: 20px;
+  border-radius: 24px;
+  padding: 0.4rem 0.95rem;
   background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  font-family: 'Outfit', sans-serif !important;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="nordic"] .speed-badge.high {
-  background: rgba(125, 211, 252, 0.2);
+  background: rgba(125, 211, 252, 0.22);
   color: #bae6fd;
-  border-color: rgba(125, 211, 252, 0.4);
+  border-color: rgba(125, 211, 252, 0.45);
 }
 
 [data-theme="nordic"] .speed-badge.low {
-  background: rgba(246, 173, 85, 0.2);
+  background: rgba(246, 173, 85, 0.22);
   color: #fed7aa;
-  border-color: rgba(246, 173, 85, 0.4);
+  border-color: rgba(246, 173, 85, 0.45);
 }
 
 [data-theme="nordic"] .hud-info-badge,
-[data-theme="nordic"] .hud-icon-btn,
-[data-theme="nordic"] .cockpit-track-bar {
-  border-radius: 12px;
+[data-theme="nordic"] .hud-icon-btn {
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px);
-  border-color: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-family: 'Outfit', sans-serif;
 }
+
+[data-theme="nordic"] .cockpit-track-bar {
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="nordic"] .track-btn {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: 'Outfit', sans-serif;
+}
+
+[data-theme="nordic"] .track-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="nordic"] .track-scrubber {
+  accent-color: #7dd3fc;
+}
+
+[data-theme="nordic"] .track-time-readout {
+  font-family: 'Outfit', sans-serif;
+  color: #cbd5e1;
+}
+
 

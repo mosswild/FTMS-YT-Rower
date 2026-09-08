@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTMS Rower | Scenic Dashboard & Telemetry HUD</title>
-  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <!-- Google Fonts: Inter, JetBrains Mono, Orbitron, Outfit, Share Tech Mono, VT323 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/pm5-hud.css">
   <script>
     (function() {
@@ -101,9 +101,15 @@
 
         <!-- PM5 High-Contrast Bottom Metrics Grid -->
         <div class="pm5-metrics-panel">
+          <!-- Cyberpunk Corner Accents -->
+          <div class="cyber-corner cyber-corner-tl"></div>
+          <div class="cyber-corner cyber-corner-tr"></div>
+          <div class="cyber-corner cyber-corner-bl"></div>
+          <div class="cyber-corner cyber-corner-br"></div>
+
           <div class="pm5-grid">
             <!-- Cell 1: Stroke Rate -->
-            <div class="pm5-cell highlight">
+            <div class="pm5-cell highlight pm5-cell-spm">
               <div class="pm5-cell-header">
                 <span class="pm5-label">Stroke Rate</span>
                 <span id="hud-spm-pulse" class="pm5-pulse-dot"></span>
@@ -113,7 +119,7 @@
             </div>
 
             <!-- Cell 2: /500m Split -->
-            <div class="pm5-cell">
+            <div class="pm5-cell pm5-cell-split">
               <div class="pm5-cell-header">
                 <span class="pm5-label">Split Pace</span>
                 <span class="pm5-unit">/500m</span>
@@ -122,7 +128,7 @@
             </div>
 
             <!-- Cell 3: Power -->
-            <div class="pm5-cell">
+            <div class="pm5-cell pm5-cell-watts">
               <div class="pm5-cell-header">
                 <span class="pm5-label">Power</span>
                 <span class="pm5-unit">watts</span>
@@ -131,7 +137,7 @@
             </div>
 
             <!-- Cell 4: Distance -->
-            <div class="pm5-cell">
+            <div class="pm5-cell pm5-cell-distance">
               <div class="pm5-cell-header">
                 <span class="pm5-label">Distance</span>
                 <span class="pm5-unit">meters</span>
@@ -140,7 +146,7 @@
             </div>
 
             <!-- Cell 5: Elapsed Time -->
-            <div class="pm5-cell">
+            <div class="pm5-cell pm5-cell-time">
               <div class="pm5-cell-header">
                 <span class="pm5-label">Elapsed Time</span>
                 <span class="pm5-unit">time</span>
@@ -149,13 +155,19 @@
             </div>
 
             <!-- Cell 6: Heart Rate -->
-            <div class="pm5-cell">
+            <div class="pm5-cell pm5-cell-hr">
               <div class="pm5-cell-header">
                 <span class="pm5-label">Heart Rate</span>
                 <svg id="hud-hr-icon" class="pm5-heart-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
               </div>
               <div class="pm5-value" id="hud-hr">--</div>
               <span class="pm5-unit">bpm</span>
+              <!-- Cyberpunk ECG Pulse Waveform -->
+              <div class="cyber-ecg-container">
+                <svg class="cyber-ecg-svg" viewBox="0 0 100 24" preserveAspectRatio="none">
+                  <path class="cyber-ecg-path" d="M0,12 L30,12 L35,3 L42,21 L48,7 L54,17 L58,12 L100,12"/>
+                </svg>
+              </div>
             </div>
           </div>
         </div>
@@ -180,7 +192,10 @@
       <div class="control-group">
         <button id="btn-connect-rower" class="btn btn-primary">Connect FTMS Rower</button>
         <button id="btn-connect-hr" class="btn btn-secondary">Connect HR Strap</button>
-        <button id="btn-toggle-sim" class="btn btn-secondary">Start Simulator</button>
+        <button id="btn-open-sim-panel" class="btn btn-secondary" title="Open Virtual Simulator Panel">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Simulator
+        </button>
       </div>
 
       <div class="control-group">
@@ -199,9 +214,9 @@
       </div>
     </div>
 
-    <!-- Simulator Interactive Controls & Dynamic Program Bar -->
-    <div class="sim-controls-bar">
-      <span style="font-weight: 600; color: var(--text-dim);">Simulator:</span>
+    <!-- Simulator Interactive Controls & Dynamic Program Bar (Collapsible) -->
+    <div id="sim-controls-bar" class="sim-controls-bar" style="display: none;">
+      <button id="btn-toggle-sim" class="btn btn-primary btn-sm">Start Simulator</button>
       <button id="btn-toggle-sim-mode" class="btn btn-secondary btn-sm">Mode: Dynamic Program</button>
       <span id="sim-phase-badge" class="sim-phase-badge">Phase: Cruise (22 SPM)</span>
       <button id="btn-sim-pause-rowing" class="btn btn-secondary btn-sm" title="Test Auto-Pause watchdog">Pause Pulling</button>
@@ -210,6 +225,7 @@
         <input type="range" id="sim-spm-range" min="14" max="38" value="22" style="flex:1; accent-color: var(--accent-blue);">
         <span style="font-family: var(--font-mono); color: var(--accent-blue);"><strong id="sim-spm-val">22</strong> SPM</span>
       </div>
+      <button id="btn-close-sim-panel" class="hud-icon-btn" style="width: 28px; height: 28px; margin-left: auto; border-radius: 4px;" title="Hide Simulator Controls">&times;</button>
     </div>
   </main>
 

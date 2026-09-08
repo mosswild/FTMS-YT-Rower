@@ -994,19 +994,44 @@ document.getElementById("btn-connect-hr").addEventListener("click", async () => 
 });
 
 // ----------------- Virtual Rower Simulator Controls -----------------
+const btnOpenSimPanel = document.getElementById("btn-open-sim-panel");
+const simControlsBar = document.getElementById("sim-controls-bar");
+const btnCloseSimPanel = document.getElementById("btn-close-sim-panel");
+
+if (btnOpenSimPanel && simControlsBar) {
+  btnOpenSimPanel.addEventListener("click", () => {
+    const isClosed = simControlsBar.style.display === "none";
+    simControlsBar.style.display = isClosed ? "flex" : "none";
+    btnOpenSimPanel.classList.toggle("active", isClosed);
+  });
+}
+
+if (btnCloseSimPanel && simControlsBar) {
+  btnCloseSimPanel.addEventListener("click", () => {
+    simControlsBar.style.display = "none";
+    if (btnOpenSimPanel) btnOpenSimPanel.classList.remove("active");
+  });
+}
+
 if (simBtn) {
   simBtn.addEventListener("click", () => {
     if (simulator.isRunning) {
       simulator.stop();
       simBtn.textContent = "Start Simulator";
-      simBtn.className = "btn btn-secondary";
+      simBtn.className = "btn btn-primary btn-sm";
+      if (btnOpenSimPanel) {
+        btnOpenSimPanel.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Simulator';
+      }
       updateRowerStatus(false, "Simulator Stopped");
       if (videoEl) videoEl.pause();
       audioEngine.pause();
     } else {
       simulator.start();
       simBtn.textContent = "Stop Simulator";
-      simBtn.className = "btn btn-primary";
+      simBtn.className = "btn btn-secondary btn-sm";
+      if (btnOpenSimPanel) {
+        btnOpenSimPanel.innerHTML = '<span class="status-dot online" style="margin-right: 6px;"></span>Sim Running';
+      }
       updateRowerStatus(true, `Sim: ${simulator.mode === "dynamic" ? "Dynamic Program" : "Manual"}`);
 
       if (!videoEl.src || videoEl.src === "" || videoEl.src.endsWith("/")) {
