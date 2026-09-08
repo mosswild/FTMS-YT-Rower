@@ -1138,7 +1138,7 @@ body {
   --bg-dark: #050711;
   --surface-dark: #090c1f;
   --surface-border: rgba(0, 240, 255, 0.3);
-  --pm5-bg: rgba(6, 9, 24, 0.94);
+  --pm5-bg: rgba(6, 9, 24, 0.45);
   --pm5-border: #00f0ff;
   --accent-blue: #00f0ff;
   --accent-emerald: #05ffa1;
@@ -1151,12 +1151,14 @@ body {
 
 [data-theme="cyberpunk"] .pm5-metrics-panel {
   position: relative;
-  background: linear-gradient(135deg, rgba(6, 9, 26, 0.96) 0%, rgba(12, 16, 42, 0.94) 100%),
-              repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 240, 255, 0.05) 3px, rgba(0, 240, 255, 0.05) 6px);
-  border: 1.5px solid #00f0ff;
+  background: linear-gradient(135deg, rgba(6, 9, 26, 0.45) 0%, rgba(12, 16, 42, 0.40) 100%),
+              repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 240, 255, 0.04) 3px, rgba(0, 240, 255, 0.04) 6px);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1.5px solid rgba(0, 240, 255, 0.7);
   border-radius: 0;
   clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px), 0 16px);
-  box-shadow: 0 0 25px rgba(0, 240, 255, 0.4), 0 0 60px rgba(0, 240, 255, 0.15), inset 0 0 25px rgba(255, 0, 127, 0.2);
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.35), 0 0 60px rgba(0, 240, 255, 0.12), inset 0 0 25px rgba(255, 0, 127, 0.15);
   padding: 1.25rem 1.5rem;
 }
 
@@ -1302,16 +1304,20 @@ body {
   font-size: 0.75rem;
   border-radius: 0;
   clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
-  border-color: rgba(0, 240, 255, 0.4);
-  background: rgba(6, 9, 24, 0.85);
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+  border-color: rgba(0, 240, 255, 0.45);
+  background: rgba(6, 9, 24, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
 }
 
 [data-theme="cyberpunk"] .cockpit-track-bar {
   border-radius: 0;
   clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
-  border: 1px solid rgba(0, 240, 255, 0.4);
-  background: rgba(6, 9, 24, 0.88);
+  border: 1px solid rgba(0, 240, 255, 0.45);
+  background: rgba(6, 9, 24, 0.45);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   box-shadow: 0 0 25px rgba(0, 240, 255, 0.15), inset 0 0 15px rgba(255, 0, 127, 0.08);
 }
 
