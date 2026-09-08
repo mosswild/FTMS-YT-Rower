@@ -1337,7 +1337,7 @@ body {
   --bg-dark: #121619;
   --surface-dark: #192024;
   --surface-border: #2c383f;
-  --pm5-bg: #1c271e;
+  --pm5-bg: rgba(25, 36, 27, 0.48);
   --pm5-border: #364839;
   --accent-blue: #a3e635;
   --accent-emerald: #84cc16;
@@ -1349,11 +1349,13 @@ body {
 }
 
 [data-theme="retro-pm5"] .pm5-metrics-panel {
-  background: #19241b;
-  border: 2px solid #28332a;
+  background: rgba(22, 33, 24, 0.48);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 2px solid rgba(54, 72, 57, 0.7);
   border-radius: 6px;
-  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.85), 0 8px 24px rgba(0, 0, 0, 0.7);
-  outline: 1px solid #101511;
+  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.65), 0 8px 24px rgba(0, 0, 0, 0.5);
+  outline: 1px solid rgba(16, 21, 17, 0.5);
 }
 
 [data-theme="retro-pm5"] .pm5-cell:not(:last-child)::after {
@@ -1393,16 +1395,18 @@ body {
 }
 
 [data-theme="retro-pm5"] .speed-badge {
-  background: #253327;
+  background: rgba(37, 51, 39, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #b8f572;
-  border: 1px solid #48614a;
+  border: 1px solid rgba(72, 97, 74, 0.7);
   box-shadow: none;
   border-radius: 4px;
   font-family: 'Share Tech Mono', monospace;
 }
 
 [data-theme="retro-pm5"] .speed-badge.high {
-  background: #2b3d2e;
+  background: rgba(43, 61, 46, 0.65);
   color: #d9f99d;
   border-color: #5c7c5f;
 }
@@ -1410,8 +1414,10 @@ body {
 [data-theme="retro-pm5"] .hud-info-badge,
 [data-theme="retro-pm5"] .hud-icon-btn,
 [data-theme="retro-pm5"] .cockpit-track-bar {
-  background: #192024;
-  border-color: #2c383f;
+  background: rgba(25, 32, 36, 0.48);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px solid rgba(44, 56, 63, 0.6);
   border-radius: 6px;
 }
 
