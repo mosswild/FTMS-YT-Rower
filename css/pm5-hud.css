@@ -1776,37 +1776,39 @@ body[data-theme="nordic"],
   flex-wrap: wrap;
 }
 
-/* Individual Floating Bright Frosted Glass Cards */
+/* Individual Floating Transparent Frosted Glass Cards */
 [data-theme="nordic"] .pm5-cell {
   flex: 1;
   min-width: 145px;
-  background: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(28px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.95) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.12) 100%) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
   border-radius: 20px !important;
   padding: 1rem 1.15rem !important;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.12), inset 0 1px 0 #ffffff !important;
-  transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.65) !important;
+  transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
 }
 
 [data-theme="nordic"] .pm5-cell:hover {
   transform: translateY(-3px) !important;
-  background: rgba(255, 255, 255, 0.94) !important;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16), inset 0 1px 0 #ffffff !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.18) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25), inset 0 1px 0 #ffffff !important;
 }
 
 [data-theme="nordic"] .pm5-cell::after {
   display: none !important;
 }
 
-/* Scandinavian Airy Typography */
+/* Scandinavian Airy Cockpit HUD Typography */
 [data-theme="nordic"] .pm5-value {
   font-family: 'Outfit', -apple-system, sans-serif !important;
   font-weight: 500 !important;
   font-size: 2.35rem !important;
   letter-spacing: -0.03em !important;
-  color: #0f172a !important;
+  color: #ffffff !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45) !important;
 }
 
 [data-theme="nordic"] .pm5-label {
@@ -1815,97 +1817,110 @@ body[data-theme="nordic"],
   font-size: 0.72rem !important;
   letter-spacing: 0.08em !important;
   text-transform: uppercase !important;
-  color: #64748b !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
 }
 
 [data-theme="nordic"] .pm5-unit {
   font-family: 'Outfit', sans-serif !important;
   font-weight: 500 !important;
   font-size: 0.72rem !important;
-  color: #64748b !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35) !important;
 }
 
 /* Delicate Accent Card Highlights */
 [data-theme="nordic"] .pm5-cell-split {
-  border-color: rgba(217, 119, 6, 0.45) !important;
-  background: rgba(255, 251, 235, 0.9) !important;
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.32) 0%, rgba(254, 243, 199, 0.15) 100%) !important;
+  border-color: rgba(251, 191, 36, 0.65) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(254, 240, 138, 0.5) !important;
 }
 [data-theme="nordic"] .pm5-cell-split .pm5-value {
-  color: #b45309 !important;
+  color: #fef08a !important;
+  text-shadow: 0 0 16px rgba(245, 158, 11, 0.45), 0 2px 6px rgba(0, 0, 0, 0.5) !important;
 }
 [data-theme="nordic"] .pm5-cell-split .pm5-unit {
-  color: #d97706 !important;
+  color: #fde047 !important;
   font-weight: 700 !important;
 }
 
 [data-theme="nordic"] .pm5-cell.highlight {
-  border-color: rgba(2, 132, 199, 0.5) !important;
-  background: rgba(240, 249, 255, 0.9) !important;
+  background: linear-gradient(135deg, rgba(224, 242, 254, 0.32) 0%, rgba(224, 242, 254, 0.15) 100%) !important;
+  border-color: rgba(56, 189, 248, 0.65) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(186, 230, 253, 0.5) !important;
 }
 [data-theme="nordic"] .pm5-cell.highlight .pm5-value {
-  color: #0284c7 !important;
+  color: #bae6fd !important;
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.45), 0 2px 6px rgba(0, 0, 0, 0.5) !important;
 }
 
 [data-theme="nordic"] .pm5-cell-hr {
-  border-color: rgba(225, 29, 72, 0.4) !important;
-  background: rgba(255, 241, 242, 0.9) !important;
+  background: linear-gradient(135deg, rgba(255, 228, 230, 0.32) 0%, rgba(255, 228, 230, 0.15) 100%) !important;
+  border-color: rgba(251, 113, 133, 0.6) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(254, 205, 211, 0.5) !important;
 }
 [data-theme="nordic"] .pm5-cell-hr .pm5-heart-icon {
-  color: #e11d48 !important;
+  color: #fb7185 !important;
 }
 
 [data-theme="nordic"] .pm5-pulse-dot.pulse {
-  background: #0284c7 !important;
-  box-shadow: 0 0 10px rgba(2, 132, 199, 0.6) !important;
+  background: #38bdf8 !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.8) !important;
 }
 
 /* Cockpit Viewport Badges */
 [data-theme="nordic"] .speed-badge {
   border-radius: 24px;
   padding: 0.4rem 0.95rem;
-  background: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(20px);
-  color: #0f172a !important;
-  border: 1px solid rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.25) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.5);
   font-family: 'Outfit', sans-serif !important;
   font-weight: 600;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
 [data-theme="nordic"] .speed-badge.high {
-  background: rgba(224, 242, 254, 0.92) !important;
-  color: #0284c7 !important;
-  border-color: #bae6fd;
+  background: rgba(56, 189, 248, 0.3) !important;
+  color: #bae6fd !important;
+  border-color: rgba(56, 189, 248, 0.6);
 }
 
 [data-theme="nordic"] .speed-badge.low {
-  background: rgba(254, 243, 199, 0.92) !important;
-  color: #b45309 !important;
-  border-color: #fde68a;
+  background: rgba(245, 158, 11, 0.3) !important;
+  color: #fde047 !important;
+  border-color: rgba(245, 158, 11, 0.6);
 }
 
 [data-theme="nordic"] .hud-info-badge {
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  color: #334155 !important;
+  background: rgba(255, 255, 255, 0.25) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #ffffff !important;
   font-family: 'Outfit', sans-serif;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="nordic"] .pm5-hud-overlay .hud-icon-btn {
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  color: #334155 !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.25) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="nordic"] .pm5-hud-overlay .hud-icon-btn:hover {
-  background: #ffffff !important;
-  color: #0284c7 !important;
+  background: rgba(255, 255, 255, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  color: #ffffff !important;
 }
 
 [data-theme="nordic"] .hud-center-alert {
