@@ -70,8 +70,8 @@ Following the standard LinuxServer/self-hosting container pattern, persistent da
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/manuelkamp/FTMS-rower.git
-cd FTMS-rower
+git clone https://github.com/mosswild/FTMS-YT-Rower.git
+cd FTMS-YT-Rower
 
 # 2. Build and launch container
 docker compose up -d
@@ -98,8 +98,8 @@ To run on a different port (e.g. `9000`):
 ### Option B: Local Python Setup
 ```bash
 # Clone the repository
-git clone https://github.com/manuelkamp/FTMS-rower.git
-cd FTMS-rower
+git clone https://github.com/mosswild/FTMS-YT-Rower.git
+cd FTMS-YT-Rower
 
 # Create and activate virtual environment
 python3 -m venv .venv
