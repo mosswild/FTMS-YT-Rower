@@ -18,15 +18,41 @@ os.makedirs(AUDIO_DIR, exist_ok=True)
 # In-memory download task tracker
 # task_id -> { id, url, type, status, progress, speed, eta, title, error, file_id }
 DOWNLOAD_TASKS: Dict[str, Dict[str, Any]] = {}
+CANCELLATION_EVENTS: Dict[str, threading.Event] = {}
 
 def get_ffmpeg_path() -> Optional[str]:
     return shutil.which("ffmpeg") or "/usr/local/bin/ffmpeg"
 
+def cleanup_partial_files_by_id(file_id: Optional[str]):
+    """Clean up any full or partial downloaded files matching file_id."""
+    if not file_id:
+        return
+    for folder in [VIDEOS_DIR, AUDIO_DIR]:
+        if not os.path.exists(folder):
+            continue
+        for fname in os.listdir(folder):
+            if fname.startswith(f"{file_id}."):
+                try:
+                    p = os.path.join(folder, fname)
+                    if os.path.isfile(p):
+                        os.remove(p)
+                except Exception as ex:
+                    print(f"[Downloader] Error removing partial file {fname}: {ex}")
+
+def cleanup_task_files(task: Optional[Dict[str, Any]]):
+    if task and task.get("file_id"):
+        cleanup_partial_files_by_id(task["file_id"])
+
 def parse_progress_hook(task_id: str):
     def hook(d):
+        cancel_event = CANCELLATION_EVENTS.get(task_id)
+        if cancel_event and cancel_event.is_set():
+            raise yt_dlp.utils.DownloadCancelled("Download cancelled by user")
+
         task = DOWNLOAD_TASKS.get(task_id)
         if not task:
-            return
+            # Task removed from queue while downloading -> abort immediately
+            raise yt_dlp.utils.DownloadCancelled("Task removed from queue")
 
         status = d.get("status")
         if status == "downloading":
@@ -46,11 +72,18 @@ def parse_progress_hook(task_id: str):
     return hook
 
 def run_download_worker(task_id: str, url: str, dl_type: str):
-    task = DOWNLOAD_TASKS[task_id]
+    task = DOWNLOAD_TASKS.get(task_id)
+    if not task:
+        return
     ffmpeg_path = get_ffmpeg_path()
+    video_id = None
     
     try:
         task["status"] = "extracting_metadata"
+        cancel_event = CANCELLATION_EVENTS.get(task_id)
+        if cancel_event and cancel_event.is_set():
+            raise yt_dlp.utils.DownloadCancelled("Download cancelled by user")
+
         # Extract info first
         with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True}) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -58,11 +91,24 @@ def run_download_worker(task_id: str, url: str, dl_type: str):
             title = info.get("title", "Unknown Title")
             duration = info.get("duration", 0)
             thumbnail = info.get("thumbnail", "")
+
+            if cancel_event and cancel_event.is_set():
+                raise yt_dlp.utils.DownloadCancelled("Download cancelled by user")
+
+            task = DOWNLOAD_TASKS.get(task_id)
+            if not task:
+                raise yt_dlp.utils.DownloadCancelled("Task removed from queue")
+
             task["title"] = title
             task["file_id"] = video_id
 
         # Download Video if requested (type == "video" or "both")
         if dl_type in ("video", "both"):
+            if cancel_event and cancel_event.is_set():
+                raise yt_dlp.utils.DownloadCancelled("Download cancelled by user")
+            if task_id not in DOWNLOAD_TASKS:
+                raise yt_dlp.utils.DownloadCancelled("Task removed from queue")
+
             task["status"] = "downloading_video"
             video_opts = {
                 "format": "bestvideo[vcodec^=avc1][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
@@ -75,6 +121,9 @@ def run_download_worker(task_id: str, url: str, dl_type: str):
             }
             with yt_dlp.YoutubeDL(video_opts) as ydl:
                 ydl.download([url])
+
+            if cancel_event and cancel_event.is_set():
+                raise yt_dlp.utils.DownloadCancelled("Download cancelled by user")
 
             # Save video metadata
             meta_path = os.path.join(VIDEOS_DIR, f"{video_id}.json")
@@ -93,6 +142,11 @@ def run_download_worker(task_id: str, url: str, dl_type: str):
 
         # Download Standalone Audio if requested (type == "audio" or "both")
         if dl_type in ("audio", "both"):
+            if cancel_event and cancel_event.is_set():
+                raise yt_dlp.utils.DownloadCancelled("Download cancelled by user")
+            if task_id not in DOWNLOAD_TASKS:
+                raise yt_dlp.utils.DownloadCancelled("Task removed from queue")
+
             task["status"] = "downloading_audio"
             audio_opts = {
                 "format": "bestaudio/best",
@@ -110,6 +164,9 @@ def run_download_worker(task_id: str, url: str, dl_type: str):
             with yt_dlp.YoutubeDL(audio_opts) as ydl:
                 ydl.download([url])
 
+            if cancel_event and cancel_event.is_set():
+                raise yt_dlp.utils.DownloadCancelled("Download cancelled by user")
+
             # Save audio metadata
             meta_path = os.path.join(AUDIO_DIR, f"{video_id}.json")
             audio_file = os.path.join(AUDIO_DIR, f"{video_id}.m4a")
@@ -125,15 +182,34 @@ def run_download_worker(task_id: str, url: str, dl_type: str):
             with open(meta_path, "w") as f:
                 json.dump(meta, f, indent=2)
 
-        task["status"] = "completed"
-        task["progress"] = 100.0
+        task = DOWNLOAD_TASKS.get(task_id)
+        if task:
+            task["status"] = "completed"
+            task["progress"] = 100.0
 
     except Exception as e:
-        task["status"] = "error"
-        task["error"] = str(e)
+        cancel_event = CANCELLATION_EVENTS.get(task_id)
+        is_cancelled = (
+            (cancel_event and cancel_event.is_set())
+            or isinstance(e, yt_dlp.utils.DownloadCancelled)
+            or "cancelled" in str(e).lower()
+            or "removed from queue" in str(e).lower()
+        )
+        task = DOWNLOAD_TASKS.get(task_id)
+        if task:
+            if is_cancelled:
+                task["status"] = "cancelled"
+                task["error"] = "Download cancelled by user"
+            else:
+                task["status"] = "error"
+                task["error"] = str(e)
+            cleanup_task_files(task)
+        else:
+            cleanup_partial_files_by_id(video_id)
 
 def start_download_task(url: str, dl_type: str = "both") -> str:
     task_id = str(uuid.uuid4())
+    CANCELLATION_EVENTS[task_id] = threading.Event()
     DOWNLOAD_TASKS[task_id] = {
         "task_id": task_id,
         "url": url,
@@ -149,6 +225,52 @@ def start_download_task(url: str, dl_type: str = "both") -> str:
     thread = threading.Thread(target=run_download_worker, args=(task_id, url, dl_type), daemon=True)
     thread.start()
     return task_id
+
+def cancel_download_task(task_id: str, delete_from_queue: bool = False) -> bool:
+    """Cancel an in-progress download task and optionally remove it from queue."""
+    cancel_event = CANCELLATION_EVENTS.get(task_id)
+    if cancel_event:
+        cancel_event.set()
+
+    task = DOWNLOAD_TASKS.get(task_id)
+    if not task:
+        return False
+
+    if task.get("status") not in ("completed", "error", "cancelled"):
+        task["status"] = "cancelled"
+        task["error"] = "Download cancelled by user"
+
+    if delete_from_queue:
+        cleanup_task_files(task)
+        DOWNLOAD_TASKS.pop(task_id, None)
+        CANCELLATION_EVENTS.pop(task_id, None)
+    return True
+
+def delete_download_task(task_id: str) -> bool:
+    """Cancel if running, clean up any partial files, and delete from queue."""
+    cancel_event = CANCELLATION_EVENTS.get(task_id)
+    if cancel_event:
+        cancel_event.set()
+
+    task = DOWNLOAD_TASKS.pop(task_id, None)
+    CANCELLATION_EVENTS.pop(task_id, None)
+    if task:
+        cleanup_task_files(task)
+        return True
+    return False
+
+def clear_inactive_tasks() -> int:
+    """Remove all completed, error, or cancelled tasks from queue."""
+    to_remove = [
+        tid for tid, t in DOWNLOAD_TASKS.items()
+        if t.get("status") in ("completed", "error", "cancelled")
+    ]
+    for tid in to_remove:
+        task = DOWNLOAD_TASKS.pop(tid, None)
+        CANCELLATION_EVENTS.pop(tid, None)
+        if task and task.get("status") in ("error", "cancelled"):
+            cleanup_task_files(task)
+    return len(to_remove)
 
 def get_download_tasks() -> List[Dict[str, Any]]:
     return list(DOWNLOAD_TASKS.values())

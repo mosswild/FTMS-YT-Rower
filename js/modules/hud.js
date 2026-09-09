@@ -93,14 +93,14 @@ export class PM5Hud {
     }
   }
 
-  setAudioMode(mode) {
+  setAudioMode(mode, customTitle) {
     if (this.elements.audioBadge) {
       const modeLabels = {
         original: "Audio: Original 1.0×",
-        custom: "Audio: Custom Track 1.0×",
+        custom: customTitle ? `Audio: ${customTitle}` : "Audio: Custom Track 1.0×",
         mute: "Audio: Muted",
       };
-      this.elements.audioBadge.textContent = modeLabels[mode] || "Audio 1.0×";
+      this.elements.audioBadge.textContent = modeLabels[mode] || (customTitle ? `Audio: ${customTitle}` : "Audio 1.0×");
     }
   }
 

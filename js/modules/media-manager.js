@@ -49,6 +49,36 @@ export class MediaManager {
     }
   }
 
+  async cancelTask(taskId) {
+    try {
+      const res = await fetch(`/api/download/${taskId}/cancel`, { method: "POST" });
+      return res.ok;
+    } catch (err) {
+      console.error("[MediaManager] Cancel task error:", err);
+      return false;
+    }
+  }
+
+  async deleteTask(taskId) {
+    try {
+      const res = await fetch(`/api/download/${taskId}`, { method: "DELETE" });
+      return res.ok;
+    } catch (err) {
+      console.error("[MediaManager] Delete task error:", err);
+      return false;
+    }
+  }
+
+  async clearInactiveTasks() {
+    try {
+      const res = await fetch("/api/download/queue/clear", { method: "DELETE" });
+      return res.ok;
+    } catch (err) {
+      console.error("[MediaManager] Clear inactive tasks error:", err);
+      return false;
+    }
+  }
+
   async deleteMedia(mediaType, itemId) {
     try {
       const res = await fetch(`/api/media/${mediaType}/${itemId}`, { method: "DELETE" });

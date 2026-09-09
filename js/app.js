@@ -56,7 +56,7 @@ function updateAudioUI(status) {
     return;
   }
 
-  pm5Hud.setAudioMode(status.mode);
+  pm5Hud.setAudioMode(status.mode, status.title);
 
   if (audioToggleBtn) {
     if (status.playing) {
@@ -360,7 +360,10 @@ function updateAudioTrackDropdown(selectedVal = null, allowedAudioIds = null) {
   }
 }
 
+let currentCockpitVideoId = null;
+
 function loadVideoIntoCockpit(videoId, title, autoPlay = false, isTrack = false) {
+  currentCockpitVideoId = videoId;
   videoEl.src = `/api/media/video/${videoId}`;
   videoEl.load();
   pm5Hud.setVideoTitle(title);
@@ -879,6 +882,8 @@ if (downloadForm) {
       await mediaManager.startDownload(url, dlType);
       urlInput.value = "";
       pollDownloads();
+      const initialTasks = await mediaManager.getTasks();
+      renderDownloadTasks(initialTasks);
     } catch (err) {
       alert("Error starting download: " + err.message);
     }
@@ -887,25 +892,140 @@ if (downloadForm) {
 
 function pollDownloads() {
   mediaManager.startPolling((tasks) => {
-    if (!tasksContainer) return;
-    tasksContainer.innerHTML = tasks.map(t => `
-      <div class="download-task-card">
-        <div class="task-info-line">
-          <strong>${t.title || t.url}</strong>
-          <span>${t.status} (${t.progress}%) ${t.speed ? `• ${t.speed}` : ""} ${t.eta ? `• ETA: ${t.eta}` : ""}</span>
-        </div>
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" style="width: ${t.progress}%"></div>
-        </div>
-        ${t.error ? `<div style="color: var(--accent-rose); font-size: 0.8rem; margin-top: 0.3rem;">${t.error}</div>` : ""}
-      </div>
-    `).join("");
+    renderDownloadTasks(tasks);
+  });
+}
 
-    if (tasks.some(t => t.status === "completed")) {
+function renderDownloadTasks(tasks) {
+  if (!tasksContainer) return;
+  if (!tasks || tasks.length === 0) {
+    tasksContainer.innerHTML = "";
+    return;
+  }
+
+  const hasInactive = tasks.some(t => ["completed", "error", "cancelled"].includes(t.status));
+
+  let headerHtml = "";
+  if (hasInactive) {
+    headerHtml = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">Ingestion Queue (${tasks.length})</span>
+        <button id="btn-clear-inactive-downloads" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">Clear Finished / Failed</button>
+      </div>
+    `;
+  }
+
+  const tasksHtml = tasks.map(t => {
+    const isActive = ["pending", "extracting_metadata", "downloading", "downloading_video", "downloading_audio", "processing"].includes(t.status);
+    const isError = t.status === "error";
+    const isCancelled = t.status === "cancelled";
+    const isCompleted = t.status === "completed";
+
+    let statusLabel = t.status;
+    if (t.status === "downloading" || t.status === "downloading_video") statusLabel = `Downloading Video (${t.progress}%)`;
+    else if (t.status === "downloading_audio") statusLabel = `Extracting Audio (${t.progress}%)`;
+    else if (t.status === "extracting_metadata") statusLabel = "Extracting Info...";
+    else if (t.status === "processing") statusLabel = "Processing...";
+    else if (t.status === "completed") statusLabel = "Completed";
+    else if (t.status === "cancelled") statusLabel = "Cancelled";
+    else if (t.status === "error") statusLabel = "Failed";
+
+    let actionBtnHtml = "";
+    if (isActive) {
+      actionBtnHtml = `
+        <button class="btn btn-danger btn-sm btn-cancel-download" data-id="${t.task_id}" title="Cancel download and delete from queue">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 3px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Cancel
+        </button>
+      `;
+    } else if (isError) {
+      actionBtnHtml = `
+        <button class="btn btn-danger btn-sm btn-delete-task" data-id="${t.task_id}" title="Delete failed ingestion from queue">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 3px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Delete
+        </button>
+      `;
+    } else if (isCancelled) {
+      actionBtnHtml = `
+        <button class="btn btn-secondary btn-sm btn-delete-task" data-id="${t.task_id}" title="Remove cancelled task from queue">Remove</button>
+      `;
+    } else if (isCompleted) {
+      actionBtnHtml = `
+        <button class="btn btn-secondary btn-sm btn-delete-task" data-id="${t.task_id}" title="Clear completed task from queue">Clear</button>
+      `;
+    }
+
+    return `
+      <div class="download-task-card ${t.status}" id="task-card-${t.task_id}">
+        <div class="task-info-line">
+          <div style="flex: 1; min-width: 0; padding-right: 0.75rem;">
+            <strong style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.88rem;">${t.title || t.url}</strong>
+            <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 3px; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span class="task-status-badge ${t.status}">${statusLabel}</span>
+              ${t.speed ? `<span>${t.speed}</span>` : ""}
+              ${t.eta ? `<span>ETA: ${t.eta}</span>` : ""}
+            </div>
+          </div>
+          <div class="task-actions" style="flex-shrink: 0;">
+            ${actionBtnHtml}
+          </div>
+        </div>
+        ${isActive ? `
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: ${Math.max(t.progress, 5)}%"></div>
+          </div>
+        ` : ""}
+        ${t.error ? `<div style="color: var(--accent-rose); font-size: 0.78rem; margin-top: 0.4rem; word-break: break-word;">⚠️ ${t.error}</div>` : ""}
+      </div>
+    `;
+  }).join("");
+
+  tasksContainer.innerHTML = headerHtml + tasksHtml;
+
+  // Wire up cancel buttons
+  tasksContainer.querySelectorAll(".btn-cancel-download").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const taskId = btn.dataset.id;
+      btn.disabled = true;
+      btn.textContent = "Cancelling...";
+      await mediaManager.deleteTask(taskId);
+      const updated = await mediaManager.getTasks();
+      renderDownloadTasks(updated);
       loadLibraryUI();
       loadTracksUI();
-    }
+    });
   });
+
+  // Wire up delete / remove buttons
+  tasksContainer.querySelectorAll(".btn-delete-task").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const taskId = btn.dataset.id;
+      btn.disabled = true;
+      await mediaManager.deleteTask(taskId);
+      const updated = await mediaManager.getTasks();
+      renderDownloadTasks(updated);
+      loadLibraryUI();
+      loadTracksUI();
+    });
+  });
+
+  // Wire up clear inactive button
+  const btnClearAll = document.getElementById("btn-clear-inactive-downloads");
+  if (btnClearAll) {
+    btnClearAll.addEventListener("click", async () => {
+      btnClearAll.disabled = true;
+      await mediaManager.clearInactiveTasks();
+      const updated = await mediaManager.getTasks();
+      renderDownloadTasks(updated);
+      loadLibraryUI();
+      loadTracksUI();
+    });
+  }
+
+  if (tasks.some(t => t.status === "completed")) {
+    loadLibraryUI();
+    loadTracksUI();
+  }
 }
 
 // ----------------- Workout History & TCX Export -----------------
@@ -1251,6 +1371,7 @@ if (btnHudCycleTheme) {
 // Cockpit Immersive Mode (Toggle HUD Visibility)
 let isHudHidden = false;
 function toggleHudVisibility() {
+  closeHudDropdowns();
   isHudHidden = !isHudHidden;
   const viewport = document.getElementById("viewport-container");
   const eyeVisible = document.getElementById("hud-eye-icon-visible");
@@ -1280,8 +1401,271 @@ if (btnHudToggleVisibility) {
   btnHudToggleVisibility.addEventListener("click", toggleHudVisibility);
 }
 
-// Keyboard shortcuts for cockpit & fullscreen: 'T' = Cycle Theme, 'H' = Toggle HUD, 'F' = Fullscreen
+// ----------------- In-Cockpit Track & Audio Selectors -----------------
+function closeHudDropdowns() {
+  const trackMenu = document.getElementById("hud-track-dropdown-menu");
+  const audioMenu = document.getElementById("hud-audio-dropdown-menu");
+  const trackBtn = document.getElementById("btn-hud-track-picker");
+  const audioBtn = document.getElementById("btn-hud-audio-picker");
+
+  if (trackMenu) trackMenu.style.display = "none";
+  if (audioMenu) audioMenu.style.display = "none";
+  if (trackBtn) {
+    trackBtn.classList.remove("active-dropdown");
+    trackBtn.setAttribute("aria-expanded", "false");
+  }
+  if (audioBtn) {
+    audioBtn.classList.remove("active-dropdown");
+    audioBtn.setAttribute("aria-expanded", "false");
+  }
+}
+
+function renderHudTrackDropdown() {
+  const container = document.getElementById("hud-track-list-container");
+  if (!container) return;
+
+  const currentTrackId = trackController && trackController.activeTrack ? trackController.activeTrack.id : null;
+  const currentVid = (trackController && trackController.activeTrack && trackController.activeTrack.videoId) || currentCockpitVideoId;
+
+  let html = "";
+
+  // 1. Configured custom tracks
+  if (cachedTracks && cachedTracks.length > 0) {
+    html += `<div class="hud-dropdown-section-title">Scenic Tracks</div>`;
+    cachedTracks.forEach(t => {
+      const isActive = currentTrackId === t.id;
+      const startStr = pm5Hud.formatTime(t.start_time);
+      const endStr = t.end_time > 0 ? pm5Hud.formatTime(t.end_time) : "End";
+      const durationStr = t.end_time > t.start_time ? ` · ${pm5Hud.formatTime(t.end_time - t.start_time)}` : "";
+
+      html += `
+        <button class="hud-dropdown-item hud-track-select-item ${isActive ? 'active' : ''}" data-type="track" data-id="${t.id}" title="${t.name}">
+          <img src="/api/media/thumbnail/${t.video_id}" alt="" class="hud-dropdown-item-thumb" onerror="this.style.display='none'">
+          <div class="hud-dropdown-item-info">
+            <span class="hud-dropdown-item-title">${t.name}</span>
+            <span class="hud-dropdown-item-sub">${startStr} → ${endStr}${durationStr}</span>
+          </div>
+          <svg class="hud-dropdown-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+      `;
+    });
+  }
+
+  // 2. Full Videos from library
+  if (cachedLibrary.videos && cachedLibrary.videos.length > 0) {
+    html += `<div class="hud-dropdown-section-title" style="margin-top: 0.35rem;">Full Scenic Videos</div>`;
+    cachedLibrary.videos.forEach(v => {
+      const isActive = !currentTrackId && (currentVid === v.id || (videoEl && videoEl.src && videoEl.src.includes(v.id)));
+      html += `
+        <button class="hud-dropdown-item hud-track-select-item ${isActive ? 'active' : ''}" data-type="video" data-id="${v.id}" title="${v.title}">
+          <img src="/api/media/thumbnail/${v.id}" alt="" class="hud-dropdown-item-thumb" onerror="this.style.display='none'">
+          <div class="hud-dropdown-item-info">
+            <span class="hud-dropdown-item-title">${v.title}</span>
+            <span class="hud-dropdown-item-sub">Full Video Loop</span>
+          </div>
+          <svg class="hud-dropdown-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+      `;
+    });
+  }
+
+  if (!html) {
+    html = `<div style="padding: 1.25rem 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.8rem;">No videos or tracks available. Download scenic videos in the Media Center!</div>`;
+  }
+
+  container.innerHTML = html;
+
+  // Attach click listeners to items
+  container.querySelectorAll(".hud-track-select-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const type = item.dataset.type;
+      const id = item.dataset.id;
+      if (type === "track") {
+        const track = cachedTracks.find(t => t.id === id);
+        if (track) {
+          loadTrackIntoCockpit(track, false);
+          showHudToast(`Track: ${track.name}`);
+        }
+      } else if (type === "video") {
+        const video = cachedLibrary.videos.find(v => v.id === id);
+        if (video) {
+          loadVideoIntoCockpit(video.id, video.title, false, false);
+          showHudToast(`Video: ${video.title}`);
+        }
+      }
+      closeHudDropdowns();
+    });
+  });
+}
+
+function renderHudAudioDropdown() {
+  const container = document.getElementById("hud-audio-list-container");
+  if (!container) return;
+
+  const currentMode = audioEngine.mode;
+  const currentUrl = audioEngine.customAudioUrl;
+
+  // Sync volume slider
+  const slider = document.getElementById("hud-audio-volume-slider");
+  const volVal = document.getElementById("hud-volume-val");
+  if (slider) {
+    slider.value = audioEngine.volume;
+  }
+  if (volVal) {
+    volVal.textContent = `${Math.round(audioEngine.volume * 100)}%`;
+  }
+
+  let html = "";
+
+  // 1. Original Video Audio
+  const isOriginal = currentMode === "original";
+  html += `
+    <button class="hud-dropdown-item hud-audio-select-item ${isOriginal ? 'active' : ''}" data-mode="original">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      <div class="hud-dropdown-item-info">
+        <span class="hud-dropdown-item-title">Original Video Audio</span>
+        <span class="hud-dropdown-item-sub">Fixed 1.0× native speed</span>
+      </div>
+      <svg class="hud-dropdown-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>
+  `;
+
+  // 2. Mute
+  const isMuted = currentMode === "mute";
+  html += `
+    <button class="hud-dropdown-item hud-audio-select-item ${isMuted ? 'active' : ''}" data-mode="mute">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/></svg>
+      <div class="hud-dropdown-item-info">
+        <span class="hud-dropdown-item-title">Mute All Audio</span>
+        <span class="hud-dropdown-item-sub">Silent rowing workout</span>
+      </div>
+      <svg class="hud-dropdown-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>
+  `;
+
+  // 3. Custom soundtracks from library
+  if (cachedLibrary.audio && cachedLibrary.audio.length > 0) {
+    html += `<div class="hud-dropdown-section-title" style="margin-top: 0.35rem;">Soundtracks</div>`;
+    cachedLibrary.audio.forEach(a => {
+      const audioUrl = `/api/media/audio/${a.id}`;
+      const isActive = currentMode === "custom" && currentUrl === audioUrl;
+
+      html += `
+        <button class="hud-dropdown-item hud-audio-select-item ${isActive ? 'active' : ''}" data-mode="custom" data-url="${audioUrl}" data-title="${a.title}" title="${a.title}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          <div class="hud-dropdown-item-info">
+            <span class="hud-dropdown-item-title">${a.title}</span>
+            <span class="hud-dropdown-item-sub">Custom Soundtrack · 1.0×</span>
+          </div>
+          <svg class="hud-dropdown-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+      `;
+    });
+  }
+
+  container.innerHTML = html;
+
+  // Attach click listeners to items
+  container.querySelectorAll(".hud-audio-select-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const mode = item.dataset.mode;
+      if (mode === "original") {
+        audioEngine.setMode("original");
+        updateAudioTrackDropdown("original");
+        showHudToast("Audio: Original 1.0×");
+      } else if (mode === "mute") {
+        audioEngine.setMode("mute");
+        updateAudioTrackDropdown("mute");
+        showHudToast("Audio: Muted");
+      } else if (mode === "custom") {
+        const url = item.dataset.url;
+        const title = item.dataset.title;
+        audioEngine.setCustomAudio(url, title);
+        updateAudioTrackDropdown(url);
+        showHudToast(`Audio: ${title}`);
+      }
+      audioEngine.play();
+      closeHudDropdowns();
+    });
+  });
+}
+
+// In-cockpit picker buttons and volume slider listeners
+const btnHudTrackPicker = document.getElementById("btn-hud-track-picker");
+const hudTrackDropdownMenu = document.getElementById("hud-track-dropdown-menu");
+if (btnHudTrackPicker && hudTrackDropdownMenu) {
+  btnHudTrackPicker.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = hudTrackDropdownMenu.style.display === "flex";
+    closeHudDropdowns();
+    if (!isOpen) {
+      renderHudTrackDropdown();
+      hudTrackDropdownMenu.style.display = "flex";
+      btnHudTrackPicker.classList.add("active-dropdown");
+      btnHudTrackPicker.setAttribute("aria-expanded", "true");
+    }
+  });
+}
+
+const btnHudAudioPicker = document.getElementById("btn-hud-audio-picker");
+const hudAudioDropdownMenu = document.getElementById("hud-audio-dropdown-menu");
+if (btnHudAudioPicker && hudAudioDropdownMenu) {
+  btnHudAudioPicker.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = hudAudioDropdownMenu.style.display === "flex";
+    closeHudDropdowns();
+    if (!isOpen) {
+      renderHudAudioDropdown();
+      hudAudioDropdownMenu.style.display = "flex";
+      btnHudAudioPicker.classList.add("active-dropdown");
+      btnHudAudioPicker.setAttribute("aria-expanded", "true");
+    }
+  });
+}
+
+const hudAudioVolumeSlider = document.getElementById("hud-audio-volume-slider");
+if (hudAudioVolumeSlider) {
+  hudAudioVolumeSlider.addEventListener("input", (e) => {
+    const val = parseFloat(e.target.value);
+    audioEngine.setVolume(val);
+    const hudVolVal = document.getElementById("hud-volume-val");
+    if (hudVolVal) hudVolVal.textContent = `${Math.round(val * 100)}%`;
+    if (audioVolumeSlider) audioVolumeSlider.value = val;
+  });
+}
+
+// Sync cockpit volume slider back if changed from outside
+if (audioVolumeSlider) {
+  audioVolumeSlider.addEventListener("input", (e) => {
+    const val = parseFloat(e.target.value);
+    if (hudAudioVolumeSlider) hudAudioVolumeSlider.value = val;
+    const hudVolVal = document.getElementById("hud-volume-val");
+    if (hudVolVal) hudVolVal.textContent = `${Math.round(val * 100)}%`;
+  });
+}
+
+// Keep dropdown open when interacting inside it
+if (hudTrackDropdownMenu) {
+  hudTrackDropdownMenu.addEventListener("click", (e) => e.stopPropagation());
+}
+if (hudAudioDropdownMenu) {
+  hudAudioDropdownMenu.addEventListener("click", (e) => e.stopPropagation());
+}
+
+// Close dropdowns on outside click
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".hud-dropdown-wrapper")) {
+    closeHudDropdowns();
+  }
+});
+
+// Keyboard shortcuts for cockpit & fullscreen: 'T' = Cycle Theme, 'H' = Toggle HUD, 'F' = Fullscreen, 'Esc' = Close Dropdowns
 window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    closeHudDropdowns();
+    return;
+  }
+
   const tag = (document.activeElement && document.activeElement.tagName) || "";
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 

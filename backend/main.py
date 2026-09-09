@@ -13,6 +13,7 @@ from backend.database import (
 )
 from backend.downloader import (
     start_download_task, get_download_tasks, get_download_status,
+    cancel_download_task, delete_download_task, clear_inactive_tasks,
     get_library, delete_media_file, VIDEOS_DIR, AUDIO_DIR
 )
 from backend.streaming import range_streaming_response
@@ -84,6 +85,25 @@ async def get_single_download_status(task_id: str):
     if not status:
         raise HTTPException(status_code=404, detail="Task not found")
     return status
+
+@app.post("/api/download/{task_id}/cancel")
+async def cancel_download_task_endpoint(task_id: str):
+    success = cancel_download_task(task_id, delete_from_queue=False)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"task_id": task_id, "status": "cancelled"}
+
+@app.delete("/api/download/{task_id}")
+async def delete_download_task_endpoint(task_id: str):
+    success = delete_download_task(task_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"task_id": task_id, "deleted": True}
+
+@app.delete("/api/download/queue/clear")
+async def clear_download_queue_endpoint():
+    count = clear_inactive_tasks()
+    return {"cleared": count}
 
 @app.get("/api/library")
 async def get_media_library():
