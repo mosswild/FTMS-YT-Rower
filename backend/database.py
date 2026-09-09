@@ -57,10 +57,17 @@ def init_db():
         end_time REAL DEFAULT 0.0,
         default_audio TEXT DEFAULT 'original',
         allowed_audios TEXT DEFAULT '[]',
+        fixed_speed INTEGER DEFAULT 0,
         notes TEXT DEFAULT '',
         created_at REAL DEFAULT 0.0
     )
     """)
+
+    # Migration for existing databases
+    try:
+        cursor.execute("ALTER TABLE tracks ADD COLUMN fixed_speed INTEGER DEFAULT 0")
+    except Exception:
+        pass
 
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_samples_workout ON workout_samples(workout_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tracks_video ON tracks(video_id)")
@@ -74,11 +81,12 @@ def save_track(track_data: Dict[str, Any]) -> str:
     cursor = conn.cursor()
     track_id = track_data.get("id") or f"track_{int(time.time() * 1000)}"
     allowed_json = json.dumps(track_data.get("allowed_audios", [])) if isinstance(track_data.get("allowed_audios"), list) else str(track_data.get("allowed_audios", "[]"))
+    fixed_speed_int = 1 if track_data.get("fixed_speed") else 0
 
     cursor.execute("""
     INSERT OR REPLACE INTO tracks (
-        id, name, video_id, start_time, end_time, default_audio, allowed_audios, notes, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, name, video_id, start_time, end_time, default_audio, allowed_audios, fixed_speed, notes, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         track_id,
         track_data.get("name", "Untitled Track"),
@@ -87,6 +95,7 @@ def save_track(track_data: Dict[str, Any]) -> str:
         float(track_data.get("end_time", 0.0)),
         track_data.get("default_audio", "original"),
         allowed_json,
+        fixed_speed_int,
         track_data.get("notes", ""),
         float(track_data.get("created_at", time.time()))
     ))
@@ -108,6 +117,7 @@ def list_tracks() -> List[Dict[str, Any]]:
             d["allowed_audios"] = json.loads(d.get("allowed_audios") or "[]")
         except Exception:
             d["allowed_audios"] = []
+        d["fixed_speed"] = bool(d.get("fixed_speed", 0))
         result.append(d)
     return result
 
@@ -125,6 +135,7 @@ def get_track(track_id: str) -> Optional[Dict[str, Any]]:
         d["allowed_audios"] = json.loads(d.get("allowed_audios") or "[]")
     except Exception:
         d["allowed_audios"] = []
+    d["fixed_speed"] = bool(d.get("fixed_speed", 0))
     return d
 
 def delete_track(track_id: str) -> bool:

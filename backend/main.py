@@ -279,6 +279,7 @@ class TrackModel(BaseModel):
     end_time: float = 0.0
     default_audio: str = "original"
     allowed_audios: Optional[List[str]] = Field(default_factory=list)
+    fixed_speed: Optional[bool] = False
     notes: Optional[str] = ""
 
 @app.get("/api/tracks")

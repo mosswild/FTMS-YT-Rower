@@ -79,7 +79,7 @@ const rateController = new RateController(videoEl, {
   alpha: 0.25,
   autoPauseTimeoutMs: 3500,
   onRateChange: (rate) => {
-    pm5Hud.updateSpeedMultiplier(rate);
+    pm5Hud.updateSpeedMultiplier(rate, rateController ? rateController.isFixedSpeed : false);
   },
   onAutoPauseState: (isPaused) => {
     pm5Hud.setAutoPause(isPaused);
@@ -356,7 +356,7 @@ async function loadLibraryUI() {
 
       videosContainer.querySelectorAll(".btn-create-track-from-video").forEach(btn => {
         btn.addEventListener("click", () => {
-          openCreateTrackModal(btn.dataset.id, btn.dataset.title, parseFloat(btn.dataset.duration || 0));
+          openCreateTrackFromVideo(btn.dataset.id, btn.dataset.title);
         });
       });
 
@@ -544,6 +544,7 @@ function loadVideoIntoCockpit(videoId, title, autoPlay = false, isTrack = false)
   sessionTracker.setMeta(videoId, audioEngine.mode);
   if (!isTrack) {
     trackController.clearTrack();
+    rateController.setFixedSpeed(false);
     updateAudioTrackDropdown("original", null);
   }
 
@@ -571,13 +572,19 @@ async function loadTracksUI() {
         const endStr = t.end_time > 0 ? pm5Hud.formatTime(t.end_time) : "End";
         const durationStr = t.end_time > t.start_time ? `(${pm5Hud.formatTime(t.end_time - t.start_time)})` : "";
         const defaultAudioLabel = t.default_audio === "original" ? "Original Audio" : (t.default_audio === "mute" ? "Muted" : "Custom Soundtrack");
+        const speedBadge = t.fixed_speed
+          ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; font-weight: 600;">Fixed 1.0× Ambient</span>`
+          : `<span class="badge" style="background: rgba(59, 130, 246, 0.12); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.25); font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; font-weight: 500;">Cadence Synced</span>`;
 
         return `
           <div class="track-card">
             <div style="display: flex; gap: 0.85rem; align-items: flex-start;">
               <img src="/api/media/thumbnail/${t.video_id}" alt="${t.name}" style="width: 100px; height: 56px; object-fit: cover; border-radius: 6px; background: #000; flex-shrink: 0; border: 1px solid var(--surface-border);">
               <div style="flex: 1; min-width: 0;">
-                <div class="track-card-title">${t.name}</div>
+                <div class="track-card-title" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                  <span>${t.name}</span>
+                  ${speedBadge}
+                </div>
                 <div class="track-card-meta">
                   <span><strong>Segment:</strong> ${startStr} → ${endStr} ${durationStr}</span>
                   <span><strong>Default Audio:</strong> ${defaultAudioLabel}</span>
@@ -645,6 +652,7 @@ async function loadTracksUI() {
 function loadTrackIntoCockpit(track, autoPlay = false) {
   loadVideoIntoCockpit(track.video_id, track.name, false, true);
   trackController.loadTrack(track);
+  rateController.setFixedSpeed(!!track.fixed_speed);
 
   // Set audio based on track default
   if (track.default_audio === "original") {
@@ -669,7 +677,7 @@ function loadTrackIntoCockpit(track, autoPlay = false) {
   // Ensure paused and waiting for strokes
   rateController.pauseVideo();
   rateController.smoothedRate = rateController.minRate;
-  pm5Hud.updateSpeedMultiplier(0);
+  pm5Hud.updateSpeedMultiplier(rateController.isFixedSpeed ? 1.0 : 0, rateController.isFixedSpeed);
   pm5Hud.setAutoPause(true);
   audioEngine.pause();
 
@@ -1081,6 +1089,8 @@ function openTrackModal() {
   if (idInput) idInput.value = "";
   document.getElementById("input-track-start").value = "0";
   document.getElementById("input-track-end").value = "0";
+  const cbFixedSpeed = document.getElementById("input-track-fixed-speed");
+  if (cbFixedSpeed) cbFixedSpeed.checked = false;
 
   populateTrackModalDropdowns();
   updateTrackVideoPreview(selectTrackVideo ? selectTrackVideo.value : null);
@@ -1122,6 +1132,9 @@ function openEditTrackModal(track) {
   document.getElementById("input-track-end").value = track.end_time > 0 ? pm5Hud.formatTime(track.end_time) : "0";
   if (selectTrackDefaultAudio) selectTrackDefaultAudio.value = track.default_audio || "original";
 
+  const cbFixedSpeed = document.getElementById("input-track-fixed-speed");
+  if (cbFixedSpeed) cbFixedSpeed.checked = !!track.fixed_speed;
+
   if (containerTrackAllowedAudios) {
     const allowed = track.allowed_audios || [];
     containerTrackAllowedAudios.querySelectorAll('input[name="allowed_audio"]').forEach(cb => {
@@ -1158,6 +1171,8 @@ if (formCreateTrack) {
       allowedAudios.push(cb.value);
     });
 
+    const fixedSpeed = !!document.getElementById("input-track-fixed-speed")?.checked;
+
     const payload = {
       id: trackId,
       name,
@@ -1166,6 +1181,7 @@ if (formCreateTrack) {
       end_time: endTime,
       default_audio: defaultAudio,
       allowed_audios: allowedAudios,
+      fixed_speed: fixedSpeed
     };
 
     try {
@@ -1182,6 +1198,8 @@ if (formCreateTrack) {
       // If this track is currently loaded in cockpit, update controller & audio dropdown
       if (trackController.activeTrack && trackController.activeTrack.id === trackId) {
         trackController.loadTrack(payload);
+        rateController.setFixedSpeed(fixedSpeed);
+        pm5Hud.updateSpeedMultiplier(rateController.smoothedRate, fixedSpeed);
         updateAudioTrackDropdown(null, payload.allowed_audios);
       }
     } catch (err) {

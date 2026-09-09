@@ -66,8 +66,14 @@ export class PM5Hud {
     }
   }
 
-  updateSpeedMultiplier(rate) {
+  updateSpeedMultiplier(rate, isFixed = false) {
     if (this.elements.speedBadge) {
+      if (isFixed) {
+        this.elements.speedBadge.textContent = "1.00× (Ambient)";
+        this.elements.speedBadge.className = "speed-badge normal";
+        return;
+      }
+
       this.elements.speedBadge.textContent = `${rate.toFixed(2)}×`;
       
       // Color tint based on speed multiplier

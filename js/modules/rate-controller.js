@@ -12,6 +12,7 @@ export class RateController {
     this.maxRate = options.maxRate || 2.5;
     this.autoPauseTimeoutMs = options.autoPauseTimeoutMs || 3500;
 
+    this.isFixedSpeed = false;
     this.smoothedRate = 1.0;
     this.targetRate = 1.0;
     this.lastStrokeTime = 0;
@@ -22,6 +23,20 @@ export class RateController {
     this.onAutoPauseState = options.onAutoPauseState || null;
 
     this.startWatchdog();
+  }
+
+  setFixedSpeed(isFixed) {
+    this.isFixedSpeed = !!isFixed;
+    if (this.isFixedSpeed) {
+      this.smoothedRate = 1.0;
+      this.targetRate = 1.0;
+      if (this.video) {
+        this.video.playbackRate = 1.0;
+      }
+      if (this.onRateChange) {
+        this.onRateChange(1.0);
+      }
+    }
   }
 
   setBaselineSpm(baseline) {
@@ -37,6 +52,23 @@ export class RateController {
   }
 
   updateCadence(currentSpm) {
+    if (this.isFixedSpeed) {
+      // Ambient fixed speed: video plays at constant 1.0x rate regardless of stroke rate
+      if (currentSpm > 0) {
+        this.lastStrokeTime = Date.now();
+        if (this.video) {
+          this.video.playbackRate = 1.0;
+          if (this.isAutoPaused || this.video.paused) {
+            this.resumeVideo();
+          }
+        }
+        if (this.onRateChange) {
+          this.onRateChange(1.0);
+        }
+      }
+      return;
+    }
+
     if (currentSpm <= 0) {
       // Stroke rate is 0 or stopped: smoothly decelerate playback rate to simulate boat glide drag
       if (!this.isAutoPaused && this.smoothedRate > this.minRate) {

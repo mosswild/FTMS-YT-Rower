@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=delete-modal-v1">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=ambient-speed-v1">
   <script>
     (function() {
       const theme = localStorage.getItem("ftms_hud_theme");
@@ -587,6 +587,15 @@
           <p class="form-hint">Available audio tracks the rower can switch between while on this route.</p>
         </div>
 
+        <!-- Ambient Constant Speed Toggle -->
+        <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border: 1px solid var(--surface-border); border-radius: 6px; padding: 0.75rem 0.85rem; margin-top: 1rem;">
+          <div style="padding-right: 0.75rem;">
+            <label class="form-label" for="input-track-fixed-speed" style="margin-bottom: 0.15rem; cursor: pointer;">Fixed Constant Speed (Ambient Video)</label>
+            <p class="form-hint" style="margin: 0; font-size: 0.76rem;">Play at steady 1.0× speed without speeding up or slowing down to rowing cadence.</p>
+          </div>
+          <input type="checkbox" id="input-track-fixed-speed" style="width: 20px; height: 20px; accent-color: var(--accent-blue); cursor: pointer; flex-shrink: 0;">
+        </div>
+
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
           <button type="button" id="btn-cancel-create-track" class="btn btn-secondary">Cancel</button>
           <button type="submit" class="btn btn-primary">Save Track</button>
@@ -748,6 +757,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=delete-modal-v1"></script>
+  <script type="module" src="js/app.js?v=ambient-speed-v1"></script>
 </body>
 </html>

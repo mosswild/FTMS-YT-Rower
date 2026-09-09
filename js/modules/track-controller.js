@@ -33,7 +33,8 @@ export class TrackController {
       startTime: parseFloat(trackData.start_time || 0),
       endTime: parseFloat(trackData.end_time || 0),
       defaultAudio: trackData.default_audio || "original",
-      allowedAudios: Array.isArray(trackData.allowed_audios) ? trackData.allowed_audios : []
+      allowedAudios: Array.isArray(trackData.allowed_audios) ? trackData.allowed_audios : [],
+      fixedSpeed: !!trackData.fixed_speed
     };
 
     if (this.video) {
@@ -54,7 +55,8 @@ export class TrackController {
       startTime: 0,
       endTime: 0,
       defaultAudio: "original",
-      allowedAudios: []
+      allowedAudios: [],
+      fixedSpeed: false
     };
     if (this.onTrackChange) {
       this.onTrackChange(this.activeTrack);

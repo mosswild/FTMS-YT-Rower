@@ -149,6 +149,7 @@ class TestBackendAndFormulas(unittest.TestCase):
             "end_time": 90.0,
             "default_audio": "original",
             "allowed_audios": ["test_audio_1", "test_audio_2"],
+            "fixed_speed": True,
             "notes": "Fast sprint section"
         }
         res = self.client.post("/api/tracks", json=payload)
@@ -163,6 +164,7 @@ class TestBackendAndFormulas(unittest.TestCase):
         self.assertEqual(data["start_time"], 15.0)
         self.assertEqual(data["end_time"], 90.0)
         self.assertEqual(len(data["allowed_audios"]), 2)
+        self.assertTrue(data["fixed_speed"])
 
         # List tracks
         list_res = self.client.get("/api/tracks")
