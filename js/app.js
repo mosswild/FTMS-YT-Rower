@@ -2449,7 +2449,11 @@ if (settingPauseAudio) {
 const THEMES = ["default", "cyberpunk", "retro-pm5", "nordic"];
 
 function getActiveTheme() {
-  return localStorage.getItem("ftms_hud_theme") || "default";
+  try {
+    return localStorage.getItem("ftms_hud_theme") || "default";
+  } catch (e) {
+    return "default";
+  }
 }
 
 function applyTheme(themeId) {
@@ -2461,7 +2465,9 @@ function applyTheme(themeId) {
     document.documentElement.setAttribute("data-theme", themeId);
   }
 
-  localStorage.setItem("ftms_hud_theme", themeId);
+  try {
+    localStorage.setItem("ftms_hud_theme", themeId);
+  } catch (e) {}
 
   // Update active state in settings modal
   document.querySelectorAll(".theme-choice-card").forEach((card) => {
@@ -2483,13 +2489,19 @@ document.querySelectorAll(".theme-choice-card").forEach((card) => {
 
 // ----------------- HUD Density & Scale Management -----------------
 function getActiveHudScale() {
-  return localStorage.getItem("ftms_hud_scale") || "auto";
+  try {
+    return localStorage.getItem("ftms_hud_scale") || "auto";
+  } catch (e) {
+    return "auto";
+  }
 }
 
 function applyHudScale(scale) {
   if (!["auto", "compact", "standard", "large"].includes(scale)) scale = "auto";
   pm5Hud.setScale(scale);
-  localStorage.setItem("ftms_hud_scale", scale);
+  try {
+    localStorage.setItem("ftms_hud_scale", scale);
+  } catch (e) {}
 
   document.querySelectorAll(".btn-scale-choice").forEach((btn) => {
     if (btn.getAttribute("data-scale") === scale) {
@@ -2880,19 +2892,29 @@ window.addEventListener("keydown", (e) => {
 });
 
 // Initialize on page load
-document.addEventListener("DOMContentLoaded", async () => {
-  applyTheme(getActiveTheme());
-  applyHudScale(getActiveHudScale());
-  await loadLibraryUI();
-  await loadTracksUI();
+async function initApp() {
+  try {
+    applyTheme(getActiveTheme());
+    applyHudScale(getActiveHudScale());
+    await loadLibraryUI();
+    await loadTracksUI();
 
-  // If there is a configured track, or a downloaded video, load it into cockpit
-  if (cachedTracks && cachedTracks.length > 0) {
-    loadTrackIntoCockpit(cachedTracks[0], false);
-  } else if (cachedLibrary.videos && cachedLibrary.videos.length > 0) {
-    const first = cachedLibrary.videos[0];
-    loadVideoIntoCockpit(first.id, first.title, false);
+    // If there is a configured track, or a downloaded video, load it into cockpit
+    if (cachedTracks && cachedTracks.length > 0) {
+      loadTrackIntoCockpit(cachedTracks[0], false);
+    } else if (cachedLibrary.videos && cachedLibrary.videos.length > 0) {
+      const first = cachedLibrary.videos[0];
+      loadVideoIntoCockpit(first.id, first.title, false);
+    }
+
+    pollDownloads();
+  } catch (err) {
+    console.error("[Init Error]", err);
   }
+}
 
-  pollDownloads();
-});
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}

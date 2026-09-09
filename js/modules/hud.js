@@ -25,12 +25,10 @@ export class PM5Hud {
       audioBadge: document.getElementById("hud-audio-badge"),
       autoPauseBadge: document.getElementById("hud-autopause-badge"),
       fullscreenBtn: document.getElementById("hud-fullscreen-btn"),
-      airplayBtn: document.getElementById("hud-airplay-btn"),
     };
 
     this.setupInactivityWatchdog();
     this.setupFullscreen();
-    this.setupAirPlay();
   }
 
   updateMetrics(data) {
@@ -249,32 +247,6 @@ export class PM5Hud {
         exitFullscreen();
       }
     });
-  }
-
-  setupAirPlay() {
-    if (!this.elements.airplayBtn) return;
-    const video = document.getElementById("scenic-video");
-    if (!video) return;
-
-    if (window.WebKitPlaybackTargetAvailabilityEvent) {
-      video.addEventListener("webkitplaybacktargetavailabilitychanged", (event) => {
-        if (event.availability === "available") {
-          this.elements.airplayBtn.style.display = "inline-flex";
-        } else {
-          this.elements.airplayBtn.style.display = "none";
-        }
-      });
-
-      this.elements.airplayBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        try {
-          video.webkitShowPlaybackTargetPicker();
-        } catch (err) {
-          console.warn("[AirPlay] Picker error:", err);
-        }
-      });
-    }
   }
 
   setScale(scale) {

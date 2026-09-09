@@ -3,13 +3,14 @@ FROM python:3.12-alpine
 
 WORKDIR /app
 
-# Install system dependencies: ffmpeg for media transcoding, su-exec for runtime PUID/PGID, curl for healthchecks
+# Install system dependencies: ffmpeg for media transcoding, su-exec for runtime PUID/PGID, curl for healthchecks, openssl for optional HTTPS
 RUN apk add --no-cache \
     ffmpeg \
     su-exec \
     curl \
     tzdata \
-    ca-certificates
+    ca-certificates \
+    openssl
 
 # Copy and install Python dependencies
 COPY requirements.txt ./
