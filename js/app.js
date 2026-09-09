@@ -252,7 +252,8 @@ async function loadLibraryUI() {
               <div class="media-meta-line">${v.duration ? `${Math.floor(v.duration / 60)}m ${v.duration % 60}s` : ""} • ${(v.size_bytes / (1024*1024)).toFixed(1)} MB</div>
             </div>
             <div class="media-actions">
-              <button class="btn btn-primary btn-sm btn-load-video" data-id="${v.id}" data-title="${v.title}">Load Video</button>
+              <button class="btn btn-primary btn-sm btn-load-video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">Load Video</button>
+              <button class="btn btn-secondary btn-sm btn-rename-media" data-type="video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">Rename</button>
               <button class="btn btn-secondary btn-sm btn-delete-media" data-type="video" data-id="${v.id}">Delete</button>
             </div>
           </div>
@@ -263,6 +264,12 @@ async function loadLibraryUI() {
         btn.addEventListener("click", () => {
           loadVideoIntoCockpit(btn.dataset.id, btn.dataset.title, true);
           switchView("cockpit");
+        });
+      });
+
+      videosContainer.querySelectorAll(".btn-rename-media").forEach(btn => {
+        btn.addEventListener("click", () => {
+          openRenameMediaModal("video", btn.dataset.id, btn.dataset.title);
         });
       });
 
@@ -289,7 +296,8 @@ async function loadLibraryUI() {
               <div class="media-meta-line">${a.duration ? `${Math.floor(a.duration / 60)}m ${a.duration % 60}s` : ""} • ${(a.size_bytes / (1024*1024)).toFixed(1)} MB</div>
             </div>
             <div class="media-actions">
-              <button class="btn btn-primary btn-sm btn-load-audio" data-id="${a.id}" data-title="${a.title}">Use as Music</button>
+              <button class="btn btn-primary btn-sm btn-load-audio" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">Use as Music</button>
+              <button class="btn btn-secondary btn-sm btn-rename-media" data-type="audio" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">Rename</button>
               <button class="btn btn-secondary btn-sm btn-delete-media" data-type="audio" data-id="${a.id}">Delete</button>
             </div>
           </div>
@@ -302,6 +310,12 @@ async function loadLibraryUI() {
           audioEngine.setCustomAudio(audioUrl, btn.dataset.title);
           updateAudioTrackDropdown(audioUrl);
           switchView("cockpit");
+        });
+      });
+
+      audioContainer.querySelectorAll(".btn-rename-media").forEach(btn => {
+        btn.addEventListener("click", () => {
+          openRenameMediaModal("audio", btn.dataset.id, btn.dataset.title);
         });
       });
 
@@ -861,6 +875,104 @@ if (formCreateTrack) {
       }
     } catch (err) {
       alert("Error saving track: " + err.message);
+    }
+  });
+}
+
+// ----------------- Media Rename Modal -----------------
+const modalRenameMedia = document.getElementById("modal-rename-media");
+const btnCloseRenameMedia = document.getElementById("btn-close-rename-media");
+const btnCancelRenameMedia = document.getElementById("btn-cancel-rename-media");
+const formRenameMedia = document.getElementById("form-rename-media");
+const inputRenameType = document.getElementById("input-rename-type");
+const inputRenameId = document.getElementById("input-rename-id");
+const inputRenameTitle = document.getElementById("input-rename-title");
+const modalRenameHeading = document.getElementById("modal-rename-heading");
+const labelRenameTitle = document.getElementById("label-rename-title");
+const btnSubmitRenameMedia = document.getElementById("btn-submit-rename-media");
+
+function openRenameMediaModal(type, id, currentTitle) {
+  if (!modalRenameMedia) return;
+  inputRenameType.value = type;
+  inputRenameId.value = id;
+  inputRenameTitle.value = currentTitle || "";
+
+  if (modalRenameHeading) {
+    modalRenameHeading.textContent = type === "video" ? "Rename Video" : "Rename Soundtrack";
+  }
+  if (labelRenameTitle) {
+    labelRenameTitle.textContent = type === "video" ? "Video Title" : "Soundtrack Title";
+  }
+
+  modalRenameMedia.classList.add("open");
+  setTimeout(() => {
+    if (inputRenameTitle) {
+      inputRenameTitle.focus();
+      inputRenameTitle.select();
+    }
+  }, 50);
+}
+
+function closeRenameMediaModal() {
+  if (modalRenameMedia) {
+    modalRenameMedia.classList.remove("open");
+  }
+}
+
+if (btnCloseRenameMedia) btnCloseRenameMedia.addEventListener("click", closeRenameMediaModal);
+if (btnCancelRenameMedia) btnCancelRenameMedia.addEventListener("click", closeRenameMediaModal);
+if (modalRenameMedia) {
+  modalRenameMedia.addEventListener("click", (e) => {
+    if (e.target === modalRenameMedia) closeRenameMediaModal();
+  });
+}
+
+if (formRenameMedia) {
+  formRenameMedia.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const type = inputRenameType.value;
+    const id = inputRenameId.value;
+    const newTitle = inputRenameTitle.value.trim();
+    if (!newTitle) return;
+
+    if (btnSubmitRenameMedia) {
+      btnSubmitRenameMedia.disabled = true;
+      btnSubmitRenameMedia.textContent = "Saving...";
+    }
+
+    try {
+      await mediaManager.renameMedia(type, id, newTitle);
+
+      // If currently active video in cockpit was renamed, update HUD title
+      if (type === "video" && currentCockpitVideoId === id) {
+        if (!trackController.activeTrack) {
+          pm5Hud.setVideoTitle(newTitle);
+        }
+      }
+
+      // If currently active audio in cockpit was renamed, update title & HUD audio badges
+      if (type === "audio") {
+        const audioUrl = `/api/media/audio/${id}`;
+        if (audioEngine.customAudioUrl === audioUrl) {
+          audioEngine.customAudioTitle = newTitle;
+          if (audioEngine.mode === "custom") {
+            audioEngine.currentTitle = newTitle;
+            audioEngine.emitStatus();
+          }
+        }
+      }
+
+      closeRenameMediaModal();
+      await loadLibraryUI();
+      await loadTracksUI();
+      showHudToast(`Renamed to "${newTitle}"`);
+    } catch (err) {
+      alert("Error renaming media: " + (err.message || err));
+    } finally {
+      if (btnSubmitRenameMedia) {
+        btnSubmitRenameMedia.disabled = false;
+        btnSubmitRenameMedia.textContent = "Save Title";
+      }
     }
   });
 }
@@ -1663,6 +1775,10 @@ document.addEventListener("click", (e) => {
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     closeHudDropdowns();
+    if (modalRenameMedia && modalRenameMedia.classList.contains("open")) {
+      closeRenameMediaModal();
+      return;
+    }
     return;
   }
 

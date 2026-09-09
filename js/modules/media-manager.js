@@ -79,6 +79,24 @@ export class MediaManager {
     }
   }
 
+  async renameMedia(mediaType, itemId, newTitle) {
+    try {
+      const res = await fetch(`/api/media/${mediaType}/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed to rename media");
+      }
+      return await res.json();
+    } catch (err) {
+      console.error("[MediaManager] Rename media error:", err);
+      throw err;
+    }
+  }
+
   async deleteMedia(mediaType, itemId) {
     try {
       const res = await fetch(`/api/media/${mediaType}/${itemId}`, { method: "DELETE" });

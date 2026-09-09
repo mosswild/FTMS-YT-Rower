@@ -351,3 +351,45 @@ def delete_media_file(media_type: str, item_id: str) -> bool:
             os.remove(p)
             deleted = True
     return deleted
+
+def update_media_title(media_type: str, item_id: str, new_title: str) -> Optional[Dict[str, Any]]:
+    """Update title in the metadata JSON file for video or audio."""
+    target_dir = VIDEOS_DIR if media_type == "video" else AUDIO_DIR
+    clean_id = item_id
+    exts = [".mp4"] if media_type == "video" else [".m4a", ".mp3"]
+    for ext in exts:
+        if item_id.endswith(ext):
+            clean_id = item_id[:-len(ext)]
+            break
+
+    meta_path = os.path.join(target_dir, f"{clean_id}.json")
+    
+    # Check if media file exists
+    media_file_exists = False
+    found_ext = None
+    for ext in exts:
+        if os.path.isfile(os.path.join(target_dir, f"{clean_id}{ext}")):
+            media_file_exists = True
+            found_ext = ext
+            break
+
+    if not media_file_exists:
+        return None
+
+    meta = {}
+    if os.path.exists(meta_path):
+        try:
+            with open(meta_path, "r") as f:
+                meta = json.load(f)
+        except Exception:
+            meta = {}
+
+    meta["id"] = clean_id
+    meta["title"] = new_title.strip()
+    if not meta.get("filename") and found_ext:
+        meta["filename"] = f"{clean_id}{found_ext}"
+
+    with open(meta_path, "w") as f:
+        json.dump(meta, f, indent=2)
+
+    return meta
