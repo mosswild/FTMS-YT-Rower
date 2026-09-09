@@ -2138,13 +2138,11 @@ function renderHudTrackDropdown() {
   if (!container) return;
 
   const currentTrackId = trackController && trackController.activeTrack ? trackController.activeTrack.id : null;
-  const currentVid = (trackController && trackController.activeTrack && trackController.activeTrack.videoId) || currentCockpitVideoId;
 
   let html = "";
 
-  // 1. Configured custom tracks
+  // 1. Configured custom tracks only (Item 5: no raw video files in dropdown)
   if (cachedTracks && cachedTracks.length > 0) {
-    html += `<div class="hud-dropdown-section-title">Scenic Tracks</div>`;
     cachedTracks.forEach(t => {
       const isActive = currentTrackId === t.id;
       const startStr = pm5Hud.formatTime(t.start_time);
@@ -2164,26 +2162,8 @@ function renderHudTrackDropdown() {
     });
   }
 
-  // 2. Full Videos from library
-  if (cachedLibrary.videos && cachedLibrary.videos.length > 0) {
-    html += `<div class="hud-dropdown-section-title" style="margin-top: 0.35rem;">Full Scenic Videos</div>`;
-    cachedLibrary.videos.forEach(v => {
-      const isActive = !currentTrackId && (currentVid === v.id || (videoEl && videoEl.src && videoEl.src.includes(v.id)));
-      html += `
-        <button class="hud-dropdown-item hud-track-select-item ${isActive ? 'active' : ''}" data-type="video" data-id="${v.id}" title="${v.title}">
-          <img src="/api/media/thumbnail/${v.id}" alt="" class="hud-dropdown-item-thumb" onerror="this.style.display='none'">
-          <div class="hud-dropdown-item-info">
-            <span class="hud-dropdown-item-title">${v.title}</span>
-            <span class="hud-dropdown-item-sub">Full Video Loop</span>
-          </div>
-          <svg class="hud-dropdown-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-        </button>
-      `;
-    });
-  }
-
   if (!html) {
-    html = `<div style="padding: 1.25rem 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.8rem;">No videos or tracks available. Download scenic videos in the Media Center!</div>`;
+    html = `<div style="padding: 1.25rem 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.8rem;">No scenic tracks created yet. Create your first track in the Media Center!</div>`;
   }
 
   container.innerHTML = html;
@@ -2191,20 +2171,11 @@ function renderHudTrackDropdown() {
   // Attach click listeners to items
   container.querySelectorAll(".hud-track-select-item").forEach(item => {
     item.addEventListener("click", () => {
-      const type = item.dataset.type;
       const id = item.dataset.id;
-      if (type === "track") {
-        const track = cachedTracks.find(t => t.id === id);
-        if (track) {
-          loadTrackIntoCockpit(track, false);
-          showHudToast(`Track: ${track.name}`);
-        }
-      } else if (type === "video") {
-        const video = cachedLibrary.videos.find(v => v.id === id);
-        if (video) {
-          loadVideoIntoCockpit(video.id, video.title, false, false);
-          showHudToast(`Video: ${video.title}`);
-        }
+      const track = cachedTracks ? cachedTracks.find(t => t.id === id) : null;
+      if (track) {
+        loadTrackIntoCockpit(track, false);
+        showHudToast(`Track: ${track.name}`);
       }
       closeHudDropdowns();
     });
@@ -2256,10 +2227,33 @@ function renderHudAudioDropdown() {
     </button>
   `;
 
-  // 3. Custom soundtracks from library
-  if (cachedLibrary.audio && cachedLibrary.audio.length > 0) {
-    html += `<div class="hud-dropdown-section-title" style="margin-top: 0.35rem;">Soundtracks</div>`;
-    cachedLibrary.audio.forEach(a => {
+  // 3. Custom soundtracks associated with active track (Item 4)
+  const activeTrack = trackController && trackController.activeTrack && trackController.activeTrack.id ? trackController.activeTrack : null;
+  const allowedSet = new Set();
+
+  if (activeTrack) {
+    if (Array.isArray(activeTrack.allowedAudios)) {
+      activeTrack.allowedAudios.forEach(id => allowedSet.add(id));
+    }
+    if (activeTrack.defaultAudio && activeTrack.defaultAudio !== "original" && activeTrack.defaultAudio !== "mute") {
+      allowedSet.add(activeTrack.defaultAudio);
+    }
+    const fullTrack = (cachedTracks || []).find(t => t.id === activeTrack.id);
+    if (fullTrack) {
+      if (Array.isArray(fullTrack.allowed_audios)) {
+        fullTrack.allowed_audios.forEach(id => allowedSet.add(id));
+      }
+      if (fullTrack.default_audio && fullTrack.default_audio !== "original" && fullTrack.default_audio !== "mute") {
+        allowedSet.add(fullTrack.default_audio);
+      }
+    }
+  }
+
+  const associatedAudios = (cachedLibrary.audio || []).filter(a => allowedSet.has(a.id));
+
+  if (associatedAudios.length > 0) {
+    html += `<div class="hud-dropdown-section-title" style="margin-top: 0.35rem;">Track Soundtracks</div>`;
+    associatedAudios.forEach(a => {
       const audioUrl = `/api/media/audio/${a.id}`;
       const isActive = currentMode === "custom" && currentUrl === audioUrl;
 
@@ -2268,12 +2262,16 @@ function renderHudAudioDropdown() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
           <div class="hud-dropdown-item-info">
             <span class="hud-dropdown-item-title">${a.title}</span>
-            <span class="hud-dropdown-item-sub">Custom Soundtrack · 1.0×</span>
+            <span class="hud-dropdown-item-sub">Soundtrack · 1.0×</span>
           </div>
           <svg class="hud-dropdown-item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
         </button>
       `;
     });
+  } else if (activeTrack) {
+    html += `<div style="padding: 0.85rem 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.8rem; line-height: 1.4;">No soundtracks associated with this track.<br><span style="font-size: 0.75rem; opacity: 0.75;">Assign music in the Media Center</span></div>`;
+  } else {
+    html += `<div style="padding: 0.85rem 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.8rem; line-height: 1.4;">Select a scenic track to enable custom soundtracks.</div>`;
   }
 
   container.innerHTML = html;
