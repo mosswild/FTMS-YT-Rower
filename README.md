@@ -119,7 +119,9 @@ To run on a different port (e.g. `9000`):
 - **Volume:** `./config:/config` (persists SQLite database under `/config/data` and scenic videos/audio under `/config/media`)
 - **User Permissions:** Supports `PUID` and `PGID` environment variables (default: `1000:1000`) for seamless non-root host file ownership.
 
-> 📖 **Synology NAS Setup Guide:** For step-by-step GUI instructions using **Synology Container Manager**, check out the [Synology NAS Docker Setup Guide](docs/DOCKER_SYNOLOGY.md).
+> 📖 **Setup Guides:**
+> - [Synology NAS Docker Setup Guide](docs/DOCKER_SYNOLOGY.md) (step-by-step GUI instructions for Synology Container Manager)
+> - [Bluetooth Relay Bridge & Auto-Start Guide](docs/BLUETOOTH_RELAY.md) (auto-start on Windows boot, macOS launchd, and Linux systemd)
 
 ---
 
@@ -163,6 +165,8 @@ If your server (or any PC/Mac/Raspberry Pi) is located near your rowing machine:
   Set `ENABLE_BLUETOOTH_RELAY=true` with `/var/run/dbus` mounted in [docker-compose.yml](docker-compose.yml).
 
 Once running, simply open **standard iOS Safari** (or a Safari Home Screen bookmark) on your iPhone or iPad at `http://<SERVER-IP>:8000/ftms-rower`. The HUD connects automatically over WebSockets with zero third-party browser apps, full landscape broadcast mode, and AirPlay mirroring!
+
+> 📖 **Zero-Click Auto-Start:** To make the relay start automatically in the background when Windows boots (or run as a background service on Linux/macOS), check out the [Bluetooth Relay Bridge Setup & Auto-Start Guide](docs/BLUETOOTH_RELAY.md).
 
 #### B. Android Tablets & Phones:
 * Open Google Chrome on your Android device.
@@ -240,6 +244,7 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 2. **Wi-Fi WebSocket Relay Bridge:**
    - Your host server, PC, or Mac pairs to the rowing machine via Bluetooth using `bleak` (`scripts/bluetooth_relay.py` or `run_relay_windows.bat`), and broadcasts real-time telemetry over your local network via WebSocket.
    - **Zero browser restrictions:** Any device on your Wi-Fi (standard Safari, Firefox, iPhone, iPad, Smart TVs) opens the web page over plain HTTP and instantly receives live telemetry without needing Web Bluetooth or special browser flags.
+   - **Auto-Start Setup:** See the [Bluetooth Relay Bridge Setup & Auto-Start Guide](docs/BLUETOOTH_RELAY.md) for Windows auto-start (`shell:startup`), macOS `launchd`, and Linux `systemd` instructions.
 
 ---
 
