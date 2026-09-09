@@ -5,8 +5,8 @@ A modernized, full-stack scenic indoor rowing application and simulator for Blue
 FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you row, your stroke cadence dynamically modulates video playback speed ($0.3\times \dots 2.5\times$), while soundtrack audio remains crystal-clear and locked at a steady $1.0\times$.
 
 <p align="center">
-  <img src="docs/screenshots/cockpit-hud-default.png" alt="FTMS-Rower Cockpit HUD" width="100%">
-  <em>Scenic Cockpit with real-time PM5 telemetry HUD, Lake Louise route, decoupled audio, and transport controls.</em>
+  <img src="docs/screenshots/cockpit-hud-nordic.png" alt="FTMS-Rower Cockpit HUD (Nordic Minimalist Theme)" width="100%">
+  <em>Scenic Cockpit in Nordic Minimalist theme (translucent frosted glass) with real-time PM5 telemetry HUD, Lake Louise route, decoupled audio, and transport controls.</em>
 </p>
 
 ---
@@ -43,7 +43,7 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   - **Track Scrubber:** Responsive timeline slider bounded specifically to the active track duration.
 
 ### 4. Concept2 PM5-Style Telemetry HUD & Visual Themes
-- **Real-time Glassmorphism Cockpit:**
+- **Real-time Cockpit Telemetry:**
   - **Pace / 500m:** Instantaneous pace computed from power/stroke rate.
   - **Cadence (SPM):** Stroke rate with boat glide deceleration and 3.5s inactivity auto-pause watchdog.
   - **Power (Watts):** Concept2 non-linear formula: $\text{Watts} = 2.80 / (P_{500}/500)^3$.
@@ -51,17 +51,17 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   - **Distance & Time:** Distance rowed, elapsed time, and total stroke count.
 - **Auto-Hide:** Automatically fades out controls after 4 seconds of inactivity for a cinematic fullscreen view.
 - **Multiple Visual Themes:** Switch themes on the fly from the Settings modal:
-  - **Default Glass:** Sleek frosted acrylic glassmorphism.
-  - **Cyberpunk Neon:** Glowing neon cyan, yellow, and magenta accents for high-energy sessions.
-  - **Retro PM5:** Authentic green monochrome LCD monitor styling.
-  - **Nordic Minimalist:** Elegant deep charcoal surfaces with crisp Scandinavian typography.
+  - **Modern Slate (Default):** High-contrast dark charcoal glass cockpit with clean sky-blue telemetry accents.
+  - **Nordic Minimalist:** Elegant translucent frosted white/glass aesthetic with soft sunrise gold and ice tones.
+  - **Neon Cyberpunk:** OLED dark glass with laser cyan and magenta synthwave glow for high-energy sessions.
+  - **Concept2 PM5 LCD:** Authentic matte bezel with phosphorescent green digital LCD monitor styling.
 
 <p align="center">
-  <img src="docs/screenshots/cockpit-hud-cyberpunk.png" alt="Cyberpunk HUD Theme" width="49%">
-  <img src="docs/screenshots/cockpit-hud-nordic.png" alt="Nordic Minimalist HUD Theme" width="49%">
+  <img src="docs/screenshots/cockpit-hud-cyberpunk.png" alt="Neon Cyberpunk HUD Theme" width="49%">
+  <img src="docs/screenshots/cockpit-hud-slate.png" alt="Modern Slate HUD Theme" width="49%">
 </p>
 <p align="center">
-  <em>Left: Cyberpunk theme on ambient underwater coral route. Right: Nordic Minimalist theme during a high-cadence lake sprint.</em>
+  <em>Left: Neon Cyberpunk theme on ambient underwater coral route. Right: Modern Slate (default dark theme) during a high-cadence lake sprint.</em>
 </p>
 
 ### 5. Dual-Source Telemetry & Virtual Simulator
