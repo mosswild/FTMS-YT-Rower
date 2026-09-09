@@ -263,7 +263,16 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 
 ---
 
-## Completed Feature Roadmap
+## Development Roadmap
+
+### Upcoming
+- [ ] **Live GitHub Pages Demo:** Deploy a static client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and workout simulator directly in the browser (will include bundled lightweight demo video and ambient audio assets).
+- [ ] **Cockpit HUD Cadence Sync vs. Ambient Toggle:** Ability to dynamically switch between **Ambient** (locked 1.0× video playback) and **Cadence Synced** (video playback speed modulated dynamically by rower stroke rate) directly from the Cockpit HUD controls.
+  - This toggle only affects the active session on the fly.
+  - The track's underlying default playback mode (configured when creating or editing the track) remains unchanged in the database.
+
+### Completed
+- [x] **Multi-Workout Bulk Export & Deletion:** Multi-select workouts with row checkboxes and a master toggle, export multiple or all workouts at once as a `.zip` archive of formatted `.tcx` files (or multi-activity TCX), and batch delete sessions.
 - [x] **Queue Management:** Clear ingestion queue with partial download cleanup without deleting library media.
 - [x] **Track Builder Workflows:** Media Center "+ Create Track from Video" and "+ Add to Track" workflows.
 - [x] **Independent Media Trimming:** Video and audio trimming outside tracks with segment inheritance.
