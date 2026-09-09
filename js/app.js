@@ -526,6 +526,10 @@ function loadTrackIntoCockpit(track, autoPlay = false) {
 
   // Set audio based on track default
   if (track.default_audio === "original") {
+    const videoObj = cachedLibrary.videos ? cachedLibrary.videos.find(v => v.id === track.video_id) : null;
+    const vStart = track.start_time !== undefined ? track.start_time : (videoObj ? videoObj.start_time : 0);
+    const vEnd = track.end_time !== undefined ? track.end_time : (videoObj ? videoObj.end_time : 0);
+    audioEngine.setScenicVideo(track.video_id, track.name, vStart, vEnd);
     audioEngine.setMode("original");
     updateAudioTrackDropdown("original", track.allowed_audios);
   } else if (track.default_audio === "mute") {
@@ -557,6 +561,7 @@ function loadTrackIntoCockpit(track, autoPlay = false) {
 if (btnTrackRestart) {
   btnTrackRestart.addEventListener("click", () => {
     trackController.restart();
+    audioEngine.restart();
   });
 }
 
@@ -1476,9 +1481,17 @@ if (formTrimMedia) {
       if (type === "video" && trackController.activeTrack && trackController.activeTrack.videoId === id) {
         trackController.activeTrack.startTime = startTime;
         trackController.activeTrack.endTime = endTime;
+        if (audioEngine.mode === "original") {
+          audioEngine.videoStartTime = startTime;
+          audioEngine.videoEndTime = endTime;
+          audioEngine.activeStart = startTime;
+          audioEngine.activeEnd = endTime;
+        }
       } else if (type === "audio" && audioEngine.currentSrc && audioEngine.currentSrc.includes(id)) {
         audioEngine.startTime = startTime;
         audioEngine.endTime = endTime;
+        audioEngine.activeStart = startTime;
+        audioEngine.activeEnd = endTime;
       }
 
       closeTrimMediaModal();
