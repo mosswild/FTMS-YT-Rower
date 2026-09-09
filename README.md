@@ -270,6 +270,7 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 - [ ] **Cockpit HUD Cadence Sync vs. Ambient Toggle:** Ability to dynamically switch between **Ambient** (locked 1.0× video playback) and **Cadence Synced** (video playback speed modulated dynamically by rower stroke rate) directly from the Cockpit HUD controls.
   - This toggle only affects the active session on the fly.
   - The track's underlying default playback mode (configured when creating or editing the track) remains unchanged in the database.
+- [ ] **Mobile & iPhone 11 Responsive Layout Polishing:** Resolve visual layout artifacts and formatting inconsistencies on mobile devices, with focused refinement on portrait orientation (iPhone 11 / 414px width layouts across HUD metrics, navigation bars, modals, and workout tables) as well as edge-case visual polish in landscape mode.
 
 ### Completed
 - [x] **Multi-Workout Bulk Export & Deletion:** Multi-select workouts with row checkboxes and a master toggle, export multiple or all workouts at once as a `.zip` archive of formatted `.tcx` files (or multi-activity TCX), and batch delete sessions.
