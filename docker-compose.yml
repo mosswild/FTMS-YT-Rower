@@ -8,6 +8,9 @@ services:
     restart: unless-stopped
     ports:
       - "${PORT:-8000}:${PORT:-8000}"
+    # Optional: For direct Host Bluetooth Passthrough on Linux hosts:
+    # network_mode: host
+    # privileged: true
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
@@ -15,6 +18,11 @@ services:
       - PORT=${PORT:-8000}
       - DATA_DIR=/config/data
       - MEDIA_DIR=/config/media
+      # Embedded Bluetooth Relay Bridge:
+      # - ENABLE_BLUETOOTH_RELAY=true
+      # - BLE_DEVICE_NAME=Concept2
     volumes:
       # Exposes database (sessions.db) and downloaded media (videos, audio) to host
       - ./config:/config
+      # Mount host D-Bus for Bluetooth on Linux:
+      # - /var/run/dbus:/var/run/dbus:ro

@@ -24,6 +24,7 @@ RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && chmod +x /usr/local/
 COPY backend/ ./backend/
 COPY css/ ./css/
 COPY js/ ./js/
+COPY scripts/ ./scripts/
 COPY index.html ./
 
 # Environment defaults matching centrd / LinuxServer convention

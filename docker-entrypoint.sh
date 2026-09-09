@@ -54,5 +54,21 @@ if [ "$1" = "start" ]; then
     set -- uvicorn backend.main:app --host 0.0.0.0 --port "${PORT:-8000}" $SSL_ARGS
 fi
 
+# Optional: Embedded Bluetooth Relay Bridge (runs inside container on Linux with host D-Bus)
+if [ "$ENABLE_BLUETOOTH_RELAY" = "true" ] || [ "$BLUETOOTH_RELAY" = "true" ]; then
+    echo "Starting internal Bluetooth Relay Bridge connecting to http://127.0.0.1:${PORT:-8000}..."
+    (
+        sleep 3
+        RELAY_PROTOCOL="http"
+        if [ -n "$SSL_ARGS" ]; then
+            RELAY_PROTOCOL="https"
+        fi
+        python /app/scripts/bluetooth_relay.py \
+            --server "${RELAY_PROTOCOL}://127.0.0.1:${PORT:-8000}" \
+            ${BLE_DEVICE_NAME:+--name "$BLE_DEVICE_NAME"} \
+            ${BLE_DEVICE_ADDRESS:+--address "$BLE_DEVICE_ADDRESS"}
+    ) &
+fi
+
 # Execute application process as specified user & group
 exec su-exec "$PUID:$PGID" "$@"
