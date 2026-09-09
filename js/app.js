@@ -2481,6 +2481,33 @@ document.querySelectorAll(".theme-choice-card").forEach((card) => {
   });
 });
 
+// ----------------- HUD Density & Scale Management -----------------
+function getActiveHudScale() {
+  return localStorage.getItem("ftms_hud_scale") || "auto";
+}
+
+function applyHudScale(scale) {
+  if (!["auto", "compact", "standard", "large"].includes(scale)) scale = "auto";
+  pm5Hud.setScale(scale);
+  localStorage.setItem("ftms_hud_scale", scale);
+
+  document.querySelectorAll(".btn-scale-choice").forEach((btn) => {
+    if (btn.getAttribute("data-scale") === scale) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+}
+
+document.querySelectorAll(".btn-scale-choice").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const chosenScale = btn.getAttribute("data-scale");
+    applyHudScale(chosenScale);
+    showHudToast(`HUD Scale: ${chosenScale.toUpperCase()}`);
+  });
+});
+
 const THEME_NAMES = {
   "default": "Modern Slate",
   "cyberpunk": "Neon Cyberpunk",
@@ -2855,6 +2882,7 @@ window.addEventListener("keydown", (e) => {
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", async () => {
   applyTheme(getActiveTheme());
+  applyHudScale(getActiveHudScale());
   await loadLibraryUI();
   await loadTracksUI();
 

@@ -25,10 +25,12 @@ export class PM5Hud {
       audioBadge: document.getElementById("hud-audio-badge"),
       autoPauseBadge: document.getElementById("hud-autopause-badge"),
       fullscreenBtn: document.getElementById("hud-fullscreen-btn"),
+      airplayBtn: document.getElementById("hud-airplay-btn"),
     };
 
     this.setupInactivityWatchdog();
     this.setupFullscreen();
+    this.setupAirPlay();
   }
 
   updateMetrics(data) {
@@ -247,6 +249,45 @@ export class PM5Hud {
         exitFullscreen();
       }
     });
+  }
+
+  setupAirPlay() {
+    if (!this.elements.airplayBtn) return;
+    const video = document.getElementById("scenic-video");
+    if (!video) return;
+
+    if (window.WebKitPlaybackTargetAvailabilityEvent) {
+      video.addEventListener("webkitplaybacktargetavailabilitychanged", (event) => {
+        if (event.availability === "available") {
+          this.elements.airplayBtn.style.display = "inline-flex";
+        } else {
+          this.elements.airplayBtn.style.display = "none";
+        }
+      });
+
+      this.elements.airplayBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          video.webkitShowPlaybackTargetPicker();
+        } catch (err) {
+          console.warn("[AirPlay] Picker error:", err);
+        }
+      });
+    }
+  }
+
+  setScale(scale) {
+    if (!this.container) return;
+    this.container.classList.remove("hud-scale-compact", "hud-scale-large", "hud-scale-standard");
+    if (scale === "compact") {
+      this.container.classList.add("hud-scale-compact");
+    } else if (scale === "large") {
+      this.container.classList.add("hud-scale-large");
+    } else if (scale === "standard") {
+      this.container.classList.add("hud-scale-standard");
+    }
+    // "auto" removes custom scale classes and lets pure responsive CSS handle it
   }
 
   isMobileDevice() {
