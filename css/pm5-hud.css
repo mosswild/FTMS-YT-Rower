@@ -62,18 +62,15 @@ body {
 .brand-logo-img {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 1.5px solid rgba(56, 189, 248, 0.35);
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 10px rgba(56, 189, 248, 0.3));
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease;
   flex-shrink: 0;
 }
 
 .brand:hover .brand-logo-img {
-  transform: scale(1.08) rotate(-2deg);
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.45);
-  border-color: #38bdf8;
+  transform: scale(1.1) rotate(-2deg);
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 16px rgba(56, 189, 248, 0.65));
 }
 
 .brand-icon {
@@ -1601,10 +1598,8 @@ body.in-fullscreen .app-header {
 .modal-header-logo {
   width: 26px;
   height: 26px;
-  border-radius: 6px;
-  object-fit: cover;
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 8px rgba(56, 189, 248, 0.25));
   flex-shrink: 0;
 }
 
@@ -1629,10 +1624,8 @@ body.in-fullscreen .app-header {
 .about-logo-img {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
-  object-fit: cover;
-  border: 1.5px solid rgba(56, 189, 248, 0.35);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 12px rgba(56, 189, 248, 0.2);
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 14px rgba(56, 189, 248, 0.35));
   flex-shrink: 0;
 }
 
