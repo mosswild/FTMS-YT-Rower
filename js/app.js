@@ -252,7 +252,7 @@ async function loadLibraryUI() {
               <div class="media-meta-line">${v.duration ? `${Math.floor(v.duration / 60)}m ${v.duration % 60}s` : ""} • ${(v.size_bytes / (1024*1024)).toFixed(1)} MB</div>
             </div>
             <div class="media-actions">
-              <button class="btn btn-primary btn-sm btn-load-video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">Load Video</button>
+              <button class="btn btn-primary btn-sm btn-create-track-from-video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">Create Track</button>
               <button class="btn btn-secondary btn-sm btn-rename-media" data-type="video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">Rename</button>
               <button class="btn btn-secondary btn-sm btn-delete-media" data-type="video" data-id="${v.id}">Delete</button>
             </div>
@@ -260,10 +260,9 @@ async function loadLibraryUI() {
         </div>
       `).join("");
 
-      videosContainer.querySelectorAll(".btn-load-video").forEach(btn => {
+      videosContainer.querySelectorAll(".btn-create-track-from-video").forEach(btn => {
         btn.addEventListener("click", () => {
-          loadVideoIntoCockpit(btn.dataset.id, btn.dataset.title, true);
-          switchView("cockpit");
+          openCreateTrackFromVideo(btn.dataset.id, btn.dataset.title);
         });
       });
 
@@ -296,7 +295,7 @@ async function loadLibraryUI() {
               <div class="media-meta-line">${a.duration ? `${Math.floor(a.duration / 60)}m ${a.duration % 60}s` : ""} • ${(a.size_bytes / (1024*1024)).toFixed(1)} MB</div>
             </div>
             <div class="media-actions">
-              <button class="btn btn-primary btn-sm btn-load-audio" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">Use as Music</button>
+              <button class="btn btn-primary btn-sm btn-add-audio-to-track" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">Add to Track</button>
               <button class="btn btn-secondary btn-sm btn-rename-media" data-type="audio" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">Rename</button>
               <button class="btn btn-secondary btn-sm btn-delete-media" data-type="audio" data-id="${a.id}">Delete</button>
             </div>
@@ -304,12 +303,9 @@ async function loadLibraryUI() {
         </div>
       `).join("");
 
-      audioContainer.querySelectorAll(".btn-load-audio").forEach(btn => {
+      audioContainer.querySelectorAll(".btn-add-audio-to-track").forEach(btn => {
         btn.addEventListener("click", () => {
-          const audioUrl = `/api/media/audio/${btn.dataset.id}`;
-          audioEngine.setCustomAudio(audioUrl, btn.dataset.title);
-          updateAudioTrackDropdown(audioUrl);
-          switchView("cockpit");
+          openAddAudioToTrackModal(btn.dataset.id, btn.dataset.title);
         });
       });
 
@@ -781,6 +777,20 @@ function openTrackModal() {
   modalCreateTrack.classList.add("open");
 }
 
+function openCreateTrackFromVideo(videoId, videoTitle) {
+  openTrackModal();
+  if (selectTrackVideo && videoId) {
+    selectTrackVideo.value = videoId;
+    updateTrackVideoPreview(videoId);
+  }
+  const nameInput = document.getElementById("input-track-name");
+  if (nameInput) {
+    nameInput.value = videoTitle || "";
+    nameInput.focus();
+    nameInput.select();
+  }
+}
+
 function openEditTrackModal(track) {
   if (!modalCreateTrack) return;
   stopModalAudio();
@@ -972,6 +982,137 @@ if (formRenameMedia) {
       if (btnSubmitRenameMedia) {
         btnSubmitRenameMedia.disabled = false;
         btnSubmitRenameMedia.textContent = "Save Title";
+      }
+    }
+  });
+}
+
+// ----------------- Add Music to Track Modal -----------------
+const modalAddAudioToTrack = document.getElementById("modal-add-audio-to-track");
+const btnCloseAddAudioTrack = document.getElementById("btn-close-add-audio-track");
+const btnCancelAddAudioTrack = document.getElementById("btn-cancel-add-audio-track");
+const formAddAudioToTrack = document.getElementById("form-add-audio-to-track");
+const inputAddAudioId = document.getElementById("input-add-audio-id");
+const addAudioTrackTitle = document.getElementById("add-audio-track-title");
+const containerAudioTracksList = document.getElementById("container-audio-tracks-list");
+const btnSaveAddAudioTrack = document.getElementById("btn-save-add-audio-track");
+
+function openAddAudioToTrackModal(audioId, audioTitle) {
+  if (!modalAddAudioToTrack) return;
+  inputAddAudioId.value = audioId;
+  if (addAudioTrackTitle) addAudioTrackTitle.textContent = audioTitle || "Selected Soundtrack";
+
+  if (containerAudioTracksList) {
+    if (!cachedTracks || cachedTracks.length === 0) {
+      containerAudioTracksList.innerHTML = `
+        <div style="padding: 1.25rem 1rem; text-align: center; color: var(--text-dim); background: rgba(255,255,255,0.02); border: 1px dashed var(--surface-border); border-radius: 6px;">
+          <p style="margin-bottom: 0.75rem; font-size: 0.85rem;">No scenic tracks created yet. Create a track first to associate this soundtrack with it.</p>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-create-track">Create New Track</button>
+        </div>
+      `;
+      const quickBtn = containerAudioTracksList.querySelector("#btn-quick-create-track");
+      if (quickBtn) {
+        quickBtn.addEventListener("click", () => {
+          closeAddAudioToTrackModal();
+          openTrackModal();
+        });
+      }
+    } else {
+      containerAudioTracksList.innerHTML = cachedTracks.map(t => {
+        const allowed = t.allowed_audios || [];
+        const isAllowed = allowed.includes(audioId) || t.default_audio === audioId;
+        const isDefault = t.default_audio === audioId;
+
+        return `
+          <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 6px; cursor: pointer;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
+              <input type="checkbox" name="track_assoc" value="${t.id}" ${isAllowed ? 'checked' : ''} style="accent-color: var(--accent-blue); width: 16px; height: 16px; flex-shrink: 0;">
+              <div style="min-width: 0;">
+                <div style="font-weight: 600; font-size: 0.88rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.name}</div>
+                <div style="font-size: 0.74rem; color: var(--text-dim);">${isDefault ? "★ Default Soundtrack for this route" : "Available in cockpit audio selector"}</div>
+              </div>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-muted); flex-shrink: 0; margin-left: 0.5rem;">${pm5Hud.formatTime(t.start_time)} → ${t.end_time > 0 ? pm5Hud.formatTime(t.end_time) : "End"}</span>
+          </label>
+        `;
+      }).join("");
+    }
+  }
+
+  modalAddAudioToTrack.classList.add("open");
+}
+
+function closeAddAudioToTrackModal() {
+  if (modalAddAudioToTrack) modalAddAudioToTrack.classList.remove("open");
+}
+
+if (btnCloseAddAudioTrack) btnCloseAddAudioTrack.addEventListener("click", closeAddAudioToTrackModal);
+if (btnCancelAddAudioTrack) btnCancelAddAudioTrack.addEventListener("click", closeAddAudioToTrackModal);
+if (modalAddAudioToTrack) {
+  modalAddAudioToTrack.addEventListener("click", (e) => {
+    if (e.target === modalAddAudioToTrack) closeAddAudioToTrackModal();
+  });
+}
+
+if (formAddAudioToTrack) {
+  formAddAudioToTrack.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const audioId = inputAddAudioId.value;
+    if (!audioId || !cachedTracks || cachedTracks.length === 0) {
+      closeAddAudioToTrackModal();
+      return;
+    }
+
+    if (btnSaveAddAudioTrack) {
+      btnSaveAddAudioTrack.disabled = true;
+      btnSaveAddAudioTrack.textContent = "Saving...";
+    }
+
+    const checkedTrackIds = new Set();
+    containerAudioTracksList.querySelectorAll('input[name="track_assoc"]:checked').forEach(cb => {
+      checkedTrackIds.add(cb.value);
+    });
+
+    try {
+      for (const track of cachedTracks) {
+        let allowed = Array.isArray(track.allowed_audios) ? [...track.allowed_audios] : [];
+        let modified = false;
+
+        if (checkedTrackIds.has(track.id)) {
+          if (!allowed.includes(audioId)) {
+            allowed.push(audioId);
+            modified = true;
+          }
+        } else {
+          if (allowed.includes(audioId)) {
+            allowed = allowed.filter(id => id !== audioId);
+            modified = true;
+          }
+          if (track.default_audio === audioId) {
+            track.default_audio = "original";
+            modified = true;
+          }
+        }
+
+        if (modified) {
+          track.allowed_audios = allowed;
+          await fetch("/api/tracks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(track)
+          });
+        }
+      }
+
+      closeAddAudioToTrackModal();
+      await loadTracksUI();
+      showHudToast("Updated track music associations");
+    } catch (err) {
+      alert("Error updating track associations: " + (err.message || err));
+    } finally {
+      if (btnSaveAddAudioTrack) {
+        btnSaveAddAudioTrack.disabled = false;
+        btnSaveAddAudioTrack.textContent = "Save Associations";
       }
     }
   });
@@ -1842,6 +1983,14 @@ window.addEventListener("keydown", (e) => {
     closeHudDropdowns();
     if (modalRenameMedia && modalRenameMedia.classList.contains("open")) {
       closeRenameMediaModal();
+      return;
+    }
+    if (modalAddAudioToTrack && modalAddAudioToTrack.classList.contains("open")) {
+      closeAddAudioToTrackModal();
+      return;
+    }
+    if (modalCreateTrack && modalCreateTrack.classList.contains("open")) {
+      closeTrackModal();
       return;
     }
     return;
