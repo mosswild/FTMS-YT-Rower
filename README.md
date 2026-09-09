@@ -115,8 +115,46 @@ To run on a different port (e.g. `9000`):
 
 #### Container Configuration (`docker-compose.yml`):
 - **Port:** `${PORT:-8000}:${PORT:-8000}`
+- **Container Name:** `ftms-rower`
 - **Volume:** `./config:/config` (persists SQLite database under `/config/data` and scenic videos/audio under `/config/media`)
 - **User Permissions:** Supports `PUID` and `PGID` environment variables (default: `1000:1000`) for seamless non-root host file ownership.
+
+> 📖 **Synology NAS Setup Guide:** For step-by-step GUI instructions using **Synology Container Manager**, check out the [Synology NAS Docker Setup Guide](docs/DOCKER_SYNOLOGY.md).
+
+---
+
+## 📱 Accessing Across Your Home Network (NAS / Docker)
+
+Once the server or container is running on your host machine or NAS, you can connect to it from any tablet, phone, or computer on your home Wi-Fi network.
+
+### Step 1: Find your Server's IP Address
+On your host server, open the terminal and identify its local network IP address:
+* **macOS / Linux:** Run `ifconfig` or `ip a` (look for `inet` under your active Wi-Fi or Ethernet adapter, e.g. `192.168.1.45`).
+* **Windows:** Run `ipconfig` in Command Prompt (look for `IPv4 Address`).
+
+### Step 2: Open FTMS-Rower on Client Devices
+Open Google Chrome or Microsoft Edge on your tablet, phone, or computer and navigate to your server's IP address on port `8000`:
+
+```text
+http://<YOUR-SERVER-IP-ADDRESS>:8000/ftms-rower
+```
+*(Example: `http://192.168.1.45:8000/ftms-rower`)*
+
+> [!TIP]
+> **Tablet / Mobile Home Screen App:** You can add FTMS-Rower to your tablet or phone's home screen for an app-like, fullscreen cockpit view:
+> * **iOS / iPadOS:** Tap the **Share** button and select **"Add to Home Screen"**.
+> * **Android (Chrome):** Tap the **Menu** (three dots) and select **"Add to Home Screen"** or **"Install App"**.
+
+### Step 3: Web Bluetooth on Home Network Devices (Important)
+Web Bluetooth (`navigator.bluetooth`) is a modern web standard strictly governed by browser security policies that require a **Secure Context (HTTPS or localhost)** to connect to hardware like rowing ergometers and heart rate monitors.
+
+When accessing across your local network via plain `http://<YOUR-SERVER-IP-ADDRESS>:8000`:
+* **Option A: Reverse Proxy with HTTPS (Recommended):** Use a reverse proxy (such as Synology DSM Reverse Proxy, Caddy, or Nginx) with a local SSL certificate or home domain (`https://rower.local`). See the [Synology NAS Docker Setup Guide](docs/DOCKER_SYNOLOGY.md#option-1-synology-reverse-proxy-with-https-recommended) for a complete walkthrough.
+* **Option B: Chromium Insecure Origin Flag (Fast, No SSL Certs):** On your client device's Chrome or Edge browser:
+  1. Open `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
+  2. Add your server's address: `http://<YOUR-SERVER-IP-ADDRESS>:8000`
+  3. Change the dropdown to **Enabled** and restart the browser.
+* **Option C: Virtual Simulator & Ambient Display Mode:** If your tablet is mounted on the rower as a scenic companion screen without direct Bluetooth pairing, use the built-in dynamic interval simulator or manual slider to drive the session without any Bluetooth setup.
 
 ---
 

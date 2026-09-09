@@ -38,6 +38,15 @@ app.add_middleware(
 )
 
 @app.middleware("http")
+async def ftms_rower_prefix_middleware(request: Request, call_next):
+    path = request.url.path
+    if path == "/ftms-rower":
+        return RedirectResponse(url="/ftms-rower/", status_code=307)
+    if path.startswith("/ftms-rower/api/"):
+        request.scope["path"] = path[len("/ftms-rower"):]
+    return await call_next(request)
+
+@app.middleware("http")
 async def add_no_cache_headers(request, call_next):
     response = await call_next(request)
     path = request.url.path
@@ -308,6 +317,12 @@ async def delete_single_track(track_id: str):
 
 
 # ----------------- Static Frontend Mounting -----------------
+app.mount("/ftms-rower/css", StaticFiles(directory=os.path.join(ROOT_DIR, "css")), name="ftms_rower_css")
+app.mount("/ftms-rower/js", StaticFiles(directory=os.path.join(ROOT_DIR, "js")), name="ftms_rower_js")
+if os.path.exists(os.path.join(ROOT_DIR, "video")):
+    app.mount("/ftms-rower/video", StaticFiles(directory=os.path.join(ROOT_DIR, "video")), name="ftms_rower_video")
+app.mount("/ftms-rower", StaticFiles(directory=ROOT_DIR, html=True), name="ftms_rower_frontend")
+
 app.mount("/css", StaticFiles(directory=os.path.join(ROOT_DIR, "css")), name="css")
 app.mount("/js", StaticFiles(directory=os.path.join(ROOT_DIR, "js")), name="js")
 if os.path.exists(os.path.join(ROOT_DIR, "video")):

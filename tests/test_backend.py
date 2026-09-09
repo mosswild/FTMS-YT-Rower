@@ -244,6 +244,23 @@ class TestBackendAndFormulas(unittest.TestCase):
         del_v_res = self.client.delete(f"/api/media/video/{video_id}")
         self.assertEqual(del_v_res.status_code, 200)
 
+    def test_ftms_rower_prefix_routing(self):
+        """Test accessing via /ftms-rower prefix redirects and serves API/frontend."""
+        # Test redirect /ftms-rower -> /ftms-rower/
+        resp_redirect = self.client.get("/ftms-rower", follow_redirects=False)
+        self.assertEqual(resp_redirect.status_code, 307)
+        self.assertEqual(resp_redirect.headers["location"], "/ftms-rower/")
+
+        # Test index serves at /ftms-rower/
+        resp_index = self.client.get("/ftms-rower/")
+        self.assertEqual(resp_index.status_code, 200)
+        self.assertIn("FTMS Rower", resp_index.text)
+
+        # Test API routing at /ftms-rower/api/tracks
+        resp_api = self.client.get("/ftms-rower/api/tracks")
+        self.assertEqual(resp_api.status_code, 200)
+        self.assertIn("tracks", resp_api.json())
+
 if __name__ == "__main__":
     unittest.main()
 
