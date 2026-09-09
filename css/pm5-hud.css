@@ -153,14 +153,33 @@ body {
   display: block;
 }
 
-/* Fullscreen mode */
+/* Fullscreen mode (native top-layer and mobile pseudo-fullscreen) */
 .scenic-viewport-container.is-fullscreen {
-  max-width: none;
-  width: 100vw;
-  height: 100vh;
-  aspect-ratio: auto;
-  border-radius: 0;
-  box-shadow: none;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  width: 100dvw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  aspect-ratio: auto !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  z-index: 99999 !important;
+}
+
+body.in-fullscreen {
+  overflow: hidden !important;
+}
+
+body.in-fullscreen .app-header {
+  display: none !important;
+}
+
+.scenic-viewport-container.is-fullscreen .pm5-hud-overlay {
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
 }
 
 /* 4-Second Inactivity Auto-Fade */

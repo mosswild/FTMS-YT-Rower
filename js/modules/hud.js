@@ -142,31 +142,115 @@ export class PM5Hud {
   }
 
   setupFullscreen() {
-    if (this.elements.fullscreenBtn) {
-      this.elements.fullscreenBtn.addEventListener("click", () => {
-        if (!document.fullscreenElement) {
-          if (this.container.requestFullscreen) {
-            this.container.requestFullscreen();
-          } else if (this.container.webkitRequestFullscreen) {
-            this.container.webkitRequestFullscreen();
-          }
-        } else {
-          if (document.exitFullscreen) {
-            document.exitFullscreen();
-          } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-          }
-        }
-      });
+    if (!this.elements.fullscreenBtn) return;
 
-      document.addEventListener("fullscreenchange", () => {
-        const isFs = !!document.fullscreenElement;
-        this.container.classList.toggle("is-fullscreen", isFs);
-        this.elements.fullscreenBtn.innerHTML = isFs
-          ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>`
-          : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
-      });
-    }
+    const updateButtonUI = (isFs) => {
+      this.elements.fullscreenBtn.innerHTML = isFs
+        ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>`
+        : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
+      this.elements.fullscreenBtn.setAttribute("title", isFs ? "Exit Fullscreen" : "Toggle Fullscreen");
+    };
+
+    const toggleFullscreenState = (active) => {
+      this.container.classList.toggle("is-fullscreen", active);
+      document.body.classList.toggle("in-fullscreen", active);
+      document.documentElement.classList.toggle("in-fullscreen", active);
+      updateButtonUI(active);
+
+      // Attempt screen orientation lock if supported on mobile
+      if (active && window.screen && window.screen.orientation && window.screen.orientation.lock) {
+        window.screen.orientation.lock("landscape").catch(() => {});
+      }
+    };
+
+    const isNativeFullscreenActive = () => {
+      return !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+      );
+    };
+
+    const enterFullscreen = async () => {
+      // Engage CSS fullscreen immediately (ensures instant mobile layout coverage)
+      toggleFullscreenState(true);
+
+      const target = this.container;
+      const rfs = target.requestFullscreen ||
+        target.webkitRequestFullscreen ||
+        target.mozRequestFullScreen ||
+        target.msRequestFullscreen ||
+        document.documentElement.requestFullscreen ||
+        document.documentElement.webkitRequestFullscreen;
+
+      if (rfs) {
+        try {
+          const res = rfs.call(target);
+          if (res && res.catch) {
+            await res.catch((err) => {
+              console.warn("[Fullscreen] Native request rejected, using mobile CSS fallback:", err);
+            });
+          }
+        } catch (err) {
+          console.warn("[Fullscreen] Native call error, using mobile CSS fallback:", err);
+        }
+      }
+    };
+
+    const exitFullscreen = async () => {
+      toggleFullscreenState(false);
+
+      if (isNativeFullscreenActive()) {
+        const efs = document.exitFullscreen ||
+          document.webkitExitFullscreen ||
+          document.mozCancelFullScreen ||
+          document.msExitFullscreen;
+        if (efs) {
+          try {
+            const res = efs.call(document);
+            if (res && res.catch) await res.catch(() => {});
+          } catch (err) {}
+        }
+      }
+    };
+
+    this.elements.fullscreenBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const active = isNativeFullscreenActive() || this.container.classList.contains("is-fullscreen");
+      if (active) {
+        exitFullscreen();
+      } else {
+        enterFullscreen();
+      }
+    });
+
+    const onFsChange = () => {
+      const isFs = isNativeFullscreenActive();
+      if (!isFs) {
+        if (this.container.classList.contains("is-fullscreen") && !this.isMobileDevice()) {
+          toggleFullscreenState(false);
+        }
+      } else {
+        toggleFullscreenState(true);
+      }
+    };
+
+    document.addEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange);
+    document.addEventListener("mozfullscreenchange", onFsChange);
+    document.addEventListener("MSFullscreenChange", onFsChange);
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && this.container.classList.contains("is-fullscreen")) {
+        exitFullscreen();
+      }
+    });
+  }
+
+  isMobileDevice() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
   }
 
   formatTime(totalSeconds) {
