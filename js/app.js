@@ -117,12 +117,12 @@ const sessionTracker = new SessionTracker({
   onStateChange: (state) => {
     const workoutBtn = document.getElementById("btn-toggle-workout");
     if (workoutBtn) {
-      if (state === "active") {
+      if (state === "active" || state === "paused") {
         workoutBtn.textContent = "Finish Workout";
         workoutBtn.className = "btn btn-danger";
         pm5Hud.setActiveSession(true);
         rateController.setWorkoutLive(true);
-        if (videoEl && videoEl.paused && (rateController.isFixedSpeed || rateController.smoothedRate > 0)) {
+        if (state === "active" && videoEl && videoEl.paused && (rateController.isFixedSpeed || rateController.smoothedRate > 0)) {
           rateController.resumeVideo();
           audioEngine.play();
         }
@@ -682,7 +682,7 @@ function loadTrackIntoCockpit(track, autoPlay = false) {
     updateAudioTrackDropdown(audioUrl, track.allowed_audios);
   }
 
-  const isWorkoutLive = sessionTracker.state === "active" || (simulator && simulator.isRunning);
+  const isWorkoutLive = (sessionTracker.state === "active" || sessionTracker.state === "paused") || (simulator && simulator.isRunning);
   rateController.setWorkoutLive(isWorkoutLive);
 
   if (track.fixed_speed) {
@@ -2362,7 +2362,7 @@ if (audioVolumeSlider) {
 const toggleWorkoutBtn = document.getElementById("btn-toggle-workout");
 if (toggleWorkoutBtn) {
   toggleWorkoutBtn.addEventListener("click", async () => {
-    if (sessionTracker.state === "active") {
+    if (sessionTracker.state === "active" || sessionTracker.state === "paused") {
       const id = await sessionTracker.finish();
       if (id) {
         alert("Workout saved successfully! View in History.");
