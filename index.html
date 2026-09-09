@@ -267,7 +267,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
             <span id="btn-audio-label">Play Audio</span>
           </button>
-          <select id="audio-track-select" class="select-dropdown" style="max-width: 200px;">
+          <select id="audio-track-select" class="select-dropdown">
             <option value="original">Original Video Audio (1.0×)</option>
             <option value="mute">Mute</option>
           </select>
@@ -369,7 +369,7 @@
     </div>
 
     <!-- Configured Scenic Tracks Section -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <div class="tracks-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
       <div>
         <h3 style="font-size: 1.15rem; font-weight: 700;">Configured Scenic Tracks</h3>
         <p style="font-size: 0.82rem; color: var(--text-dim);">Custom video segments with trimmed start/end positions and assigned default audio soundtracks.</p>
@@ -383,7 +383,7 @@
     <div id="library-videos" class="library-grid" style="margin-bottom: 2.5rem;"></div>
 
     <!-- Raw Downloaded Audio -->
-    <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">Downloaded Soundtracks & Music</h3>
+    <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">Standalone Soundtracks</h3>
     <div id="library-audio" class="library-grid"></div>
   </section>
 
@@ -424,27 +424,29 @@
       </div>
     </div>
 
-    <!-- Sessions Table -->
-    <table class="sessions-table">
-      <thead>
-        <tr>
-          <th class="cell-checkbox">
-            <input type="checkbox" id="checkbox-select-all" class="custom-checkbox" title="Select All Workouts" aria-label="Select All Workouts">
-          </th>
-          <th>Date</th>
-          <th>Duration</th>
-          <th>Distance</th>
-          <th>Avg Split</th>
-          <th>Avg Watts</th>
-          <th>Avg SPM</th>
-          <th>Avg HR</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="history-table-body">
-        <!-- Injected via JavaScript -->
-      </tbody>
-    </table>
+    <!-- Sessions Table in Touch-Scroll Container -->
+    <div class="table-responsive">
+      <table class="sessions-table">
+        <thead>
+          <tr>
+            <th class="cell-checkbox">
+              <input type="checkbox" id="checkbox-select-all" class="custom-checkbox" title="Select All Workouts" aria-label="Select All Workouts">
+            </th>
+            <th>Date</th>
+            <th>Duration</th>
+            <th>Distance</th>
+            <th>Avg Split</th>
+            <th>Avg Watts</th>
+            <th>Avg SPM</th>
+            <th>Avg HR</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="history-table-body">
+          <!-- Injected via JavaScript -->
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <!-- DASHBOARD SETTINGS MODAL -->
