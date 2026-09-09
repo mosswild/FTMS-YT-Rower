@@ -159,13 +159,19 @@ Apple explicitly disables Web Bluetooth in standard Safari. You have two seamles
   5. Tap the dropdown arrow at the top → select **Add to Home Screen**, name it **"FTMS Rower"**, and assign a fitness/rowing icon.
   6. Now, tapping your custom icon immediately launches FTMS-Rower in fullscreen with full Bluetooth pairing to your rower and heart rate strap, ready to AirPlay mirror to your big screen TV!
 
-* **Method 2: Standalone Bluetooth Relay Bridge (Standard Safari over Wi-Fi):**
-  If you have a PC, Mac, or Raspberry Pi located within Bluetooth range of your rowing machine, run the included standalone relay bridge:
-  ```bash
-  pip install bleak
-  python scripts/bluetooth_relay.py --server http://<YOUR-SERVER-IP>:8000
-  ```
-  The script pairs with your rower and broadcasts live metrics over your local Wi-Fi via WebSockets. You can now use **standard iOS Safari** (including Safari's "Add to Home Screen" web clip) to receive live metrics without needing third-party browsers!
+* **Method 2: Bluetooth Relay Bridge (Standard Safari over Wi-Fi — Recommended):**
+  If your server (or any PC/Mac/Raspberry Pi) is located near your rowing machine:
+  - **On Windows Host (Running Docker):**
+    Simply double-click `run_relay_windows.bat` in the repository folder! It will check/install `bleak`, connect to your rower using your Windows PC's native Bluetooth, and stream telemetry straight into your Docker container at `http://localhost:8000`.
+  - **On Mac / Linux Host:**
+    ```bash
+    pip install bleak
+    python scripts/bluetooth_relay.py --server http://localhost:8000
+    ```
+  - **Embedded in Docker (Linux with D-Bus):**
+    Set `ENABLE_BLUETOOTH_RELAY=true` with `/var/run/dbus` mounted in [docker-compose.yml](docker-compose.yml).
+  
+  Once running, you can open **standard iOS Safari** (or a Safari Home Screen bookmark) on your iPhone or Smart TV at `http://<SERVER-IP>:8000/`. The HUD connects automatically over WebSockets with zero third-party browser apps or SSL headaches!
 
 #### B. Android Tablets & Phones:
 * Open Google Chrome on your Android device.
