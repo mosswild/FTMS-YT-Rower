@@ -7,6 +7,7 @@ import { SessionTracker } from "./modules/session-tracker.js";
 import { VirtualRowerSimulator } from "./modules/simulator.js";
 import { MediaManager } from "./modules/media-manager.js";
 import { TrackController } from "./modules/track-controller.js";
+import { WebSocketTelemetry } from "./modules/ws-telemetry.js";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -203,6 +204,37 @@ function updateHrStatus(connected, text) {
     pill.querySelector(".status-text").textContent = text || (connected ? "HR Connected" : "HR Disconnected");
   }
 }
+
+// WebSocket Telemetry Gateway Listener (Enables Wi-Fi relay to standard browsers e.g. iOS Safari)
+let relayActive = false;
+let relayTimeout = null;
+
+const wsTelemetry = new WebSocketTelemetry(
+  (data) => {
+    // If local BLE rower is not actively connected and simulator is not running, relay drives the cockpit
+    if (!rowerBle.isConnected && !simulator.isRunning) {
+      handleTelemetryPacket(data);
+      if (!relayActive) {
+        relayActive = true;
+        updateRowerStatus(true, "Rower (Relay)");
+      }
+      if (data.heartRate !== undefined && !hrBle.isConnected) {
+        updateHrStatus(true, "HR (Relay)");
+      }
+      if (relayTimeout) clearTimeout(relayTimeout);
+      relayTimeout = setTimeout(() => {
+        relayActive = false;
+        if (!rowerBle.isConnected && !simulator.isRunning) {
+          updateRowerStatus(false, "Relay Idle");
+        }
+      }, 5000);
+    }
+  },
+  (connected, text) => {
+    console.log("[WS Gateway]", connected, text);
+  }
+);
+wsTelemetry.connect();
 
 // ----------------- View Navigation -----------------
 const views = {

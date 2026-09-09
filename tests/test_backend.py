@@ -261,6 +261,27 @@ class TestBackendAndFormulas(unittest.TestCase):
         self.assertEqual(resp_api.status_code, 200)
         self.assertIn("tracks", resp_api.json())
 
+    def test_telemetry_gateway(self):
+        """Test publishing telemetry via REST and receiving over WebSocket."""
+        # 1. Test REST publish endpoint
+        payload = {"stroke_rate": 28, "watts": 245.0, "split_seconds": 105.0}
+        resp = self.client.post("/api/telemetry/publish", json=payload)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["status"], "broadcasted")
+
+        # 2. Test REST publish under /ftms-rower prefix
+        resp_prefix = self.client.post("/ftms-rower/api/telemetry/publish", json=payload)
+        self.assertEqual(resp_prefix.status_code, 200)
+        self.assertEqual(resp_prefix.json()["status"], "broadcasted")
+
+        # 3. Test WebSocket connection and reception
+        with self.client.websocket_connect("/ws/telemetry") as ws:
+            # Publish via REST
+            self.client.post("/api/telemetry/publish", json={"stroke_rate": 32, "watts": 310.0})
+            data = ws.receive_json()
+            self.assertEqual(data["stroke_rate"], 32)
+            self.assertEqual(data["watts"], 310.0)
+
 if __name__ == "__main__":
     unittest.main()
 

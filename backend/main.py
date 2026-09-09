@@ -1,7 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 from typing import Dict, Any, Optional, List
-from fastapi import FastAPI, Request, HTTPException, Response, UploadFile, File, Form
+from fastapi import FastAPI, Request, HTTPException, Response, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -91,6 +91,59 @@ class WorkoutSaveRequest(BaseModel):
     audio_source: Optional[str] = None
     notes: Optional[str] = ""
     samples: Optional[List[WorkoutSampleModel]] = None
+
+# ----------------- Telemetry Gateway (WebSocket & REST Relay) -----------------
+class TelemetryGateway:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: Dict[str, Any], sender: Optional[WebSocket] = None):
+        disconnected = []
+        for connection in list(self.active_connections):
+            if connection is sender:
+                continue
+            try:
+                await connection.send_json(message)
+            except Exception:
+                disconnected.append(connection)
+        for conn in disconnected:
+            self.disconnect(conn)
+
+telemetry_gateway = TelemetryGateway()
+
+@app.post("/api/telemetry/publish")
+async def publish_telemetry(payload: Dict[str, Any]):
+    """Allow external relay scripts or tools to publish telemetry packets to connected clients."""
+    await telemetry_gateway.broadcast(payload)
+    return {"status": "broadcasted", "clients": len(telemetry_gateway.active_connections)}
+
+async def handle_telemetry_ws(websocket: WebSocket):
+    await telemetry_gateway.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            if isinstance(data, dict):
+                await telemetry_gateway.broadcast(data, sender=websocket)
+    except WebSocketDisconnect:
+        telemetry_gateway.disconnect(websocket)
+    except Exception:
+        telemetry_gateway.disconnect(websocket)
+
+@app.websocket("/ws/telemetry")
+async def ws_telemetry(websocket: WebSocket):
+    await handle_telemetry_ws(websocket)
+
+@app.websocket("/ftms-rower/ws/telemetry")
+async def ws_telemetry_prefix(websocket: WebSocket):
+    await handle_telemetry_ws(websocket)
 
 # ----------------- Media Ingestion Endpoints -----------------
 @app.post("/api/download")

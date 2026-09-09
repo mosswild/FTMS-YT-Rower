@@ -145,16 +145,36 @@ http://<YOUR-SERVER-IP-ADDRESS>:8000/ftms-rower
 > * **iOS / iPadOS:** Tap the **Share** button and select **"Add to Home Screen"**.
 > * **Android (Chrome):** Tap the **Menu** (three dots) and select **"Add to Home Screen"** or **"Install App"**.
 
-### Step 3: Web Bluetooth on Home Network Devices (Important)
-Web Bluetooth (`navigator.bluetooth`) is a modern web standard strictly governed by browser security policies that require a **Secure Context (HTTPS or localhost)** to connect to hardware like rowing ergometers and heart rate monitors.
+### Step 3: Connecting to Bluetooth on Client Devices (iPhone, Android, Tablets)
+Modern browsers strictly govern Web Bluetooth (`navigator.bluetooth`). Here is how to achieve the best experience on your devices:
 
-When accessing across your local network via plain `http://<YOUR-SERVER-IP-ADDRESS>:8000`:
-* **Option A: Reverse Proxy with HTTPS (Recommended):** Use a reverse proxy (such as Synology DSM Reverse Proxy, Caddy, or Nginx) with a local SSL certificate or home domain (`https://rower.local`). See the [Synology NAS Docker Setup Guide](docs/DOCKER_SYNOLOGY.md#option-1-synology-reverse-proxy-with-https-recommended) for a complete walkthrough.
-* **Option B: Chromium Insecure Origin Flag (Fast, No SSL Certs):** On your client device's Chrome or Edge browser:
-  1. Open `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
-  2. Add your server's address: `http://<YOUR-SERVER-IP-ADDRESS>:8000`
-  3. Change the dropdown to **Enabled** and restart the browser.
-* **Option C: Virtual Simulator & Ambient Display Mode:** If your tablet is mounted on the rower as a scenic companion screen without direct Bluetooth pairing, use the built-in dynamic interval simulator or manual slider to drive the session without any Bluetooth setup.
+#### A. iPhone / iPad (iOS):
+Apple explicitly disables Web Bluetooth in standard Safari. You have two seamless options:
+
+* **Method 1: 1-Tap Home Screen App via Bluefy & iOS Shortcuts (No Extra Hardware):**
+  1. Install the free **[Bluefy](https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055)** Web Bluetooth browser from the App Store.
+  2. Open the built-in **Shortcuts** app on your iPhone and tap **`+`**.
+  3. Add an action: **URL** → enter `http://<YOUR-SERVER-IP>:8000/ftms-rower`.
+  4. Add next action: **Open in Bluefy** (or search for Bluefy in actions).
+  5. Tap the dropdown arrow at the top → select **Add to Home Screen**, name it **"FTMS Rower"**, and assign a fitness/rowing icon.
+  6. Now, tapping your custom icon immediately launches FTMS-Rower in fullscreen with full Bluetooth pairing to your rower and heart rate strap, ready to AirPlay mirror to your big screen TV!
+
+* **Method 2: Standalone Bluetooth Relay Bridge (Standard Safari over Wi-Fi):**
+  If you have a PC, Mac, or Raspberry Pi located within Bluetooth range of your rowing machine, run the included standalone relay bridge:
+  ```bash
+  pip install bleak
+  python scripts/bluetooth_relay.py --server http://<YOUR-SERVER-IP>:8000
+  ```
+  The script pairs with your rower and broadcasts live metrics over your local Wi-Fi via WebSockets. You can now use **standard iOS Safari** (including Safari's "Add to Home Screen" web clip) to receive live metrics without needing third-party browsers!
+
+#### B. Android Tablets & Phones:
+* Open Google Chrome on your Android device.
+* Navigate to `chrome://flags/#unsafely-treat-insecure-origin-as-secure`.
+* Add `http://<YOUR-SERVER-IP>:8000` (and `http://<YOUR-SERVER-IP>:8000/ftms-rower`), select **Enabled**, and restart Chrome.
+* Tap the three-dot menu and select **"Add to Home screen"** or **"Install app"** for a fullscreen standalone app with native Web Bluetooth!
+
+#### C. Reverse Proxy with HTTPS (Universal):
+* Configure a reverse proxy with a local SSL certificate (e.g. `https://rower.local`) to provide a secure context across all browsers. See the [Synology NAS Docker Setup Guide](docs/DOCKER_SYNOLOGY.md#option-1-synology-reverse-proxy-with-https-recommended).
 
 ---
 

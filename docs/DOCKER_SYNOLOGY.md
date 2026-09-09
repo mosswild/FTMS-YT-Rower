@@ -139,13 +139,31 @@ You can set up a clean, secure address like `https://rower.local` or `https://ro
 4. In **Control Panel** > **Security** > **Certificate**, assign a certificate (such as Synology Let's Encrypt or a local self-signed certificate) to your reverse proxy entry.
 5. On your phone or tablet, navigate to `https://rower.local/ftms-rower`. Web Bluetooth will be fully active!
 
-### Option 2: Chrome Insecure Origin Flag (Fast & No Certs)
-If accessing via plain HTTP (`http://192.168.1.100:8000/ftms-rower`) on Android, Windows, or Mac Chrome:
+### Option 2: 1-Tap Home Screen App via Bluefy & iOS Shortcuts (iPhone / iPad)
+Since standard iOS Safari disables Web Bluetooth, you can create a 1-tap app on your iPhone:
+1. Install **[Bluefy](https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055)** (free Web Bluetooth browser on iOS App Store).
+2. Open iOS **Shortcuts** app, tap `+`, add action **URL** (`http://<YOUR-SYNOLOGY-IP>:8000/ftms-rower`).
+3. Add action **Open in Bluefy**.
+4. Name the shortcut **"FTMS Rower"**, select a rowing/fitness icon, and tap **Add to Home Screen**.
+5. Tapping this icon launches your dashboard in fullscreen with direct Bluetooth connection to your rower and heart rate strap!
+
+### Option 3: Standalone Bluetooth Relay Bridge (Standard Safari over Wi-Fi)
+If you have a computer, Mac, or Raspberry Pi near your rowing machine:
+1. Run the included standalone relay bridge:
+   ```bash
+   pip install bleak
+   python scripts/bluetooth_relay.py --server http://<YOUR-SYNOLOGY-IP>:8000
+   ```
+2. The relay pairs with your rower and broadcasts metrics to the server via WebSockets.
+3. You can now use **standard iOS Safari** (including a Safari Home Screen bookmark) or any TV web browser to view live metrics over Wi-Fi!
+
+### Option 4: Chrome Insecure Origin Flag (Android / Windows)
+If accessing via plain HTTP (`http://192.168.1.100:8000/ftms-rower`) on Android Chrome:
 1. In Chrome, open `chrome://flags/#unsafely-treat-insecure-origin-as-secure`.
 2. Add your server's address: `http://192.168.1.100:8000`
 3. Set to **Enabled** and click **Relaunch**.
 
-### Option 3: Virtual Simulator Mode
+### Option 5: Virtual Simulator Mode (No Bluetooth Needed)
 If you are using a phone or tablet merely as an ambient scenic display on your rower's tablet mount without Bluetooth, the built-in **Dynamic Program Simulator** allows you to test workouts, intervals, and pace-synced video streaming without needing a Bluetooth connection.
 
 ---
