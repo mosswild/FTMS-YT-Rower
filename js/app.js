@@ -261,10 +261,12 @@ async function loadLibraryUI() {
               <div class="media-meta-line">${v.duration ? `${Math.floor(v.duration / 60)}m ${v.duration % 60}s` : ""} • ${(v.size_bytes / (1024*1024)).toFixed(1)} MB${trimBadge}</div>
             </div>
             <div class="media-actions">
-              <button class="btn btn-primary btn-sm btn-create-track-from-video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">Create Track</button>
-              <button class="btn btn-secondary btn-sm btn-trim-media" data-type="video" data-id="${v.id}">Preview & Trim</button>
-              <button class="btn btn-secondary btn-sm btn-rename-media" data-type="video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">Rename</button>
-              <button class="btn btn-secondary btn-sm btn-delete-media" data-type="video" data-id="${v.id}">Delete</button>
+              <button class="btn btn-primary btn-sm btn-action-main btn-create-track-from-video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">+ Create Track</button>
+              <div class="media-actions-row">
+                <button class="btn btn-secondary btn-sm btn-trim-media" data-type="video" data-id="${v.id}">✂ Preview & Trim</button>
+                <button class="btn btn-secondary btn-sm btn-rename-media" data-type="video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">Rename</button>
+                <button class="btn btn-secondary btn-sm btn-delete-media btn-danger-hover" data-type="video" data-id="${v.id}" title="Delete Video">Delete</button>
+              </div>
             </div>
           </div>
         </div>
@@ -318,13 +320,13 @@ async function loadLibraryUI() {
 
         return `
         <div class="media-card">
-          <div class="media-thumb-box media-audio-box" data-id="${a.id}" style="height: 60px; aspect-ratio: unset; background: linear-gradient(135deg, rgba(168,85,247,0.18), rgba(59,130,246,0.15)); display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Click to preview & trim soundtrack">
-            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--accent-purple, #c084fc); pointer-events: none;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          <div class="media-thumb-box media-audio-box" data-id="${a.id}" style="height: 52px; aspect-ratio: unset; background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(59,130,246,0.12)); display: flex; align-items: center; justify-content: center; cursor: pointer; border-bottom: 1px solid var(--surface-border);" title="Click to preview & trim soundtrack">
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--accent-purple, #a855f7); pointer-events: none;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
               <span style="font-size: 0.8rem; font-weight: 600;">Soundtrack Audio</span>
             </div>
             <div class="media-thumb-play-overlay">
-              <div class="media-thumb-play-btn" style="background: var(--accent-purple, #9333ea);">▶</div>
+              <div class="media-thumb-play-btn" style="background: var(--accent-purple, #9333ea); width: 34px; height: 34px; font-size: 0.85rem;">▶</div>
             </div>
           </div>
           <div class="media-card-body">
@@ -333,10 +335,12 @@ async function loadLibraryUI() {
               <div class="media-meta-line">${a.duration ? `${Math.floor(a.duration / 60)}m ${a.duration % 60}s` : ""} • ${(a.size_bytes / (1024*1024)).toFixed(1)} MB${trimBadge}</div>
             </div>
             <div class="media-actions">
-              <button class="btn btn-primary btn-sm btn-add-audio-to-track" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">Add to Track</button>
-              <button class="btn btn-secondary btn-sm btn-trim-media" data-type="audio" data-id="${a.id}">Preview & Trim</button>
-              <button class="btn btn-secondary btn-sm btn-rename-media" data-type="audio" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">Rename</button>
-              <button class="btn btn-secondary btn-sm btn-delete-media" data-type="audio" data-id="${a.id}">Delete</button>
+              <button class="btn btn-primary btn-sm btn-action-main btn-add-audio-to-track" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">+ Add to Track</button>
+              <div class="media-actions-row">
+                <button class="btn btn-secondary btn-sm btn-trim-media" data-type="audio" data-id="${a.id}">✂ Preview & Trim</button>
+                <button class="btn btn-secondary btn-sm btn-rename-media" data-type="audio" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">Rename</button>
+                <button class="btn btn-secondary btn-sm btn-delete-media btn-danger-hover" data-type="audio" data-id="${a.id}" title="Delete Audio">Delete</button>
+              </div>
             </div>
           </div>
         </div>
@@ -617,7 +621,9 @@ function populateTrackModalDropdowns() {
       <option value="mute">Muted</option>
     `;
     (cachedLibrary.audio || []).forEach(a => {
-      opts += `<option value="${a.id}">${a.title}</option>`;
+      const isTrimmed = (a.start_time > 0) || (a.end_time > 0 && a.end_time < (a.duration || 999999));
+      const trimTag = isTrimmed ? ` [Trim: ${pm5Hud.formatTime(a.start_time)} → ${a.end_time > 0 ? pm5Hud.formatTime(a.end_time) : 'End'}]` : "";
+      opts += `<option value="${a.id}">${a.title}${trimTag}</option>`;
     });
     selectTrackDefaultAudio.innerHTML = opts;
   }
@@ -626,15 +632,19 @@ function populateTrackModalDropdowns() {
     if (!cachedLibrary.audio || cachedLibrary.audio.length === 0) {
       containerTrackAllowedAudios.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-dim);">No standalone soundtracks downloaded yet.</span>`;
     } else {
-      containerTrackAllowedAudios.innerHTML = cachedLibrary.audio.map(a => `
+      containerTrackAllowedAudios.innerHTML = cachedLibrary.audio.map(a => {
+        const isTrimmed = (a.start_time > 0) || (a.end_time > 0 && a.end_time < (a.duration || 999999));
+        const trimTag = isTrimmed ? ` <span style="color: var(--accent-emerald); font-size: 0.74rem;">[${pm5Hud.formatTime(a.start_time)} → ${a.end_time > 0 ? pm5Hud.formatTime(a.end_time) : 'End'}]</span>` : "";
+        return `
         <label style="display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; color: var(--text-main); cursor: pointer; padding: 0.25rem 0.4rem; border-radius: 4px; background: rgba(255,255,255,0.03);">
-          <span style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="display: flex; align-items: center; gap: 0.5rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             <input type="checkbox" name="allowed_audio" value="${a.id}" checked style="accent-color: var(--accent-blue);">
-            <span>${a.title}</span>
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${a.title}${trimTag}</span>
           </span>
-          <button type="button" class="btn btn-secondary btn-sm btn-sample-audio" data-id="${a.id}" style="padding: 0.15rem 0.5rem; font-size: 0.72rem; line-height: 1.2;">▶ Sample</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-sample-audio" data-id="${a.id}" style="padding: 0.15rem 0.5rem; font-size: 0.72rem; line-height: 1.2; flex-shrink: 0; margin-left: 0.5rem;">▶ Sample</button>
         </label>
-      `).join("");
+      `;
+      }).join("");
 
       containerTrackAllowedAudios.querySelectorAll(".btn-sample-audio").forEach(btn => {
         btn.addEventListener("click", (e) => {
@@ -660,6 +670,19 @@ const modalAudioTime = document.getElementById("modal-audio-time");
 const modalAudioPreviewBar = document.getElementById("modal-audio-preview-bar");
 let isModalAudioScrubbing = false;
 
+let modalAudioTrimStart = 0;
+let modalAudioTrimEnd = 0;
+
+function getAudioTrimBounds(audioVal, videoId) {
+  if (!audioVal || audioVal === "mute") return { start: 0, end: 0 };
+  if (audioVal === "original") {
+    const v = (cachedLibrary.videos || []).find(item => item.id === videoId);
+    return { start: v ? (v.start_time || 0) : 0, end: v ? (v.end_time || 0) : 0 };
+  }
+  const a = (cachedLibrary.audio || []).find(item => item.id === audioVal);
+  return { start: a ? (a.start_time || 0) : 0, end: a ? (a.end_time || 0) : 0 };
+}
+
 function setModalAudioPlayState(isPlaying) {
   if (modalAudioPlayIcon) modalAudioPlayIcon.textContent = isPlaying ? "⏸" : "▶";
   if (modalAudioPlayText) modalAudioPlayText.textContent = isPlaying ? "Pause" : "Preview";
@@ -671,7 +694,7 @@ function setModalAudioPlayState(isPlaying) {
 function stopModalAudio() {
   if (modalPreviewAudio) {
     modalPreviewAudio.pause();
-    modalPreviewAudio.currentTime = 0;
+    modalPreviewAudio.currentTime = modalAudioTrimStart || 0;
   }
   setModalAudioPlayState(false);
   if (modalAudioScrubber) modalAudioScrubber.value = 0;
@@ -691,6 +714,9 @@ function updateModalAudioSource(autoPlay = false) {
   const audioVal = selectTrackDefaultAudio.value;
   const videoId = selectTrackVideo ? selectTrackVideo.value : null;
   const url = getAudioUrlForSelection(audioVal, videoId);
+  const bounds = getAudioTrimBounds(audioVal, videoId);
+  modalAudioTrimStart = bounds.start;
+  modalAudioTrimEnd = bounds.end;
 
   if (!url) {
     if (modalAudioPreviewBar) {
@@ -707,16 +733,36 @@ function updateModalAudioSource(autoPlay = false) {
   }
 
   const currentSrc = modalPreviewAudio.getAttribute("src");
-  if (currentSrc !== url) {
+  const isNewSrc = (currentSrc !== url);
+  if (isNewSrc) {
     modalPreviewAudio.src = url;
     modalPreviewAudio.load();
     if (modalAudioScrubber) modalAudioScrubber.value = 0;
     if (modalAudioTime) modalAudioTime.textContent = "0:00 / 0:00";
   }
 
+  const seekToTrimStart = () => {
+    if (modalAudioTrimStart > 0) {
+      try {
+        modalPreviewAudio.currentTime = modalAudioTrimStart;
+      } catch (err) {
+        // ignore if not ready
+      }
+    }
+  };
+
+  if (isNewSrc) {
+    modalPreviewAudio.addEventListener("loadedmetadata", seekToTrimStart, { once: true });
+  } else {
+    seekToTrimStart();
+  }
+
   if (autoPlay) {
     modalPreviewAudio.play()
-      .then(() => setModalAudioPlayState(true))
+      .then(() => {
+        setModalAudioPlayState(true);
+        seekToTrimStart();
+      })
       .catch(e => {
         console.warn("[ModalAudio] Preview autoplay error:", e);
         setModalAudioPlayState(false);
@@ -735,6 +781,14 @@ if (btnModalAudioPlay) {
       if (!modalPreviewAudio.src || !modalPreviewAudio.src.includes(url)) {
         updateModalAudioSource(true);
       } else {
+        const cur = modalPreviewAudio.currentTime;
+        const start = modalAudioTrimStart || 0;
+        const rawEnd = modalAudioTrimEnd || 0;
+        const dur = modalPreviewAudio.duration || 0;
+        const end = (rawEnd > 0 && rawEnd <= dur) ? rawEnd : dur;
+        if (cur < start || (end > start && cur >= end)) {
+          modalPreviewAudio.currentTime = start;
+        }
         modalPreviewAudio.play()
           .then(() => setModalAudioPlayState(true))
           .catch(e => console.warn(e));
@@ -748,15 +802,35 @@ if (btnModalAudioPlay) {
 
 if (modalPreviewAudio) {
   modalPreviewAudio.addEventListener("timeupdate", () => {
-    if (!isModalAudioScrubbing && modalAudioScrubber && modalPreviewAudio.duration) {
-      modalAudioScrubber.value = (modalPreviewAudio.currentTime / modalPreviewAudio.duration) * 100;
+    const cur = modalPreviewAudio.currentTime;
+    const start = modalAudioTrimStart || 0;
+    const rawEnd = modalAudioTrimEnd || 0;
+    const dur = modalPreviewAudio.duration || 0;
+    const end = (rawEnd > 0 && rawEnd <= dur) ? rawEnd : dur;
+
+    // Enforce trim end boundary: loop back to trim start!
+    if (end > start && cur >= end) {
+      modalPreviewAudio.currentTime = start;
+      return;
+    }
+    if (cur < start && start > 0) {
+      modalPreviewAudio.currentTime = start;
+      return;
+    }
+
+    const segLength = Math.max(0.1, end - start);
+    if (!isModalAudioScrubbing && modalAudioScrubber) {
+      const frac = Math.max(0, Math.min(1, (cur - start) / segLength));
+      modalAudioScrubber.value = frac * 100;
     }
     if (modalAudioTime) {
-      modalAudioTime.textContent = `${pm5Hud.formatTime(modalPreviewAudio.currentTime)} / ${pm5Hud.formatTime(modalPreviewAudio.duration || 0)}`;
+      const currentPos = Math.max(0, cur - start);
+      modalAudioTime.textContent = `${pm5Hud.formatTime(currentPos)} / ${pm5Hud.formatTime(segLength)}`;
     }
   });
 
   modalPreviewAudio.addEventListener("ended", () => {
+    modalPreviewAudio.currentTime = modalAudioTrimStart || 0;
     setModalAudioPlayState(false);
   });
 }
@@ -766,16 +840,24 @@ if (modalAudioScrubber) {
   modalAudioScrubber.addEventListener("touchstart", () => { isModalAudioScrubbing = true; });
   modalAudioScrubber.addEventListener("input", (e) => {
     isModalAudioScrubbing = true;
-    if (modalPreviewAudio && modalPreviewAudio.duration) {
-      const targetTime = (parseFloat(e.target.value) / 100) * modalPreviewAudio.duration;
-      if (modalAudioTime) {
-        modalAudioTime.textContent = `${pm5Hud.formatTime(targetTime)} / ${pm5Hud.formatTime(modalPreviewAudio.duration)}`;
-      }
+    const start = modalAudioTrimStart || 0;
+    const rawEnd = modalAudioTrimEnd || 0;
+    const dur = modalPreviewAudio ? modalPreviewAudio.duration : 0;
+    const end = (rawEnd > 0 && rawEnd <= dur) ? rawEnd : dur;
+    const segLength = Math.max(0.1, end - start);
+    const targetOffset = (parseFloat(e.target.value) / 100) * segLength;
+    if (modalAudioTime) {
+      modalAudioTime.textContent = `${pm5Hud.formatTime(targetOffset)} / ${pm5Hud.formatTime(segLength)}`;
     }
   });
   modalAudioScrubber.addEventListener("change", (e) => {
-    if (modalPreviewAudio && modalPreviewAudio.duration) {
-      modalPreviewAudio.currentTime = (parseFloat(e.target.value) / 100) * modalPreviewAudio.duration;
+    const start = modalAudioTrimStart || 0;
+    const rawEnd = modalAudioTrimEnd || 0;
+    const dur = modalPreviewAudio ? modalPreviewAudio.duration : 0;
+    const end = (rawEnd > 0 && rawEnd <= dur) ? rawEnd : dur;
+    const segLength = Math.max(0.1, end - start);
+    if (modalPreviewAudio) {
+      modalPreviewAudio.currentTime = start + (parseFloat(e.target.value) / 100) * segLength;
     }
     isModalAudioScrubbing = false;
   });

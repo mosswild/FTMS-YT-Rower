@@ -1285,7 +1285,44 @@ body {
 
 .media-actions {
   display: flex;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+  width: 100%;
+}
+
+.media-actions .btn-action-main {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  text-align: center;
+}
+
+.media-actions-row {
+  display: flex;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.media-actions-row .btn-trim-media {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.65rem !important;
+  font-size: 0.78rem !important;
+}
+
+.btn-danger-hover:hover {
+  color: var(--accent-rose, #f43f5e) !important;
+  border-color: rgba(244, 63, 94, 0.4) !important;
 }
 
 /* Lifetime Stats Banner */
@@ -2815,6 +2852,12 @@ body[data-theme="nordic"],
   border-radius: 20px !important;
   padding: 0.5rem 1.15rem !important;
   transition: all 0.25s ease !important;
+}
+
+[data-theme="nordic"] .btn-sm {
+  padding: 0.35rem 0.65rem !important;
+  font-size: 0.78rem !important;
+  border-radius: 10px !important;
 }
 
 [data-theme="nordic"] .btn-primary {
