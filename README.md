@@ -226,12 +226,30 @@ Tests cover:
 
 ---
 
-## Supported Browsers
-| Chrome (Desktop/Android) | Edge | Opera | Safari | Firefox |
-|:------------------------:|:----:|:-----:|:------:|:-------:|
-| Yes                      | Yes  | Yes   | No     | No      |
+## Supported Browsers & Device Compatibility
 
-*Note: Web Bluetooth requires Chrome, Edge, or Opera with HTTPS or `localhost`/`127.0.0.1`.*
+FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSocket Relay** modes, allowing it to run on virtually any modern phone, tablet, laptop, desktop, or smart TV.
+
+| Browser / Platform | Direct Web Bluetooth | Wi-Fi Relay Bridge | Virtual Simulator | Notes |
+|:---|:---:|:---:|:---:|:---|
+| **Google Chrome** (macOS, Windows, Linux, Android) | ✅ Yes | ✅ Yes | ✅ Yes | Full native Web Bluetooth support out-of-the-box. |
+| **Microsoft Edge** (Windows, macOS, Android) | ✅ Yes | ✅ Yes | ✅ Yes | Full native Web Bluetooth support. |
+| **Brave / Opera** (Desktop & Android) | ✅ Yes | ✅ Yes | ✅ Yes | Full native Web Bluetooth support. |
+| **Bluefy** (iPhone & iPad / iOS) | ✅ Yes | ✅ Yes | ✅ Yes | Recommended for 1-tap iOS Home Screen app with direct Bluetooth. |
+| **Apple Safari** (iOS, iPadOS, macOS) | ⚠️ Via Relay | ✅ Yes | ✅ Yes | Apple disables Web Bluetooth in Safari; connects via Wi-Fi Relay Bridge with PWA and AirPlay mirroring support. |
+| **Mozilla Firefox** (Desktop & Android) | ⚠️ Via Relay | ✅ Yes | ✅ Yes | Connects smoothly via Wi-Fi Relay Bridge. |
+| **Smart TV Browsers & Apple TV** | ⚠️ Via Relay / AirPlay | ✅ Yes | ✅ Yes | Stream metrics over Wi-Fi, or AirPlay mirror in landscape broadcast mode. |
+
+### Bluetooth Connection Modes
+
+1. **Direct Web Bluetooth:**
+   - Pairs directly between your browser and rowing machine / HR monitor over Bluetooth Low Energy (`navigator.bluetooth`).
+   - Requires a Chromium browser (Chrome, Edge, Opera, Brave) or **Bluefy** on iOS.
+   - For Chromium browsers connecting across LAN IP addresses (e.g. `http://192.168.1.45:8000`), enable `chrome://flags/#unsafely-treat-insecure-origin-as-secure` or run behind an HTTPS reverse proxy. `localhost` and `127.0.0.1` work immediately without flags.
+
+2. **Wi-Fi WebSocket Relay Bridge:**
+   - Your host server, PC, or Mac pairs to the rowing machine via Bluetooth using `bleak` (`scripts/bluetooth_relay.py` or `run_relay_windows.bat`), and broadcasts real-time telemetry over your local network via WebSocket.
+   - **Zero browser restrictions:** Any device on your Wi-Fi (standard Safari, Firefox, iPhone, iPad, Smart TVs) opens the web page over plain HTTP and instantly receives live telemetry without needing Web Bluetooth or special browser flags.
 
 ---
 
@@ -244,6 +262,10 @@ Tests cover:
 - [x] **Direct Device Upload:** Upload scenic videos and soundtracks directly from your device with drag-and-drop.
 - [x] **In-Library Media Previews:** Preview video and audio directly in the Media Center before adding to tracks.
 - [x] **Ambient Video Playback:** Fixed 1.0× playback mode for scenic ambience that doesn't modulate with cadence.
+- [x] **iOS & Mobile Landscape HUD:** Single-row broadcast telemetry HUD optimized for short screens and Apple TV screen mirroring.
+- [x] **Cross-Platform Bluetooth Relay:** Standalone WebSocket relay bridge (`scripts/bluetooth_relay.py` & `run_relay_windows.bat`) for server-side Bluetooth and Safari/Firefox support.
+- [x] **Custom PWA & Home Screen App Icons:** Tight-cropped transparent squircle icon suite for iOS Home Screen and standalone PWAs.
+- [x] **Fullscreen Engine:** Cross-device pseudo-fullscreen with notch and Dynamic Island safe-area support.
 
 ---
 
