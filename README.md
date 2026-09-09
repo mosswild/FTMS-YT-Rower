@@ -149,29 +149,20 @@ http://<YOUR-SERVER-IP-ADDRESS>:8000/ftms-rower
 Modern browsers strictly govern Web Bluetooth (`navigator.bluetooth`). Here is how to achieve the best experience on your devices:
 
 #### A. iPhone / iPad (iOS):
-Apple explicitly disables Web Bluetooth in standard Safari. You have two seamless options:
+Apple disables Web Bluetooth in iOS Safari. The recommended, zero-hassle way to connect your iPhone or iPad is using the **Wi-Fi Bluetooth Relay Bridge**:
 
-* **Method 1: 1-Tap Home Screen App via Bluefy & iOS Shortcuts (No Extra Hardware):**
-  1. Install the free **[Bluefy](https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055)** Web Bluetooth browser from the App Store.
-  2. Open the built-in **Shortcuts** app on your iPhone and tap **`+`**.
-  3. Add an action: **URL** → enter `http://<YOUR-SERVER-IP>:8000/ftms-rower`.
-  4. Add next action: **Open in Bluefy** (or search for Bluefy in actions).
-  5. Tap the dropdown arrow at the top → select **Add to Home Screen**, name it **"FTMS Rower"**, and assign a fitness/rowing icon.
-  6. Now, tapping your custom icon immediately launches FTMS-Rower in fullscreen with full Bluetooth pairing to your rower and heart rate strap, ready to AirPlay mirror to your big screen TV!
+If your server (or any PC/Mac/Raspberry Pi) is located near your rowing machine:
+- **On Windows Host (Running Docker):**
+  Simply double-click `run_relay_windows.bat` in the repository folder! It will check/install `bleak`, connect to your rower using your Windows PC's native Bluetooth, and stream telemetry straight into your Docker container at `http://localhost:8000`.
+- **On Mac / Linux Host:**
+  ```bash
+  pip install bleak
+  python scripts/bluetooth_relay.py --server http://localhost:8000
+  ```
+- **Embedded in Docker (Linux with D-Bus):**
+  Set `ENABLE_BLUETOOTH_RELAY=true` with `/var/run/dbus` mounted in [docker-compose.yml](docker-compose.yml).
 
-* **Method 2: Bluetooth Relay Bridge (Standard Safari over Wi-Fi — Recommended):**
-  If your server (or any PC/Mac/Raspberry Pi) is located near your rowing machine:
-  - **On Windows Host (Running Docker):**
-    Simply double-click `run_relay_windows.bat` in the repository folder! It will check/install `bleak`, connect to your rower using your Windows PC's native Bluetooth, and stream telemetry straight into your Docker container at `http://localhost:8000`.
-  - **On Mac / Linux Host:**
-    ```bash
-    pip install bleak
-    python scripts/bluetooth_relay.py --server http://localhost:8000
-    ```
-  - **Embedded in Docker (Linux with D-Bus):**
-    Set `ENABLE_BLUETOOTH_RELAY=true` with `/var/run/dbus` mounted in [docker-compose.yml](docker-compose.yml).
-  
-  Once running, you can open **standard iOS Safari** (or a Safari Home Screen bookmark) on your iPhone or Smart TV at `http://<SERVER-IP>:8000/`. The HUD connects automatically over WebSockets with zero third-party browser apps or SSL headaches!
+Once running, simply open **standard iOS Safari** (or a Safari Home Screen bookmark) on your iPhone or iPad at `http://<SERVER-IP>:8000/ftms-rower`. The HUD connects automatically over WebSockets with zero third-party browser apps, full landscape broadcast mode, and AirPlay mirroring!
 
 #### B. Android Tablets & Phones:
 * Open Google Chrome on your Android device.
@@ -235,8 +226,7 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 | **Google Chrome** (macOS, Windows, Linux, Android) | ✅ Yes | ✅ Yes | ✅ Yes | Full native Web Bluetooth support out-of-the-box. |
 | **Microsoft Edge** (Windows, macOS, Android) | ✅ Yes | ✅ Yes | ✅ Yes | Full native Web Bluetooth support. |
 | **Brave / Opera** (Desktop & Android) | ✅ Yes | ✅ Yes | ✅ Yes | Full native Web Bluetooth support. |
-| **Bluefy** (iPhone & iPad / iOS) | ✅ Yes | ✅ Yes | ✅ Yes | Recommended for 1-tap iOS Home Screen app with direct Bluetooth. |
-| **Apple Safari** (iOS, iPadOS, macOS) | ⚠️ Via Relay | ✅ Yes | ✅ Yes | Apple disables Web Bluetooth in Safari; connects via Wi-Fi Relay Bridge with PWA and AirPlay mirroring support. |
+| **Apple Safari** (iOS, iPadOS, macOS) | ⚠️ Via Relay | ✅ Yes | ✅ Yes | Apple disables Web Bluetooth in Safari; connects seamlessly via Wi-Fi Relay Bridge with PWA and AirPlay mirroring support. |
 | **Mozilla Firefox** (Desktop & Android) | ⚠️ Via Relay | ✅ Yes | ✅ Yes | Connects smoothly via Wi-Fi Relay Bridge. |
 | **Smart TV Browsers & Apple TV** | ⚠️ Via Relay / AirPlay | ✅ Yes | ✅ Yes | Stream metrics over Wi-Fi, or AirPlay mirror in landscape broadcast mode. |
 
@@ -244,7 +234,7 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 
 1. **Direct Web Bluetooth:**
    - Pairs directly between your browser and rowing machine / HR monitor over Bluetooth Low Energy (`navigator.bluetooth`).
-   - Requires a Chromium browser (Chrome, Edge, Opera, Brave) or **Bluefy** on iOS.
+   - Requires a Chromium browser (Chrome, Edge, Opera, Brave).
    - For Chromium browsers connecting across LAN IP addresses (e.g. `http://192.168.1.45:8000`), enable `chrome://flags/#unsafely-treat-insecure-origin-as-secure` or run behind an HTTPS reverse proxy. `localhost` and `127.0.0.1` work immediately without flags.
 
 2. **Wi-Fi WebSocket Relay Bridge:**

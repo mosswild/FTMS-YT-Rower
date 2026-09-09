@@ -42,7 +42,7 @@ if [ "$1" = "start" ]; then
         SSL_DIR="/config/ssl"
         mkdir -p "$SSL_DIR"
         if [ ! -f "$SSL_DIR/cert.pem" ] || [ ! -f "$SSL_DIR/key.pem" ]; then
-            echo "Generating self-signed SSL certificate for HTTPS/Bluefy in $SSL_DIR..."
+            echo "Generating self-signed SSL certificate for HTTPS in $SSL_DIR..."
             openssl req -x509 -newkey rsa:2048 -keyout "$SSL_DIR/key.pem" -out "$SSL_DIR/cert.pem" -days 365 -nodes -subj "/CN=ftms-rower" 2>/dev/null || true
             chown -R "$PUID:$PGID" "$SSL_DIR" 2>/dev/null || true
         fi
