@@ -372,14 +372,10 @@ async def delete_single_track(track_id: str):
 # ----------------- Static Frontend Mounting -----------------
 app.mount("/ftms-rower/css", StaticFiles(directory=os.path.join(ROOT_DIR, "css")), name="ftms_rower_css")
 app.mount("/ftms-rower/js", StaticFiles(directory=os.path.join(ROOT_DIR, "js")), name="ftms_rower_js")
-if os.path.exists(os.path.join(ROOT_DIR, "video")):
-    app.mount("/ftms-rower/video", StaticFiles(directory=os.path.join(ROOT_DIR, "video")), name="ftms_rower_video")
 app.mount("/ftms-rower", StaticFiles(directory=ROOT_DIR, html=True), name="ftms_rower_frontend")
 
 app.mount("/css", StaticFiles(directory=os.path.join(ROOT_DIR, "css")), name="css")
 app.mount("/js", StaticFiles(directory=os.path.join(ROOT_DIR, "js")), name="js")
-if os.path.exists(os.path.join(ROOT_DIR, "video")):
-    app.mount("/video", StaticFiles(directory=os.path.join(ROOT_DIR, "video")), name="video")
 app.mount("/", StaticFiles(directory=ROOT_DIR, html=True), name="frontend")
 
 if __name__ == "__main__":
