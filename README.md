@@ -4,6 +4,11 @@ A modernized, full-stack scenic indoor rowing application and simulator for Blue
 
 FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you row, your stroke cadence dynamically modulates video playback speed ($0.3\times \dots 2.5\times$), while soundtrack audio remains crystal-clear and locked at a steady $1.0\times$.
 
+<p align="center">
+  <img src="docs/screenshots/cockpit-hud-default.png" alt="FTMS-Rower Cockpit HUD" width="100%">
+  <em>Scenic Cockpit with real-time PM5 telemetry HUD, Lake Louise route, decoupled audio, and transport controls.</em>
+</p>
+
 ---
 
 ## Key Features
@@ -11,16 +16,23 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
 ### 1. Decoupled Audio Pipeline
 - **Muted Scenic Video:** The scenic video element is strictly muted so its playback rate can fluctuate freely between $0.3\times$ (paddle) and $2.5\times$ (all-out sprint) without audio pitch distortion or chipmunk effects.
 - **Fixed-Rate Soundtrack:** A decoupled HTML5 `<audio>` element streams the extracted soundtrack or custom playlist at native $1.0\times$ speed.
-- **Dynamic Auto-Pause:** When rowing halts or pauses, the audio gently pauses alongside the video and resumes seamlessly when rowing restarts.
+- **Dynamic Auto-Pause:** When rowing halts or pauses on cadence-synced tracks, the video pauses while the audio soundtrack continues smoothly (or pauses if configured in Settings).
 - **Autoplay Handling:** Includes one-click un-mute prompt complying with modern browser autoplay policies.
 
-### 2. YouTube Ingestion & Range-Streaming Engine
-- Integrated backend powered by **FastAPI**, **`yt-dlp`**, and **`ffmpeg`**.
-- Dual-stream extraction: Ingests 1080p/4K H.264 video and extracts separate high-quality M4A audio tracks.
+### 2. Dual Ingestion Engine (YouTube & Local Device Upload)
+- **YouTube Ingestion:** Ingests 1080p/4K H.264 video and extracts separate high-quality M4A audio tracks via FastAPI, `yt-dlp`, and `ffmpeg`.
+- **Direct Device Media Upload:** Drag-and-drop or browse videos (`.mp4`, `.mov`, `.webm`, `.mkv`) and soundtrack audio (`.mp3`, `.m4a`, `.wav`, `.flac`) directly from your computer with live chunked streaming upload progress and automatic poster thumbnail extraction.
+- **In-Library Trimming & Previews:** Preview any video or soundtrack in the Media Center, adjust trim start/end points with interactive scrubbers, and rename media assets.
 - **RFC 7233 Range Streaming:** Supports HTTP 206 partial content streaming for instant, smooth video scrubbing and track looping.
+
+<p align="center">
+  <img src="docs/screenshots/media-center-tracks.png" alt="Media Ingestion & Configured Scenic Tracks" width="100%">
+  <em>Media Center: YouTube ingestion, direct device file upload, and configured scenic tracks with cadence-synced and ambient modes.</em>
+</p>
 
 ### 3. Scenic "Tracks" Feature & Cockpit Transport
 - **Custom Track Segments:** Define and save segments within videos with specified `start_time` and `end_time` (e.g., a pristine 5K river loop).
+- **Ambient vs. Cadence Modes:** Configure tracks to dynamically sync video speed with your rowing cadence, or lock to a steady **Fixed 1.0× Ambient** speed for relaxing scenery that never speeds up, slows down, or auto-pauses during intervals.
 - **Loop Boundary Enforcement:** Videos loop smoothly within the track's configured start and end timestamps.
 - **Audio Association & Live Preview Player:** Assign default audio soundtracks and curate allowed playlists with an in-modal audio preview player and timeline scrubber to audition tracks before saving.
 - **Edit Existing Tracks & Video Thumbnails:** Edit any existing track at any time with live video thumbnail previews displaying duration and file sizes.
@@ -30,7 +42,7 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   - **Pan Forward 10s (`⏩ 10s`):** Steps forward within the track bounds.
   - **Track Scrubber:** Responsive timeline slider bounded specifically to the active track duration.
 
-### 4. Concept2 PM5-Style Telemetry HUD
+### 4. Concept2 PM5-Style Telemetry HUD & Visual Themes
 - **Real-time Glassmorphism Cockpit:**
   - **Pace / 500m:** Instantaneous pace computed from power/stroke rate.
   - **Cadence (SPM):** Stroke rate with boat glide deceleration and 3.5s inactivity auto-pause watchdog.
@@ -38,6 +50,19 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   - **Heart Rate (BPM):** BLE Heart Rate monitor integration with color-coded training zones.
   - **Distance & Time:** Distance rowed, elapsed time, and total stroke count.
 - **Auto-Hide:** Automatically fades out controls after 4 seconds of inactivity for a cinematic fullscreen view.
+- **Multiple Visual Themes:** Switch themes on the fly from the Settings modal:
+  - **Default Glass:** Sleek frosted acrylic glassmorphism.
+  - **Cyberpunk Neon:** Glowing neon cyan, yellow, and magenta accents for high-energy sessions.
+  - **Retro PM5:** Authentic green monochrome LCD monitor styling.
+  - **Nordic Minimalist:** Elegant deep charcoal surfaces with crisp Scandinavian typography.
+
+<p align="center">
+  <img src="docs/screenshots/cockpit-hud-cyberpunk.png" alt="Cyberpunk HUD Theme" width="49%">
+  <img src="docs/screenshots/cockpit-hud-nordic.png" alt="Nordic Minimalist HUD Theme" width="49%">
+</p>
+<p align="center">
+  <em>Left: Cyberpunk theme on ambient underwater coral route. Right: Nordic Minimalist theme during a high-cadence lake sprint.</em>
+</p>
 
 ### 5. Dual-Source Telemetry & Virtual Simulator
 - **Web Bluetooth FTMS:** Connects to standard FTMS rowing machines (`0x2AD1`) including Merach Q1S, Concept2 PM5, WaterRower ComModule, and standard BLE Heart Rate monitors (`0x180D`).
@@ -133,6 +158,7 @@ Tests cover:
 - HTTP 206 Partial Content range requests
 - FastAPI REST endpoints
 - Scenic Tracks configuration and retrieval
+- Synthetic multipart direct video and audio file uploads
 
 ---
 
@@ -145,16 +171,19 @@ Tests cover:
 
 ---
 
+## Completed Feature Roadmap
+- [x] **Queue Management:** Clear ingestion queue with partial download cleanup without deleting library media.
+- [x] **Track Builder Workflows:** Media Center "+ Create Track from Video" and "+ Add to Track" workflows.
+- [x] **Independent Media Trimming:** Video and audio trimming outside tracks with segment inheritance.
+- [x] **Filtered Cockpit Audio:** Cockpit audio selector strictly filtered to track-associated soundtracks.
+- [x] **Filtered Cockpit Routes:** Cockpit route dropdown exclusively lists curated tracks instead of raw video files.
+- [x] **Direct Device Upload:** Upload scenic videos and soundtracks directly from your device with drag-and-drop.
+- [x] **In-Library Media Previews:** Preview video and audio directly in the Media Center before adding to tracks.
+- [x] **Ambient Video Playback:** Fixed 1.0× playback mode for scenic ambience that doesn't modulate with cadence.
+
+---
+
 ## Upstream Base & License
 Original proof-of-concept created by [Manuel Kamp](https://github.com/manuelkamp/FTMS-rower).  
 Modernized and expanded with decoupled audio, YouTube ingestion, PM5 HUD, Scenic Tracks, and session persistence.
 Released under the MIT License.
-
-## To Do / FIXMEs
-1. Clearing the ingestion queue isn't working very well. 
-2. We should not allow the user to just "load video" or "use as music" in the media center. Instead, we can have the option "create track from video" or "add music to track" instead.
-3. We should actually be able to change the start and end time for videos and music outside the track editing menu. Maybe in the media center, under the specific video or audio, there can be a button that allows the user to edit these, and then in the track editing window they don't set the start and end points of the video but instead just select one that has already been modified from the media pool.
-4. In the cockpit view, in the music selection dropdown on the actual video view, again it should only show the music that has been associated with that track. 
-5. In the cockpit view, in the video selection dropdown, it should ONLY show tracks, and not the raw video files. 
-6. In addition to getting videos from Youtube links, they user should be able to upload audio or video directly from their device. 
-7. We should be able to preview video and audio from the Media Center page. 
