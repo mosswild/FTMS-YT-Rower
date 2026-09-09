@@ -198,29 +198,6 @@ async def run_relay(args):
 
     publisher = RelayPublisher(args.server)
 
-    target_device = None
-    if args.address:
-        logger.info(f"Targeting device by address: {args.address}")
-        target_device = await BleakScanner.find_device_by_address(args.address, timeout=10.0)
-    else:
-        logger.info("Scanning for FTMS Rower...")
-        devices = await BleakScanner.discover(timeout=6.0)
-        for d in devices:
-            name = (d.name or "").lower()
-            uuids = [str(u).lower() for u in d.metadata.get("uuids", [])]
-            if args.name and args.name.lower() in name:
-                target_device = d
-                break
-            if any("1826" in u for u in uuids) or "rower" in name or "merach" in name or "pm5" in name:
-                target_device = d
-                break
-
-    if not target_device:
-        logger.error("No FTMS Rower device found. Check that your rower monitor is awake and within range.")
-        return
-
-    logger.info(f"Connecting to {target_device.name or 'Rower'} ({target_device.address})...")
-
     def notification_handler(sender, data: bytearray):
         parsed = parse_ftms_rower_data(data)
         if parsed.get("stroke_rate") is not None or parsed.get("watts") is not None:
@@ -230,25 +207,54 @@ async def run_relay(args):
             logger.info(f"Live Metric -> SPM: {spm:<3} | Watts: {watts:<4} | 500m Split: {split}s")
             publisher.publish(parsed)
 
+    print("\n=======================================================")
+    print(" FTMS-Rower Bluetooth Relay Bridge Active")
+    print(f" Target Server: {publisher.endpoint}")
+    print(" Listening for your rowing machine. Press Ctrl+C to exit.")
+    print("=======================================================\n")
+
     while True:
+        target_device = None
         try:
+            if args.address:
+                logger.info(f"Scanning for device by address: {args.address}...")
+                target_device = await BleakScanner.find_device_by_address(args.address, timeout=6.0)
+            else:
+                logger.info("Scanning for FTMS Rower / Concept2 PM5...")
+                devices = await BleakScanner.discover(timeout=5.0)
+                for d in devices:
+                    name = (d.name or "").lower()
+                    uuids = [str(u).lower() for u in d.metadata.get("uuids", [])]
+                    if args.name and args.name.lower() in name:
+                        target_device = d
+                        break
+                    if any("1826" in u for u in uuids) or "rower" in name or "merach" in name or "pm5" in name or "concept2" in name:
+                        target_device = d
+                        break
+
+            if not target_device:
+                logger.info("No active FTMS rower detected yet. Pull the handle or wake monitor (retrying in 5s)...")
+                await asyncio.sleep(5.0)
+                continue
+
+            dev_name = target_device.name or "FTMS Rower"
+            logger.info(f"Found {dev_name} ({target_device.address})! Connecting...")
+
             async with BleakClient(target_device) as client:
-                logger.info("Connected to Rower! Subscribing to FTMS telemetry notifications...")
+                logger.info(f"Connected to {dev_name}! Subscribing to telemetry notifications...")
                 await client.start_notify(ROWER_DATA_CHAR_UUID, notification_handler)
 
-                print("\n=======================================================")
-                print(f" Relay Active: Streaming metrics from {target_device.name} -> {publisher.endpoint}")
-                print(" Open your browser (Safari on iPhone, TV, or laptop) to view the live HUD.")
-                print(" Press Ctrl+C to stop.")
-                print("=======================================================\n")
+                logger.info("Relay streaming active. Open Safari on iPhone/iPad to view live HUD.")
 
                 while client.is_connected:
                     await asyncio.sleep(1.0)
 
+                logger.warning("Rower disconnected or went to sleep. Resuming scan in 3 seconds...")
+
         except asyncio.CancelledError:
             break
         except Exception as err:
-            logger.warning(f"Connection lost ({err}). Reconnecting in 5 seconds...")
+            logger.warning(f"Connection notice: {err}. Retrying in 5 seconds...")
             await asyncio.sleep(5.0)
 
 
