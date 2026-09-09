@@ -1737,6 +1737,224 @@ if (tasksContainer) {
   });
 }
 
+// ----------------- Direct Device Media Upload -----------------
+const uploadDropzone = document.getElementById("upload-dropzone");
+const uploadFileInput = document.getElementById("input-upload-file");
+const uploadForm = document.getElementById("form-upload");
+const uploadTitleInput = document.getElementById("input-upload-title");
+const uploadTypeSelect = document.getElementById("select-upload-type");
+const btnSubmitUpload = document.getElementById("btn-submit-upload");
+const btnCancelUpload = document.getElementById("btn-cancel-upload");
+const uploadProgressContainer = document.getElementById("upload-progress-container");
+const uploadProgressFilename = document.getElementById("upload-progress-filename");
+const uploadProgressPct = document.getElementById("upload-progress-pct");
+const uploadProgressBar = document.getElementById("upload-progress-bar");
+const uploadProgressStatus = document.getElementById("upload-progress-status");
+const uploadSelectedFilename = document.getElementById("upload-selected-filename");
+
+let pendingUploadFile = null;
+
+function formatUploadFileSize(bytes) {
+  if (!bytes) return "0 B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function selectUploadFile(file) {
+  if (!file) return;
+  pendingUploadFile = file;
+
+  // Auto-detect title from filename
+  const lastDot = file.name.lastIndexOf(".");
+  const rawBase = lastDot > 0 ? file.name.substring(0, lastDot) : file.name;
+  const cleanTitle = rawBase.replace(/[-_]+/g, " ").trim();
+  if (uploadTitleInput) {
+    uploadTitleInput.value = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
+  }
+
+  // Auto-detect type
+  const ext = (lastDot > 0 ? file.name.substring(lastDot).toLowerCase() : "");
+  const isVideo = [".mp4", ".mov", ".webm", ".mkv", ".avi", ".m4v"].includes(ext) || file.type.startsWith("video/");
+  const isAudio = [".mp3", ".m4a", ".wav", ".aac", ".flac", ".ogg"].includes(ext) || file.type.startsWith("audio/");
+
+  if (uploadTypeSelect) {
+    if (isVideo) uploadTypeSelect.value = "video";
+    else if (isAudio) uploadTypeSelect.value = "audio";
+    else uploadTypeSelect.value = "auto";
+  }
+
+  if (uploadSelectedFilename) {
+    uploadSelectedFilename.innerHTML = `<strong style="color: var(--text-main);">Selected:</strong> ${file.name} (${formatUploadFileSize(file.size)})`;
+  }
+
+  if (uploadForm) {
+    uploadForm.style.display = "block";
+  }
+}
+
+function resetUploadForm() {
+  pendingUploadFile = null;
+  if (uploadFileInput) uploadFileInput.value = "";
+  if (uploadTitleInput) uploadTitleInput.value = "";
+  if (uploadTypeSelect) uploadTypeSelect.value = "auto";
+  if (uploadForm) uploadForm.style.display = "none";
+  if (uploadSelectedFilename) {
+    uploadSelectedFilename.textContent = "MP4, MOV, WEBM, MP3, M4A, WAV, FLAC";
+  }
+}
+
+if (uploadDropzone && uploadFileInput) {
+  uploadDropzone.addEventListener("click", (e) => {
+    if (e.target.closest("button") || e.target.closest("input") || e.target.closest("select")) return;
+    uploadFileInput.click();
+  });
+
+  uploadFileInput.addEventListener("change", (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      selectUploadFile(e.target.files[0]);
+    }
+  });
+
+  // Drag & drop handlers
+  ["dragenter", "dragover"].forEach(evt => {
+    uploadDropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadDropzone.classList.add("dragover");
+    });
+  });
+
+  ["dragleave", "dragend"].forEach(evt => {
+    uploadDropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadDropzone.classList.remove("dragover");
+    });
+  });
+
+  uploadDropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    uploadDropzone.classList.remove("dragover");
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      selectUploadFile(e.dataTransfer.files[0]);
+    }
+  });
+}
+
+if (btnCancelUpload) {
+  btnCancelUpload.addEventListener("click", () => {
+    resetUploadForm();
+  });
+}
+
+if (uploadForm) {
+  uploadForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!pendingUploadFile) {
+      alert("Please choose a file to upload.");
+      return;
+    }
+
+    const file = pendingUploadFile;
+    const mediaType = uploadTypeSelect ? uploadTypeSelect.value : "auto";
+    const customTitle = uploadTitleInput ? uploadTitleInput.value.trim() : "";
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("media_type", mediaType);
+    if (customTitle) {
+      formData.append("title", customTitle);
+    }
+
+    // UI state: uploading
+    if (btnSubmitUpload) {
+      btnSubmitUpload.disabled = true;
+      btnSubmitUpload.textContent = "Uploading...";
+    }
+    if (uploadProgressContainer) {
+      uploadProgressContainer.style.display = "block";
+    }
+    if (uploadProgressFilename) {
+      uploadProgressFilename.textContent = file.name;
+    }
+    if (uploadProgressPct) {
+      uploadProgressPct.textContent = "0%";
+    }
+    if (uploadProgressBar) {
+      uploadProgressBar.style.width = "0%";
+    }
+    if (uploadProgressStatus) {
+      uploadProgressStatus.textContent = "Uploading file to server...";
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/media/upload");
+
+    xhr.upload.addEventListener("progress", (evt) => {
+      if (evt.lengthComputable) {
+        const pct = Math.round((evt.loaded / evt.total) * 100);
+        if (uploadProgressBar) uploadProgressBar.style.width = `${pct}%`;
+        if (uploadProgressPct) uploadProgressPct.textContent = `${pct}%`;
+        if (pct >= 100 && uploadProgressStatus) {
+          uploadProgressStatus.textContent = "Processing and indexing media...";
+        }
+      }
+    });
+
+    xhr.addEventListener("load", async () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        let result = {};
+        try {
+          result = JSON.parse(xhr.responseText);
+        } catch (_) {}
+
+        if (uploadProgressStatus) {
+          uploadProgressStatus.textContent = "Upload complete! Media added to library.";
+        }
+        showHudToast(`Uploaded: ${result.title || file.name}`);
+
+        // Refresh library and tracks immediately
+        await loadLibraryUI();
+        await loadTracksUI();
+
+        resetUploadForm();
+        setTimeout(() => {
+          if (uploadProgressContainer) uploadProgressContainer.style.display = "none";
+        }, 2500);
+      } else {
+        let errDetail = xhr.statusText || "Upload failed";
+        try {
+          const errData = JSON.parse(xhr.responseText);
+          if (errData.detail) errDetail = errData.detail;
+        } catch (_) {}
+        if (uploadProgressStatus) {
+          uploadProgressStatus.textContent = `Upload failed: ${errDetail}`;
+        }
+        alert("Upload error: " + errDetail);
+      }
+
+      if (btnSubmitUpload) {
+        btnSubmitUpload.disabled = false;
+        btnSubmitUpload.textContent = "Upload File";
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      if (uploadProgressStatus) {
+        uploadProgressStatus.textContent = "Network error during upload.";
+      }
+      alert("Network error occurred during file upload.");
+      if (btnSubmitUpload) {
+        btnSubmitUpload.disabled = false;
+        btnSubmitUpload.textContent = "Upload File";
+      }
+    });
+
+    xhr.send(formData);
+  });
+}
+
 // ----------------- Workout History & TCX Export -----------------
 async function loadHistoryUI() {
   const res = await fetch("/api/sessions");

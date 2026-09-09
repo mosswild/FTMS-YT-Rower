@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=trim-preview-v4">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=upload-v1">
   <script>
     (function() {
       const theme = localStorage.getItem("ftms_hud_theme");
@@ -288,23 +288,74 @@
       <h2 class="panel-title">Media Ingestion & Cached Library</h2>
     </div>
 
-    <!-- YouTube Ingestion Box -->
-    <div class="ingestion-box">
-      <h3 style="font-size: 1.05rem; margin-bottom: 0.4rem;">Download from YouTube</h3>
-      <p style="font-size: 0.85rem; color: var(--text-dim);">Submit any YouTube URL to extract high-quality scenic video and decoupled 1.0× standalone audio soundtrack.</p>
+    <!-- Ingestion Grid: YouTube Download & Direct Device Upload -->
+    <div class="ingestion-grid">
+      <!-- Card 1: YouTube Ingestion Box -->
+      <div class="ingestion-box">
+        <div class="ingestion-card-header">
+          <svg class="ingestion-card-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          <h3 style="font-size: 1.05rem;">Download from YouTube</h3>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-dim);">Submit any YouTube URL to extract high-quality scenic video and decoupled 1.0× standalone audio soundtrack.</p>
 
-      <form id="form-download" class="ingestion-form">
-        <input type="url" id="input-youtube-url" class="input-text" placeholder="https://www.youtube.com/watch?v=..." required>
-        <select id="select-download-type" class="select-dropdown">
-          <option value="both">Both Video & Standalone Audio</option>
-          <option value="video">Scenic Video Only (MP4)</option>
-          <option value="audio">Music / Soundtrack Only (M4A)</option>
-        </select>
-        <button type="submit" class="btn btn-primary">Start Ingestion</button>
-      </form>
+        <form id="form-download" class="ingestion-form">
+          <input type="url" id="input-youtube-url" class="input-text" placeholder="https://www.youtube.com/watch?v=..." required>
+          <select id="select-download-type" class="select-dropdown">
+            <option value="both">Both Video & Standalone Audio</option>
+            <option value="video">Scenic Video Only (MP4)</option>
+            <option value="audio">Music / Soundtrack Only (M4A)</option>
+          </select>
+          <button type="submit" class="btn btn-primary">Start Ingestion</button>
+        </form>
 
-      <!-- Active / Recent Tasks -->
-      <div id="download-tasks" class="download-tasks-container"></div>
+        <!-- Active / Recent Tasks -->
+        <div id="download-tasks" class="download-tasks-container"></div>
+      </div>
+
+      <!-- Card 2: Direct Device Upload Box -->
+      <div class="ingestion-box upload-box">
+        <div class="ingestion-card-header">
+          <svg class="ingestion-card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <h3 style="font-size: 1.05rem;">Upload from Device</h3>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-dim);">Upload scenic videos (MP4, MOV, WEBM) or soundtrack music (MP3, M4A, WAV, FLAC) directly from your computer.</p>
+
+        <!-- Dropzone Container -->
+        <div id="upload-dropzone" class="upload-dropzone">
+          <input type="file" id="input-upload-file" style="display: none;" accept="video/*,audio/*,.mp4,.mov,.webm,.mkv,.mp3,.m4a,.wav,.aac,.flac,.ogg">
+          <svg class="upload-dropzone-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div class="upload-dropzone-text">
+            <span class="upload-primary-text">Drag &amp; drop media file here, or <strong class="upload-browse-link">browse</strong></span>
+            <span class="upload-secondary-text" id="upload-selected-filename">MP4, MOV, WEBM, MP3, M4A, WAV, FLAC</span>
+          </div>
+        </div>
+
+        <!-- Selected File Meta / Confirmation Form -->
+        <form id="form-upload" class="upload-form" style="display: none; margin-top: 0.75rem;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <input type="text" id="input-upload-title" class="input-text" placeholder="Media Title (optional)" style="flex: 2; min-width: 180px;">
+            <select id="select-upload-type" class="select-dropdown" style="flex: 1; min-width: 140px;">
+              <option value="auto">Auto-Detect Type</option>
+              <option value="video">Scenic Video</option>
+              <option value="audio">Soundtrack Audio</option>
+            </select>
+            <button type="submit" id="btn-submit-upload" class="btn btn-primary" style="white-space: nowrap;">Upload File</button>
+            <button type="button" id="btn-cancel-upload" class="btn btn-secondary btn-sm" style="align-self: center;">Cancel</button>
+          </div>
+        </form>
+
+        <!-- Live Upload Progress -->
+        <div id="upload-progress-container" class="upload-progress-container" style="display: none;">
+          <div class="upload-progress-info">
+            <span id="upload-progress-filename" class="upload-progress-filename">filename.mp4</span>
+            <span id="upload-progress-pct" class="upload-progress-pct">0%</span>
+          </div>
+          <div class="upload-progress-track">
+            <div id="upload-progress-bar" class="upload-progress-fill" style="width: 0%;"></div>
+          </div>
+          <div id="upload-progress-status" class="upload-progress-status">Uploading to server...</div>
+        </div>
+      </div>
     </div>
 
     <!-- Configured Scenic Tracks Section -->
@@ -675,6 +726,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=trim-preview-v4"></script>
+  <script type="module" src="js/app.js?v=upload-v1"></script>
 </body>
 </html>

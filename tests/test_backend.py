@@ -173,6 +173,75 @@ class TestBackendAndFormulas(unittest.TestCase):
         del_res = self.client.delete(f"/api/tracks/{track_id}")
         self.assertEqual(del_res.status_code, 200)
 
+    def test_media_upload(self):
+        import subprocess
+        # 1. Test Audio Upload
+        tmp_mp3 = tempfile.mktemp(suffix=".mp3")
+        subprocess.run([
+            "ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
+            "-t", "1", "-q:a", "9", tmp_mp3
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+        with open(tmp_mp3, "rb") as f:
+            res = self.client.post(
+                "/api/media/upload",
+                files={"file": ("norway_fjords.mp3", f, "audio/mpeg")},
+                data={"media_type": "audio", "title": "Norway Fjords Ambient"}
+            )
+        os.remove(tmp_mp3)
+
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["media_type"], "audio")
+        self.assertEqual(data["title"], "Norway Fjords Ambient")
+        self.assertGreaterEqual(data["duration"], 0.9)
+        audio_id = data["id"]
+
+        # Verify in library
+        lib_res = self.client.get("/api/library")
+        self.assertEqual(lib_res.status_code, 200)
+        audios = lib_res.json().get("audio", [])
+        self.assertTrue(any(a["id"] == audio_id for a in audios))
+
+        # Cleanup audio
+        del_res = self.client.delete(f"/api/media/audio/{audio_id}")
+        self.assertEqual(del_res.status_code, 200)
+
+        # 2. Test Video Upload
+        tmp_mp4 = tempfile.mktemp(suffix=".mp4")
+        subprocess.run([
+            "ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=blue:s=64x64:d=1",
+            "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
+            "-t", "1", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac",
+            tmp_mp4
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+        with open(tmp_mp4, "rb") as f:
+            res_v = self.client.post(
+                "/api/media/upload",
+                files={"file": ("lake_bled_sprint.mp4", f, "video/mp4")},
+                data={"media_type": "video", "title": "Lake Bled Sprint"}
+            )
+        os.remove(tmp_mp4)
+
+        self.assertEqual(res_v.status_code, 200)
+        data_v = res_v.json()
+        self.assertEqual(data_v["status"], "success")
+        self.assertEqual(data_v["media_type"], "video")
+        self.assertEqual(data_v["title"], "Lake Bled Sprint")
+        video_id = data_v["id"]
+
+        # Verify in library
+        lib_res = self.client.get("/api/library")
+        self.assertEqual(lib_res.status_code, 200)
+        videos = lib_res.json().get("videos", [])
+        self.assertTrue(any(v["id"] == video_id for v in videos))
+
+        # Cleanup video
+        del_v_res = self.client.delete(f"/api/media/video/{video_id}")
+        self.assertEqual(del_v_res.status_code, 200)
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -1,7 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 from typing import Dict, Any, Optional, List
-from fastapi import FastAPI, Request, HTTPException, Response
+from fastapi import FastAPI, Request, HTTPException, Response, UploadFile, File, Form
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +16,7 @@ from backend.downloader import (
     cancel_download_task, delete_download_task, clear_inactive_tasks,
     update_media_title, update_media_metadata, get_library, delete_media_file, VIDEOS_DIR, AUDIO_DIR
 )
+from backend.uploader import save_uploaded_media
 from backend.streaming import range_streaming_response
 from backend.tcx_generator import generate_tcx
 
@@ -119,6 +120,20 @@ async def delete_download_task_endpoint(task_id: str):
 async def clear_download_queue_endpoint(clear_all: bool = False, all: bool = False):
     count = clear_inactive_tasks(clear_all=(clear_all or all))
     return {"cleared": count}
+
+@app.post("/api/media/upload")
+async def upload_media_file(
+    file: UploadFile = File(...),
+    media_type: str = Form("auto"),
+    title: Optional[str] = Form(None)
+):
+    try:
+        result = await save_uploaded_media(file, media_type=media_type, custom_title=title)
+        return result
+    except HTTPException:
+        raise
+    except Exception as ex:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(ex)}")
 
 @app.get("/api/library")
 async def get_media_library():
