@@ -69,14 +69,19 @@ export class MediaManager {
     }
   }
 
-  async clearInactiveTasks() {
+  async clearInactiveTasks(clearAll = false) {
     try {
-      const res = await fetch("/api/download/queue/clear", { method: "DELETE" });
+      const url = clearAll ? "/api/download/queue/clear?clear_all=true" : "/api/download/queue/clear";
+      const res = await fetch(url, { method: "DELETE" });
       return res.ok;
     } catch (err) {
-      console.error("[MediaManager] Clear inactive tasks error:", err);
+      console.error("[MediaManager] Clear tasks error:", err);
       return false;
     }
+  }
+
+  async clearAllTasks() {
+    return this.clearInactiveTasks(true);
   }
 
   async renameMedia(mediaType, itemId, newTitle) {

@@ -104,8 +104,8 @@ async def delete_download_task_endpoint(task_id: str):
     return {"task_id": task_id, "deleted": True}
 
 @app.delete("/api/download/queue/clear")
-async def clear_download_queue_endpoint():
-    count = clear_inactive_tasks()
+async def clear_download_queue_endpoint(clear_all: bool = False, all: bool = False):
+    count = clear_inactive_tasks(clear_all=(clear_all or all))
     return {"cleared": count}
 
 @app.get("/api/library")

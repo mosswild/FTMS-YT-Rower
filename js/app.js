@@ -1008,24 +1008,43 @@ function pollDownloads() {
   });
 }
 
+let previouslyCompletedTasks = new Set();
+
 function renderDownloadTasks(tasks) {
   if (!tasksContainer) return;
   if (!tasks || tasks.length === 0) {
     tasksContainer.innerHTML = "";
+    previouslyCompletedTasks.clear();
     return;
   }
 
   const hasInactive = tasks.some(t => ["completed", "error", "cancelled"].includes(t.status));
+  const hasActive = tasks.some(t => ["pending", "extracting_metadata", "downloading", "downloading_video", "downloading_audio", "processing"].includes(t.status));
 
-  let headerHtml = "";
-  if (hasInactive) {
-    headerHtml = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">Ingestion Queue (${tasks.length})</span>
-        <button id="btn-clear-inactive-downloads" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">Clear Finished / Failed</button>
-      </div>
+  let headerButtons = "";
+  if (hasInactive && hasActive) {
+    headerButtons = `
+      <button id="btn-clear-inactive-downloads" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">Clear Finished</button>
+      <button id="btn-clear-all-downloads" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">Clear All</button>
+    `;
+  } else if (hasInactive) {
+    headerButtons = `
+      <button id="btn-clear-inactive-downloads" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">Clear Finished / Failed</button>
+    `;
+  } else if (hasActive) {
+    headerButtons = `
+      <button id="btn-clear-all-downloads" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">Cancel & Clear All</button>
     `;
   }
+
+  const headerHtml = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+      <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">Ingestion Queue (${tasks.length})</span>
+      <div style="display: flex; gap: 0.5rem;">
+        ${headerButtons}
+      </div>
+    </div>
+  `;
 
   const tasksHtml = tasks.map(t => {
     const isActive = ["pending", "extracting_metadata", "downloading", "downloading_video", "downloading_audio", "processing"].includes(t.status);
@@ -1094,50 +1113,96 @@ function renderDownloadTasks(tasks) {
 
   tasksContainer.innerHTML = headerHtml + tasksHtml;
 
-  // Wire up cancel buttons
-  tasksContainer.querySelectorAll(".btn-cancel-download").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const taskId = btn.dataset.id;
-      btn.disabled = true;
-      btn.textContent = "Cancelling...";
-      await mediaManager.deleteTask(taskId);
-      const updated = await mediaManager.getTasks();
-      renderDownloadTasks(updated);
-      loadLibraryUI();
-      loadTracksUI();
-    });
+  // Refresh library and tracks only when new tasks complete
+  let hasNewCompletion = false;
+  tasks.forEach(t => {
+    if (t.status === "completed" && !previouslyCompletedTasks.has(t.task_id)) {
+      previouslyCompletedTasks.add(t.task_id);
+      hasNewCompletion = true;
+    }
   });
-
-  // Wire up delete / remove buttons
-  tasksContainer.querySelectorAll(".btn-delete-task").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const taskId = btn.dataset.id;
-      btn.disabled = true;
-      await mediaManager.deleteTask(taskId);
-      const updated = await mediaManager.getTasks();
-      renderDownloadTasks(updated);
-      loadLibraryUI();
-      loadTracksUI();
-    });
-  });
-
-  // Wire up clear inactive button
-  const btnClearAll = document.getElementById("btn-clear-inactive-downloads");
-  if (btnClearAll) {
-    btnClearAll.addEventListener("click", async () => {
-      btnClearAll.disabled = true;
-      await mediaManager.clearInactiveTasks();
-      const updated = await mediaManager.getTasks();
-      renderDownloadTasks(updated);
-      loadLibraryUI();
-      loadTracksUI();
-    });
-  }
-
-  if (tasks.some(t => t.status === "completed")) {
+  if (hasNewCompletion) {
     loadLibraryUI();
     loadTracksUI();
   }
+}
+
+// Single delegated listener for tasksContainer to prevent missed clicks during poll cycles
+if (tasksContainer) {
+  tasksContainer.addEventListener("click", async (e) => {
+    // 1. Cancel active download
+    const cancelBtn = e.target.closest(".btn-cancel-download");
+    if (cancelBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const taskId = cancelBtn.dataset.id;
+      cancelBtn.disabled = true;
+      cancelBtn.textContent = "Cancelling...";
+      try {
+        await mediaManager.deleteTask(taskId);
+      } finally {
+        const updated = await mediaManager.getTasks();
+        renderDownloadTasks(updated);
+        loadLibraryUI();
+        loadTracksUI();
+      }
+      return;
+    }
+
+    // 2. Delete / Remove / Clear single task card
+    const deleteBtn = e.target.closest(".btn-delete-task");
+    if (deleteBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const taskId = deleteBtn.dataset.id;
+      deleteBtn.disabled = true;
+      try {
+        await mediaManager.deleteTask(taskId);
+      } finally {
+        const updated = await mediaManager.getTasks();
+        renderDownloadTasks(updated);
+        loadLibraryUI();
+        loadTracksUI();
+      }
+      return;
+    }
+
+    // 3. Clear finished / inactive tasks
+    const clearInactiveBtn = e.target.closest("#btn-clear-inactive-downloads");
+    if (clearInactiveBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      clearInactiveBtn.disabled = true;
+      clearInactiveBtn.textContent = "Clearing...";
+      try {
+        await mediaManager.clearInactiveTasks(false);
+      } finally {
+        const updated = await mediaManager.getTasks();
+        renderDownloadTasks(updated);
+        loadLibraryUI();
+        loadTracksUI();
+      }
+      return;
+    }
+
+    // 4. Clear all tasks
+    const clearAllBtn = e.target.closest("#btn-clear-all-downloads");
+    if (clearAllBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      clearAllBtn.disabled = true;
+      clearAllBtn.textContent = "Clearing...";
+      try {
+        await mediaManager.clearInactiveTasks(true);
+      } finally {
+        const updated = await mediaManager.getTasks();
+        renderDownloadTasks(updated);
+        loadLibraryUI();
+        loadTracksUI();
+      }
+      return;
+    }
+  });
 }
 
 // ----------------- Workout History & TCX Export -----------------

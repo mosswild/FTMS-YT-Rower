@@ -40,7 +40,12 @@ def cleanup_partial_files_by_id(file_id: Optional[str]):
                     print(f"[Downloader] Error removing partial file {fname}: {ex}")
 
 def cleanup_task_files(task: Optional[Dict[str, Any]]):
-    if task and task.get("file_id"):
+    if not task:
+        return
+    # Never delete media files for completed tasks
+    if task.get("status") == "completed":
+        return
+    if task.get("file_id"):
         cleanup_partial_files_by_id(task["file_id"])
 
 def parse_progress_hook(task_id: str):
@@ -241,13 +246,14 @@ def cancel_download_task(task_id: str, delete_from_queue: bool = False) -> bool:
         task["error"] = "Download cancelled by user"
 
     if delete_from_queue:
-        cleanup_task_files(task)
+        if task.get("status") != "completed":
+            cleanup_task_files(task)
         DOWNLOAD_TASKS.pop(task_id, None)
         CANCELLATION_EVENTS.pop(task_id, None)
     return True
 
 def delete_download_task(task_id: str) -> bool:
-    """Cancel if running, clean up any partial files, and delete from queue."""
+    """Cancel if running, clean up partial files if not completed, and delete from queue."""
     cancel_event = CANCELLATION_EVENTS.get(task_id)
     if cancel_event:
         cancel_event.set()
@@ -255,22 +261,32 @@ def delete_download_task(task_id: str) -> bool:
     task = DOWNLOAD_TASKS.pop(task_id, None)
     CANCELLATION_EVENTS.pop(task_id, None)
     if task:
-        cleanup_task_files(task)
+        if task.get("status") != "completed":
+            cleanup_task_files(task)
         return True
     return False
 
-def clear_inactive_tasks() -> int:
-    """Remove all completed, error, or cancelled tasks from queue."""
-    to_remove = [
-        tid for tid, t in DOWNLOAD_TASKS.items()
-        if t.get("status") in ("completed", "error", "cancelled")
-    ]
+def clear_inactive_tasks(clear_all: bool = False) -> int:
+    """Remove tasks from queue. If clear_all=True, cancel active tasks too."""
+    if clear_all:
+        to_remove = list(DOWNLOAD_TASKS.keys())
+    else:
+        to_remove = [
+            tid for tid, t in DOWNLOAD_TASKS.items()
+            if t.get("status") in ("completed", "error", "cancelled")
+        ]
+    count = 0
     for tid in to_remove:
+        cancel_event = CANCELLATION_EVENTS.get(tid)
+        if cancel_event:
+            cancel_event.set()
         task = DOWNLOAD_TASKS.pop(tid, None)
         CANCELLATION_EVENTS.pop(tid, None)
-        if task and task.get("status") in ("error", "cancelled"):
-            cleanup_task_files(task)
-    return len(to_remove)
+        if task:
+            if task.get("status") != "completed":
+                cleanup_task_files(task)
+            count += 1
+    return count
 
 def get_download_tasks() -> List[Dict[str, Any]]:
     return list(DOWNLOAD_TASKS.values())
