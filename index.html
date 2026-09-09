@@ -388,6 +388,17 @@
   <section id="view-history" class="view-panel" style="display: none;">
     <div class="panel-header">
       <h2 class="panel-title">Workout History & Export</h2>
+      <div class="history-actions-bar">
+        <button id="btn-export-selected" class="btn btn-secondary btn-sm" disabled title="Export selected workouts as ZIP archive">
+          <span class="btn-icon">📦</span> Export Selected (<span id="selected-count">0</span>)
+        </button>
+        <button id="btn-export-all" class="btn btn-primary btn-sm" title="Export all workouts as ZIP archive">
+          <span class="btn-icon">🗂️</span> Export All (.ZIP)
+        </button>
+        <button id="btn-delete-selected" class="btn btn-danger btn-sm" disabled style="display: none;" title="Delete selected workouts">
+          <span class="btn-icon">🗑️</span> Delete Selected
+        </button>
+      </div>
     </div>
 
     <!-- Lifetime Stats Banner -->
@@ -414,6 +425,9 @@
     <table class="sessions-table">
       <thead>
         <tr>
+          <th style="width: 44px; text-align: center;">
+            <input type="checkbox" id="checkbox-select-all" class="custom-checkbox" title="Select All Workouts" aria-label="Select All Workouts">
+          </th>
           <th>Date</th>
           <th>Duration</th>
           <th>Distance</th>

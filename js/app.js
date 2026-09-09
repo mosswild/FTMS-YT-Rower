@@ -2154,6 +2154,109 @@ if (uploadForm) {
 }
 
 // ----------------- Workout History & TCX Export -----------------
+function updateHistorySelectionUI() {
+  const checkboxes = Array.from(document.querySelectorAll(".session-checkbox"));
+  const selectAllCheckbox = document.getElementById("checkbox-select-all");
+  const btnExportSelected = document.getElementById("btn-export-selected");
+  const btnExportAll = document.getElementById("btn-export-all");
+  const btnDeleteSelected = document.getElementById("btn-delete-selected");
+  const countSpan = document.getElementById("selected-count");
+
+  const selectedCheckboxes = checkboxes.filter(cb => cb.checked);
+  const selectedCount = selectedCheckboxes.length;
+  const totalCount = checkboxes.length;
+
+  if (countSpan) countSpan.textContent = selectedCount;
+
+  if (btnExportSelected) {
+    btnExportSelected.disabled = selectedCount === 0;
+  }
+
+  if (btnDeleteSelected) {
+    btnDeleteSelected.disabled = selectedCount === 0;
+    btnDeleteSelected.style.display = selectedCount > 0 ? "inline-flex" : "none";
+  }
+
+  if (btnExportAll) {
+    btnExportAll.disabled = totalCount === 0;
+  }
+
+  if (selectAllCheckbox) {
+    if (totalCount === 0) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+      selectAllCheckbox.disabled = true;
+    } else {
+      selectAllCheckbox.disabled = false;
+      if (selectedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+      } else if (selectedCount === totalCount) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+      } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+      }
+    }
+  }
+
+  checkboxes.forEach(cb => {
+    const tr = cb.closest("tr");
+    if (tr) {
+      if (cb.checked) tr.classList.add("selected");
+      else tr.classList.remove("selected");
+    }
+  });
+}
+
+async function triggerBulkExport(ids = null) {
+  const isSelected = Array.isArray(ids) && ids.length > 0;
+  const countLabel = isSelected ? `${ids.length} workout(s)` : "all workouts";
+  showHudToast(`Packaging ${countLabel} into .ZIP...`, 2000);
+
+  try {
+    let res;
+    let fallbackName = isSelected ? `workouts_export_${ids.length}_sessions.zip` : "workouts_export_all.zip";
+    if (isSelected) {
+      res = await fetch("/api/sessions/export/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, format: "zip" })
+      });
+    } else {
+      res = await fetch("/api/sessions/export?format=zip");
+    }
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "Export failed" }));
+      showHudToast(err.detail || "Export failed", 3500);
+      return;
+    }
+
+    const disposition = res.headers.get("Content-Disposition");
+    let filename = fallbackName;
+    if (disposition && disposition.includes("filename=")) {
+      const match = disposition.match(/filename=["']?([^"';]+)["']?/);
+      if (match && match[1]) filename = match[1];
+    }
+
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    showHudToast(`Exported ${countLabel} successfully!`, 3000);
+  } catch (err) {
+    console.error("[Export Error]", err);
+    showHudToast("Failed to export workouts", 3500);
+  }
+}
+
 async function loadHistoryUI() {
   const res = await fetch("/api/sessions");
   const data = await res.json();
@@ -2172,7 +2275,7 @@ async function loadHistoryUI() {
   const tbody = document.getElementById("history-table-body");
   if (tbody) {
     if (sessions.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-dim); padding: 2rem;">No recorded workouts yet. Start rowing to record a session!</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-dim); padding: 2rem;">No recorded workouts yet. Start rowing to record a session!</td></tr>`;
     } else {
       tbody.innerHTML = sessions.map(s => {
         const dateStr = s.start_time ? new Date(s.start_time).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "--";
@@ -2180,7 +2283,10 @@ async function loadHistoryUI() {
         const durationStr = pm5Hud.formatTime(s.duration_seconds);
 
         return `
-          <tr>
+          <tr data-id="${s.id}">
+            <td class="cell-checkbox">
+              <input type="checkbox" class="session-checkbox custom-checkbox" data-id="${s.id}" aria-label="Select workout from ${dateStr}">
+            </td>
             <td><strong>${dateStr}</strong></td>
             <td>${durationStr}</td>
             <td>${Math.round(s.distance_meters).toLocaleString()} m</td>
@@ -2195,6 +2301,23 @@ async function loadHistoryUI() {
           </tr>
         `;
       }).join("");
+
+      tbody.querySelectorAll(".session-checkbox").forEach(cb => {
+        cb.addEventListener("change", () => {
+          updateHistorySelectionUI();
+        });
+      });
+
+      tbody.querySelectorAll("tr").forEach(tr => {
+        tr.addEventListener("click", (e) => {
+          if (e.target.closest("button, a, input, label")) return;
+          const cb = tr.querySelector(".session-checkbox");
+          if (cb) {
+            cb.checked = !cb.checked;
+            updateHistorySelectionUI();
+          }
+        });
+      });
 
       tbody.querySelectorAll(".btn-del-session").forEach(btn => {
         btn.addEventListener("click", async (e) => {
@@ -2217,8 +2340,75 @@ async function loadHistoryUI() {
         });
       });
     }
+
+    updateHistorySelectionUI();
+  }
+
+  // Bind bulk action buttons (once)
+  const selectAllCheckbox = document.getElementById("checkbox-select-all");
+  if (selectAllCheckbox && !selectAllCheckbox.dataset.bound) {
+    selectAllCheckbox.dataset.bound = "true";
+    selectAllCheckbox.addEventListener("change", () => {
+      const isChecked = selectAllCheckbox.checked;
+      document.querySelectorAll(".session-checkbox").forEach(cb => {
+        cb.checked = isChecked;
+      });
+      updateHistorySelectionUI();
+    });
+  }
+
+  const btnExportSelected = document.getElementById("btn-export-selected");
+  if (btnExportSelected && !btnExportSelected.dataset.bound) {
+    btnExportSelected.dataset.bound = "true";
+    btnExportSelected.addEventListener("click", async () => {
+      const selectedIds = Array.from(document.querySelectorAll(".session-checkbox:checked")).map(cb => cb.dataset.id);
+      if (selectedIds.length === 0) return;
+      await triggerBulkExport(selectedIds);
+    });
+  }
+
+  const btnExportAll = document.getElementById("btn-export-all");
+  if (btnExportAll && !btnExportAll.dataset.bound) {
+    btnExportAll.dataset.bound = "true";
+    btnExportAll.addEventListener("click", async () => {
+      await triggerBulkExport(null);
+    });
+  }
+
+  const btnDeleteSelected = document.getElementById("btn-delete-selected");
+  if (btnDeleteSelected && !btnDeleteSelected.dataset.bound) {
+    btnDeleteSelected.dataset.bound = "true";
+    btnDeleteSelected.addEventListener("click", async () => {
+      const selectedIds = Array.from(document.querySelectorAll(".session-checkbox:checked")).map(cb => cb.dataset.id);
+      if (selectedIds.length === 0) return;
+      const confirmed = await showConfirmDialog({
+        title: "Delete Selected Workouts",
+        message: `Are you sure you want to permanently delete ${selectedIds.length} selected workout session(s)?`,
+        confirmBtnText: `Delete ${selectedIds.length} Sessions`,
+        isDanger: true
+      });
+      if (confirmed) {
+        btnDeleteSelected.disabled = true;
+        try {
+          const res = await fetch("/api/sessions/bulk-delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids: selectedIds })
+          });
+          if (res.ok) {
+            showHudToast(`Deleted ${selectedIds.length} workout(s)`);
+            await loadHistoryUI();
+          } else {
+            showHudToast("Failed to delete workouts", 3500);
+          }
+        } catch (err) {
+          showHudToast("Failed to delete workouts", 3500);
+        }
+      }
+    });
   }
 }
+
 
 // ----------------- Bluetooth Hardware Pairing -----------------
 document.getElementById("btn-connect-rower").addEventListener("click", async () => {

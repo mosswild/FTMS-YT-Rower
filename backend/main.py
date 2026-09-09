@@ -1,4 +1,7 @@
 import os
+import io
+import zipfile
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from typing import Dict, Any, Optional, List
 from fastapi import FastAPI, Request, HTTPException, Response, UploadFile, File, Form, WebSocket, WebSocketDisconnect
@@ -8,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from backend.database import (
-    init_db, save_workout, list_workouts, get_workout, delete_workout,
+    init_db, save_workout, list_workouts, get_workout, delete_workout, delete_workouts,
     save_track, list_tracks, get_track, delete_track
 )
 from backend.downloader import (
@@ -18,9 +21,10 @@ from backend.downloader import (
 )
 from backend.uploader import save_uploaded_media
 from backend.streaming import range_streaming_response
-from backend.tcx_generator import generate_tcx
+from backend.tcx_generator import generate_tcx, generate_multi_tcx
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -91,6 +95,13 @@ class WorkoutSaveRequest(BaseModel):
     audio_source: Optional[str] = None
     notes: Optional[str] = ""
     samples: Optional[List[WorkoutSampleModel]] = None
+
+class BulkExportRequest(BaseModel):
+    ids: Optional[List[str]] = None
+    format: Optional[str] = "zip"
+
+class BulkDeleteRequest(BaseModel):
+    ids: List[str]
 
 # ----------------- Telemetry Gateway (WebSocket & REST Relay) -----------------
 class TelemetryGateway:
@@ -302,6 +313,89 @@ async def create_session(workout: WorkoutSaveRequest):
     samples = [s.model_dump() for s in workout.samples] if workout.samples else None
     saved_id = save_workout(data, samples)
     return {"id": saved_id, "status": "saved"}
+
+def format_session_filename(session: Dict[str, Any], used_names: set) -> str:
+    start_time_str = session.get("start_time")
+    date_part = "workout"
+    if start_time_str:
+        try:
+            dt = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
+            date_part = dt.strftime("%Y%m%d_%H%M%S")
+        except Exception:
+            date_part = "workout"
+    dist = int(round(session.get("distance_meters") or 0))
+    short_id = str(session.get("id", "session"))[:8]
+    base_name = f"workout_{date_part}_{dist}m_{short_id}"
+    filename = f"{base_name}.tcx"
+    idx = 1
+    while filename in used_names:
+        filename = f"{base_name}_{idx}.tcx"
+        idx += 1
+    used_names.add(filename)
+    return filename
+
+def build_sessions_export_response(sessions: List[Dict[str, Any]], export_format: str = "zip") -> Response:
+    if not sessions:
+        raise HTTPException(status_code=404, detail="No workouts found to export")
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+
+    if export_format.lower() == "tcx":
+        tcx_content = generate_multi_tcx(sessions) if len(sessions) > 1 else generate_tcx(sessions[0])
+        filename = f"workouts_export_{timestamp}.tcx"
+        return Response(
+            content=tcx_content,
+            media_type="application/vnd.garmin.tcx+xml",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+
+    zip_buffer = io.BytesIO()
+    used_names = set()
+    with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for s in sessions:
+            tcx_data = generate_tcx(s)
+            fname = format_session_filename(s, used_names)
+            zf.writestr(fname, tcx_data)
+    zip_buffer.seek(0)
+
+    filename = f"workouts_export_{timestamp}.zip"
+    return Response(
+        content=zip_buffer.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+@app.get("/api/sessions/export")
+async def export_sessions_get(ids: Optional[str] = None, format: str = "zip"):
+    if ids:
+        id_list = [i.strip() for i in ids.split(",") if i.strip()]
+        sessions = [get_workout(i) for i in id_list]
+        sessions = [s for s in sessions if s]
+    else:
+        all_w = list_workouts()
+        sessions = [get_workout(w["id"]) for w in all_w]
+        sessions = [s for s in sessions if s]
+
+    return build_sessions_export_response(sessions, format)
+
+@app.post("/api/sessions/export/bulk")
+async def export_sessions_bulk(req: BulkExportRequest):
+    if req.ids:
+        sessions = [get_workout(i) for i in req.ids if i]
+        sessions = [s for s in sessions if s]
+    else:
+        all_w = list_workouts()
+        sessions = [get_workout(w["id"]) for w in all_w]
+        sessions = [s for s in sessions if s]
+
+    return build_sessions_export_response(sessions, req.format or "zip")
+
+@app.post("/api/sessions/bulk-delete")
+async def bulk_delete_sessions(req: BulkDeleteRequest):
+    if not req.ids:
+        return {"deleted_count": 0, "status": "deleted"}
+    count = delete_workouts(req.ids)
+    return {"deleted_count": count, "status": "deleted"}
 
 @app.get("/api/sessions/{session_id}")
 async def get_single_session(session_id: str):

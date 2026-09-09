@@ -2,11 +2,16 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 
-def generate_tcx(workout: Dict[str, Any]) -> str:
-    """
-    Generate Garmin Training Center XML v2 for a rowing workout.
-    Compatible with Strava, Garmin Connect, and TrainingPeaks.
-    """
+def create_tcx_root() -> ET.Element:
+    """Create root TrainingCenterDatabase element with XML schemas."""
+    return ET.Element("TrainingCenterDatabase", {
+        "xmlns": "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2",
+        "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        "xsi:schemaLocation": "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2 http://www.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd"
+    })
+
+def append_activity(activities: ET.Element, workout: Dict[str, Any]) -> ET.Element:
+    """Append a single Rowing Activity to the Activities XML element."""
     start_time_str = workout.get("start_time")
     if not start_time_str:
         start_time_str = datetime.now(timezone.utc).isoformat()
@@ -26,8 +31,6 @@ def generate_tcx(workout: Dict[str, Any]) -> str:
     avg_spm = int(workout.get("avg_spm") or 0)
     avg_watts = float(workout.get("avg_watts") or 0.0)
     
-    # Approximate calories burned: ~ (avg_watts * 4 * duration / 4184) + baseline metabolic rate
-    # Standard formula: kcal = (watts * 4 * seconds) / 4184
     calories = int((avg_watts * 4.0 * duration / 4184.0) + (duration / 60.0 * 1.5)) if duration > 0 and avg_watts > 0 else int(duration / 60.0 * 8.0)
 
     # Max speed calculation
@@ -40,13 +43,6 @@ def generate_tcx(workout: Dict[str, Any]) -> str:
             if speed > max_speed:
                 max_speed = speed
 
-    root = ET.Element("TrainingCenterDatabase", {
-        "xmlns": "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2",
-        "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-        "xsi:schemaLocation": "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2 http://www.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd"
-    })
-
-    activities = ET.SubElement(root, "Activities")
     activity = ET.SubElement(activities, "Activity", {"Sport": "Rowing"})
     
     activity_id = ET.SubElement(activity, "Id")
@@ -88,7 +84,6 @@ def generate_tcx(workout: Dict[str, Any]) -> str:
     track = ET.SubElement(lap, "Track")
 
     if not samples and duration > 0:
-        # Synthesize initial and final trackpoints if samples list was empty
         samples = [
             {"elapsed_seconds": 0.0, "stroke_rate": avg_spm, "split_seconds": workout.get("avg_split") or 120.0, "watts": avg_watts, "hr": avg_hr, "distance": 0.0},
             {"elapsed_seconds": duration, "stroke_rate": avg_spm, "split_seconds": workout.get("avg_split") or 120.0, "watts": avg_watts, "hr": avg_hr, "distance": distance}
@@ -133,6 +128,25 @@ def generate_tcx(workout: Dict[str, Any]) -> str:
                 speed_elem = ET.SubElement(tpx, "Speed")
                 speed_elem.text = f"{speed:.2f}"
 
-    # XML declaration
-    xml_str = ET.tostring(root, encoding="utf-8", xml_declaration=True).decode("utf-8")
-    return xml_str
+    return activity
+
+def generate_tcx(workout: Dict[str, Any]) -> str:
+    """
+    Generate Garmin Training Center XML v2 for a single rowing workout.
+    Compatible with Strava, Garmin Connect, and TrainingPeaks.
+    """
+    root = create_tcx_root()
+    activities = ET.SubElement(root, "Activities")
+    append_activity(activities, workout)
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True).decode("utf-8")
+
+def generate_multi_tcx(workouts: list) -> str:
+    """
+    Generate Garmin Training Center XML v2 containing multiple rowing activities.
+    """
+    root = create_tcx_root()
+    activities = ET.SubElement(root, "Activities")
+    for w in workouts:
+        if w:
+            append_activity(activities, w)
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True).decode("utf-8")

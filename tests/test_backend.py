@@ -282,6 +282,90 @@ class TestBackendAndFormulas(unittest.TestCase):
             self.assertEqual(data["stroke_rate"], 32)
             self.assertEqual(data["watts"], 310.0)
 
+    def test_bulk_export_zip_and_tcx(self):
+        """Test bulk export of workouts as .zip and multi-activity .tcx."""
+        import io
+        import zipfile
+        w1 = {
+            "id": "bulk-w1",
+            "start_time": "2026-09-08T08:00:00Z",
+            "duration_seconds": 600,
+            "distance_meters": 2000.0,
+            "avg_spm": 22.0,
+            "avg_watts": 200.0,
+            "avg_hr": 140.0,
+        }
+        w2 = {
+            "id": "bulk-w2",
+            "start_time": "2026-09-08T09:00:00Z",
+            "duration_seconds": 900,
+            "distance_meters": 3000.0,
+            "avg_spm": 24.0,
+            "avg_watts": 220.0,
+            "avg_hr": 150.0,
+        }
+        save_workout(w1, [{"elapsed_seconds": 0.0, "stroke_rate": 22, "split_seconds": 120.0, "watts": 200.0, "hr": 140, "distance": 0.0}])
+        save_workout(w2, [{"elapsed_seconds": 0.0, "stroke_rate": 24, "split_seconds": 115.0, "watts": 220.0, "hr": 150, "distance": 0.0}])
+
+        # Test GET all as zip
+        resp = self.client.get("/api/sessions/export")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers.get("content-type"), "application/zip")
+        self.assertIn("attachment; filename=", resp.headers.get("content-disposition", ""))
+        
+        with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
+            namelist = zf.namelist()
+            self.assertGreaterEqual(len(namelist), 2)
+            self.assertTrue(all(name.endswith(".tcx") for name in namelist))
+            # Verify one file contains valid TCX XML
+            first_tcx = zf.read(namelist[0]).decode("utf-8")
+            self.assertIn("TrainingCenterDatabase", first_tcx)
+            self.assertIn('Sport="Rowing"', first_tcx)
+
+        # Test GET specific ID as zip
+        resp_single = self.client.get("/api/sessions/export?ids=bulk-w1")
+        self.assertEqual(resp_single.status_code, 200)
+        with zipfile.ZipFile(io.BytesIO(resp_single.content)) as zf:
+            self.assertEqual(len(zf.namelist()), 1)
+
+        # Test POST /api/sessions/export/bulk
+        resp_post = self.client.post("/api/sessions/export/bulk", json={"ids": ["bulk-w1", "bulk-w2"], "format": "zip"})
+        self.assertEqual(resp_post.status_code, 200)
+        with zipfile.ZipFile(io.BytesIO(resp_post.content)) as zf:
+            self.assertEqual(len(zf.namelist()), 2)
+
+        # Test multi-activity TCX format
+        resp_tcx = self.client.get("/api/sessions/export?ids=bulk-w1,bulk-w2&format=tcx")
+        self.assertEqual(resp_tcx.status_code, 200)
+        self.assertEqual(resp_tcx.headers.get("content-type"), "application/vnd.garmin.tcx+xml")
+        root = ET.fromstring(resp_tcx.content.decode("utf-8"))
+        activities = root.findall(".//{http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2}Activity")
+        self.assertEqual(len(activities), 2)
+
+        # Clean up
+        delete_workout("bulk-w1")
+        delete_workout("bulk-w2")
+
+    def test_bulk_delete(self):
+        """Test deleting multiple workouts in a single request."""
+        w1 = {"id": "del-w1", "start_time": "2026-09-08T08:00:00Z", "duration_seconds": 300, "distance_meters": 1000.0}
+        w2 = {"id": "del-w2", "start_time": "2026-09-08T09:00:00Z", "duration_seconds": 300, "distance_meters": 1000.0}
+        save_workout(w1, None)
+        save_workout(w2, None)
+
+        self.assertIsNotNone(get_workout("del-w1"))
+        self.assertIsNotNone(get_workout("del-w2"))
+
+        resp = self.client.post("/api/sessions/bulk-delete", json={"ids": ["del-w1", "del-w2"]})
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["deleted_count"], 2)
+        self.assertEqual(data["status"], "deleted")
+
+        self.assertIsNone(get_workout("del-w1"))
+        self.assertIsNone(get_workout("del-w2"))
+
 if __name__ == "__main__":
     unittest.main()
+
 

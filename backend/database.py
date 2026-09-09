@@ -243,3 +243,16 @@ def delete_workout(workout_id: str) -> bool:
     conn.commit()
     conn.close()
     return deleted
+
+def delete_workouts(workout_ids: List[str]) -> int:
+    if not workout_ids:
+        return 0
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join(["?"] * len(workout_ids))
+    cursor.execute(f"DELETE FROM workouts WHERE id IN ({placeholders})", tuple(workout_ids))
+    deleted_count = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return deleted_count
+
