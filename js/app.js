@@ -674,16 +674,24 @@ function loadTrackIntoCockpit(track, autoPlay = false) {
     updateAudioTrackDropdown(audioUrl, track.allowed_audios);
   }
 
-  // Ensure paused and waiting for strokes
-  rateController.pauseVideo();
-  rateController.smoothedRate = rateController.minRate;
-  pm5Hud.updateSpeedMultiplier(rateController.isFixedSpeed ? 1.0 : 0, rateController.isFixedSpeed);
-  pm5Hud.setAutoPause(true);
-  audioEngine.pause();
-
-  if (autoPlay) {
+  if (track.fixed_speed) {
+    // Ambient video mode: plays steadily at 1.0x without pausing when rower pauses
     rateController.resumeVideo();
+    pm5Hud.updateSpeedMultiplier(1.0, true);
+    pm5Hud.setAutoPause(false);
     audioEngine.play();
+  } else {
+    // Cadence dynamic mode: start paused waiting for strokes
+    rateController.pauseVideo(true);
+    rateController.smoothedRate = rateController.minRate;
+    pm5Hud.updateSpeedMultiplier(0, false);
+    pm5Hud.setAutoPause(true);
+    audioEngine.pause();
+
+    if (autoPlay) {
+      rateController.resumeVideo();
+      audioEngine.play();
+    }
   }
 }
 
@@ -2222,8 +2230,10 @@ if (simBtn) {
         btnOpenSimPanel.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Simulator';
       }
       updateRowerStatus(false, "Simulator Stopped");
-      if (videoEl) videoEl.pause();
-      audioEngine.pause();
+      if (!rateController.isFixedSpeed) {
+        if (videoEl) videoEl.pause();
+        audioEngine.pause();
+      }
     } else {
       simulator.start();
       simBtn.textContent = "Stop Simulator";
@@ -2268,7 +2278,9 @@ if (simRowToggleBtn) {
     simRowToggleBtn.textContent = isRowing ? "Pause Pulling" : "Resume Pulling";
     simRowToggleBtn.className = isRowing ? "btn btn-secondary btn-sm" : "btn btn-success btn-sm";
     if (!isRowing) {
-      rateController.pauseVideo();
+      if (!rateController.isFixedSpeed) {
+        rateController.pauseVideo();
+      }
     } else {
       rateController.resumeVideo();
     }

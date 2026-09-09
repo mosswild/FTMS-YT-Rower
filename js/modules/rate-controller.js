@@ -32,6 +32,9 @@ export class RateController {
       this.targetRate = 1.0;
       if (this.video) {
         this.video.playbackRate = 1.0;
+        if (this.isAutoPaused || this.video.paused) {
+          this.resumeVideo();
+        }
       }
       if (this.onRateChange) {
         this.onRateChange(1.0);
@@ -54,17 +57,16 @@ export class RateController {
   updateCadence(currentSpm) {
     if (this.isFixedSpeed) {
       // Ambient fixed speed: video plays at constant 1.0x rate regardless of stroke rate
-      if (currentSpm > 0) {
-        this.lastStrokeTime = Date.now();
-        if (this.video) {
-          this.video.playbackRate = 1.0;
-          if (this.isAutoPaused || this.video.paused) {
-            this.resumeVideo();
-          }
+      // Never slows down, decelerates, or pauses when rower pauses
+      this.lastStrokeTime = Date.now();
+      if (this.video) {
+        this.video.playbackRate = 1.0;
+        if (this.isAutoPaused || this.video.paused) {
+          this.resumeVideo();
         }
-        if (this.onRateChange) {
-          this.onRateChange(1.0);
-        }
+      }
+      if (this.onRateChange) {
+        this.onRateChange(1.0);
       }
       return;
     }
@@ -119,7 +121,11 @@ export class RateController {
     }
   }
 
-  pauseVideo() {
+  pauseVideo(force = false) {
+    // If in ambient fixed speed mode, ignore auto-pause requests unless explicitly forced
+    if (this.isFixedSpeed && !force) {
+      return;
+    }
     this.isAutoPaused = true;
     if (this.video && !this.video.paused) {
       this.video.pause();
@@ -132,6 +138,9 @@ export class RateController {
   startWatchdog() {
     if (this.watchdogInterval) clearInterval(this.watchdogInterval);
     this.watchdogInterval = setInterval(() => {
+      // Ambient fixed speed: never auto-pause when rower pauses or stops
+      if (this.isFixedSpeed) return;
+
       if (this.lastStrokeTime === 0) return;
       const elapsedSinceStroke = Date.now() - this.lastStrokeTime;
       
