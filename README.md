@@ -1,8 +1,23 @@
-# FTMS-Rower: Scenic Indoor Rowing Dashboard & Telemetry HUD
+<p align="center">
+  <img src="icon-ui.png" alt="FTMS Rower Logo" width="112" height="112">
+</p>
 
-A modernized, full-stack scenic indoor rowing application and simulator for Bluetooth FTMS rowing machines. Forked and reimagined from [manuelkamp/FTMS-rower](https://github.com/manuelkamp/FTMS-rower).
+<h1 align="center">FTMS-Rower</h1>
 
-FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you row, your stroke cadence dynamically modulates video playback speed ($0.3\times \dots 2.5\times$), while soundtrack audio remains crystal-clear and locked at a steady $1.0\times$.
+<p align="center">
+  <strong>Scenic Indoor Rowing Dashboard & Telemetry HUD</strong><br>
+  <em>Transform indoor rowing into an immersive outdoor experience for Concept2 and FTMS machines.</em>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white" alt="Docker Ready">
+  <img src="https://img.shields.io/badge/Bluetooth-FTMS%20%7C%20Concept2-0082FC.svg?logo=bluetooth&logoColor=white" alt="Bluetooth FTMS">
+  <img src="https://img.shields.io/badge/PWA-Ready-orange.svg" alt="PWA Ready">
+</p>
+
+FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you row, your stroke cadence dynamically modulates video playback speed ($0.3\times \dots 2.5\times$), while soundtrack audio remains crystal-clear and locked at a steady $1.0\times$. Forked and reimagined from [manuelkamp/FTMS-rower](https://github.com/manuelkamp/FTMS-rower).
 
 <p align="center">
   <img src="docs/screenshots/cockpit-nordic-minimalist.png" alt="FTMS-Rower Cockpit HUD (Nordic Minimalist Theme)" width="100%">
