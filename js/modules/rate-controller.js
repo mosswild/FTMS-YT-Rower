@@ -13,6 +13,7 @@ export class RateController {
     this.autoPauseTimeoutMs = options.autoPauseTimeoutMs || 3500;
 
     this.isFixedSpeed = false;
+    this.isWorkoutLive = false;
     this.smoothedRate = 1.0;
     this.targetRate = 1.0;
     this.lastStrokeTime = 0;
@@ -25,6 +26,19 @@ export class RateController {
     this.startWatchdog();
   }
 
+  setWorkoutLive(isLive) {
+    this.isWorkoutLive = !!isLive;
+    if (this.isWorkoutLive) {
+      this.lastStrokeTime = Date.now();
+      if (this.isFixedSpeed) {
+        this.resumeVideo();
+        if (this.onRateChange) this.onRateChange(1.0);
+      }
+    } else {
+      this.pauseVideo(true);
+    }
+  }
+
   setFixedSpeed(isFixed) {
     this.isFixedSpeed = !!isFixed;
     if (this.isFixedSpeed) {
@@ -32,7 +46,7 @@ export class RateController {
       this.targetRate = 1.0;
       if (this.video) {
         this.video.playbackRate = 1.0;
-        if (this.isAutoPaused || this.video.paused) {
+        if (this.isWorkoutLive && (this.isAutoPaused || this.video.paused)) {
           this.resumeVideo();
         }
       }
@@ -56,12 +70,12 @@ export class RateController {
 
   updateCadence(currentSpm) {
     if (this.isFixedSpeed) {
-      // Ambient fixed speed: video plays at constant 1.0x rate regardless of stroke rate
+      // Ambient fixed speed: video plays at constant 1.0x rate during live workout
       // Never slows down, decelerates, or pauses when rower pauses
       this.lastStrokeTime = Date.now();
       if (this.video) {
         this.video.playbackRate = 1.0;
-        if (this.isAutoPaused || this.video.paused) {
+        if (this.isWorkoutLive && (this.isAutoPaused || this.video.paused)) {
           this.resumeVideo();
         }
       }
@@ -122,8 +136,8 @@ export class RateController {
   }
 
   pauseVideo(force = false) {
-    // If in ambient fixed speed mode, ignore auto-pause requests unless explicitly forced
-    if (this.isFixedSpeed && !force) {
+    // If in ambient fixed speed mode, ignore auto-pause requests during a live workout unless explicitly forced
+    if (this.isFixedSpeed && !force && this.isWorkoutLive) {
       return;
     }
     this.isAutoPaused = true;

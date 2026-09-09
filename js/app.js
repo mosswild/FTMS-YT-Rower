@@ -121,10 +121,18 @@ const sessionTracker = new SessionTracker({
         workoutBtn.textContent = "Finish Workout";
         workoutBtn.className = "btn btn-danger";
         pm5Hud.setActiveSession(true);
+        rateController.setWorkoutLive(true);
+        if (videoEl && videoEl.paused && (rateController.isFixedSpeed || rateController.smoothedRate > 0)) {
+          rateController.resumeVideo();
+          audioEngine.play();
+        }
       } else {
         workoutBtn.textContent = "Start Workout";
         workoutBtn.className = "btn btn-success";
         pm5Hud.setActiveSession(false);
+        rateController.setWorkoutLive(false);
+        if (videoEl) videoEl.pause();
+        audioEngine.pause();
       }
     }
   }
@@ -674,12 +682,22 @@ function loadTrackIntoCockpit(track, autoPlay = false) {
     updateAudioTrackDropdown(audioUrl, track.allowed_audios);
   }
 
+  const isWorkoutLive = sessionTracker.state === "active" || (simulator && simulator.isRunning);
+  rateController.setWorkoutLive(isWorkoutLive);
+
   if (track.fixed_speed) {
-    // Ambient video mode: plays steadily at 1.0x without pausing when rower pauses
-    rateController.resumeVideo();
+    // Ambient video mode: plays steadily at 1.0x without pausing when rower pauses, but ONLY when workout is live
     pm5Hud.updateSpeedMultiplier(1.0, true);
-    pm5Hud.setAutoPause(false);
-    audioEngine.play();
+    if (isWorkoutLive || autoPlay) {
+      rateController.setWorkoutLive(true);
+      rateController.resumeVideo();
+      pm5Hud.setAutoPause(false);
+      audioEngine.play();
+    } else {
+      rateController.pauseVideo(true);
+      pm5Hud.setAutoPause(true);
+      audioEngine.pause();
+    }
   } else {
     // Cadence dynamic mode: start paused waiting for strokes
     rateController.pauseVideo(true);
@@ -688,7 +706,7 @@ function loadTrackIntoCockpit(track, autoPlay = false) {
     pm5Hud.setAutoPause(true);
     audioEngine.pause();
 
-    if (autoPlay) {
+    if (isWorkoutLive && autoPlay) {
       rateController.resumeVideo();
       audioEngine.play();
     }
@@ -2230,10 +2248,12 @@ if (simBtn) {
         btnOpenSimPanel.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Simulator';
       }
       updateRowerStatus(false, "Simulator Stopped");
-      if (!rateController.isFixedSpeed) {
-        if (videoEl) videoEl.pause();
-        audioEngine.pause();
+      if (sessionTracker.state === "active") {
+        sessionTracker.finish();
       }
+      rateController.setWorkoutLive(false);
+      if (videoEl) videoEl.pause();
+      audioEngine.pause();
     } else {
       simulator.start();
       simBtn.textContent = "Stop Simulator";
@@ -2243,13 +2263,18 @@ if (simBtn) {
       }
       updateRowerStatus(true, `Sim: ${simulator.mode === "dynamic" ? "Dynamic Program" : "Manual"}`);
 
+      if (sessionTracker.state !== "active") {
+        sessionTracker.start();
+      }
+      rateController.setWorkoutLive(true);
+
       if (!videoEl.src || videoEl.src === "" || videoEl.src.endsWith("/")) {
         if (cachedLibrary.videos && cachedLibrary.videos.length > 0) {
           const first = cachedLibrary.videos[0];
           loadVideoIntoCockpit(first.id, first.title, true);
         }
       } else {
-        videoEl.play().catch(e => console.warn(e));
+        rateController.resumeVideo();
         audioEngine.play();
       }
     }
