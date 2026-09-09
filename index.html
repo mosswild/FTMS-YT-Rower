@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=upload-v1">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=delete-modal-v1">
   <script>
     (function() {
       const theme = localStorage.getItem("ftms_hud_theme");
@@ -725,7 +725,29 @@
     </div>
   </div>
 
+  <!-- Modal: Confirmation Dialog for Deletions -->
+  <div id="modal-confirm-delete" class="modal-overlay">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 id="modal-confirm-title" class="modal-title" style="color: var(--accent-rose, #f43f5e);">Confirm Deletion</h3>
+        <button id="btn-close-confirm-delete" class="close-btn" type="button">&times;</button>
+      </div>
+      <div style="margin: 1.25rem 0 0.5rem 0;">
+        <p id="modal-confirm-message" style="color: var(--text-main); font-size: 0.95rem; line-height: 1.5; margin-bottom: 0.5rem;">
+          Are you sure you want to delete this item?
+        </p>
+        <p style="color: var(--text-dim); font-size: 0.8rem; margin: 0;">
+          This action cannot be undone and will permanently remove it.
+        </p>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+        <button type="button" id="btn-cancel-confirm-delete" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="btn-action-confirm-delete" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=upload-v1"></script>
+  <script type="module" src="js/app.js?v=delete-modal-v1"></script>
 </body>
 </html>

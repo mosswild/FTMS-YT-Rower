@@ -364,12 +364,23 @@ def get_library() -> Dict[str, List[Dict[str, Any]]]:
 
 def delete_media_file(media_type: str, item_id: str) -> bool:
     target_dir = VIDEOS_DIR if media_type == "video" else AUDIO_DIR
+    clean_id = item_id
+    for ext in [".mp4", ".m4a", ".mp3", ".json", ".jpg"]:
+        if item_id.endswith(ext):
+            clean_id = item_id[:-len(ext)]
+            break
+
     deleted = False
-    for ext in [".mp4", ".m4a", ".mp3", ".json"]:
-        p = os.path.join(target_dir, f"{item_id}{ext}")
-        if os.path.exists(p):
-            os.remove(p)
-            deleted = True
+    if os.path.exists(target_dir):
+        for fname in os.listdir(target_dir):
+            if fname.startswith(f"{clean_id}."):
+                try:
+                    p = os.path.join(target_dir, fname)
+                    if os.path.isfile(p):
+                        os.remove(p)
+                        deleted = True
+                except Exception as ex:
+                    print(f"[Downloader] Error removing file {fname}: {ex}")
     return deleted
 
 def update_media_metadata(media_type: str, item_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:

@@ -226,6 +226,81 @@ document.querySelectorAll(".nav-btn[data-view]").forEach(btn => {
   btn.addEventListener("click", () => switchView(btn.dataset.view));
 });
 
+// ----------------- Confirmation Modal Helper -----------------
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function showConfirmDialog({ title = "Confirm Deletion", message = "Are you sure you want to delete this item?", confirmBtnText = "Delete", isDanger = true }) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("modal-confirm-delete");
+    const titleEl = document.getElementById("modal-confirm-title");
+    const msgEl = document.getElementById("modal-confirm-message");
+    const btnAction = document.getElementById("btn-action-confirm-delete");
+    const btnCancel = document.getElementById("btn-cancel-confirm-delete");
+    const btnClose = document.getElementById("btn-close-confirm-delete");
+
+    if (!modal || !btnAction || !btnCancel) {
+      resolve(true);
+      return;
+    }
+
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.innerHTML = message;
+    if (btnAction) {
+      btnAction.textContent = confirmBtnText;
+      btnAction.className = isDanger ? "btn btn-danger" : "btn btn-primary";
+    }
+
+    modal.classList.add("open");
+
+    const cleanup = () => {
+      modal.classList.remove("open");
+      btnAction.removeEventListener("click", onConfirm);
+      btnCancel.removeEventListener("click", onCancel);
+      if (btnClose) btnClose.removeEventListener("click", onCancel);
+      modal.removeEventListener("click", onOverlayClick);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+
+    const onConfirm = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      cleanup();
+      resolve(true);
+    };
+
+    const onCancel = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      cleanup();
+      resolve(false);
+    };
+
+    const onOverlayClick = (e) => {
+      if (e.target === modal) onCancel(e);
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onCancel(e);
+      } else if (e.key === "Enter") {
+        onConfirm(e);
+      }
+    };
+
+    btnAction.addEventListener("click", onConfirm);
+    btnCancel.addEventListener("click", onCancel);
+    if (btnClose) btnClose.addEventListener("click", onCancel);
+    modal.addEventListener("click", onOverlayClick);
+    document.addEventListener("keydown", onKeyDown);
+  });
+}
+
 // ----------------- Media Loading & Library -----------------
 let cachedLibrary = { videos: [], audio: [] };
 let cachedTracks = [];
@@ -249,8 +324,8 @@ async function loadLibraryUI() {
 
         return `
         <div class="media-card">
-          <div class="media-thumb-box" data-id="${v.id}" style="cursor: pointer;" title="Click to preview & trim video">
-            ${v.thumbnail ? `<img src="${v.thumbnail}" class="media-thumb-img" alt="${v.title}">` : `<div class="media-thumb-fallback">Video</div>`}
+          <div class="media-thumb-box" data-id="${v.id}" title="Click to preview & trim video">
+            <img src="/api/media/thumbnail/${v.id}" alt="${v.title}" class="media-thumb" onerror="this.src='/api/placeholder/320/180'">
             <div class="media-thumb-play-overlay">
               <div class="media-thumb-play-btn">▶</div>
             </div>
@@ -261,7 +336,7 @@ async function loadLibraryUI() {
               <div class="media-meta-line">${v.duration ? `${Math.floor(v.duration / 60)}m ${v.duration % 60}s` : ""} • ${(v.size_bytes / (1024*1024)).toFixed(1)} MB${trimBadge}</div>
             </div>
             <div class="media-actions">
-              <button class="btn btn-primary btn-sm btn-action-main btn-create-track-from-video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">+ Create Track</button>
+              <button class="btn btn-primary btn-sm btn-action-main btn-create-track-from-video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}" data-duration="${v.duration || 0}">+ Create Track</button>
               <div class="media-actions-row">
                 <button class="btn btn-secondary btn-sm btn-trim-media" data-type="video" data-id="${v.id}">✂ Preview & Trim</button>
                 <button class="btn btn-secondary btn-sm btn-rename-media" data-type="video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">Rename</button>
@@ -281,7 +356,7 @@ async function loadLibraryUI() {
 
       videosContainer.querySelectorAll(".btn-create-track-from-video").forEach(btn => {
         btn.addEventListener("click", () => {
-          openCreateTrackFromVideo(btn.dataset.id, btn.dataset.title);
+          openCreateTrackModal(btn.dataset.id, btn.dataset.title, parseFloat(btn.dataset.duration || 0));
         });
       });
 
@@ -298,10 +373,26 @@ async function loadLibraryUI() {
       });
 
       videosContainer.querySelectorAll(".btn-delete-media").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          if (confirm("Delete this video?")) {
-            await mediaManager.deleteMedia("video", btn.dataset.id);
-            loadLibraryUI();
+        btn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const video = cachedLibrary.videos ? cachedLibrary.videos.find(v => v.id === id) : null;
+          const title = video ? video.title : "this video";
+
+          const confirmed = await showConfirmDialog({
+            title: "Delete Scenic Video",
+            message: `Are you sure you want to delete <strong>${escapeHtml(title)}</strong>?`,
+            confirmBtnText: "Delete Video",
+            isDanger: true
+          });
+
+          if (confirmed) {
+            btn.disabled = true;
+            await mediaManager.deleteMedia("video", id);
+            showHudToast(`Deleted video: ${title}`);
+            await loadLibraryUI();
+            await loadTracksUI();
           }
         });
       });
@@ -335,7 +426,7 @@ async function loadLibraryUI() {
               <div class="media-meta-line">${a.duration ? `${Math.floor(a.duration / 60)}m ${a.duration % 60}s` : ""} • ${(a.size_bytes / (1024*1024)).toFixed(1)} MB${trimBadge}</div>
             </div>
             <div class="media-actions">
-              <button class="btn btn-primary btn-sm btn-action-main btn-add-audio-to-track" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">+ Add to Track</button>
+              <button class="btn btn-primary btn-sm btn-add-audio-to-track" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">+ Add to Track</button>
               <div class="media-actions-row">
                 <button class="btn btn-secondary btn-sm btn-trim-media" data-type="audio" data-id="${a.id}">✂ Preview & Trim</button>
                 <button class="btn btn-secondary btn-sm btn-rename-media" data-type="audio" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">Rename</button>
@@ -372,10 +463,26 @@ async function loadLibraryUI() {
       });
 
       audioContainer.querySelectorAll(".btn-delete-media").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          if (confirm("Delete this audio track?")) {
-            await mediaManager.deleteMedia("audio", btn.dataset.id);
-            loadLibraryUI();
+        btn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const audio = cachedLibrary.audio ? cachedLibrary.audio.find(a => a.id === id) : null;
+          const title = audio ? audio.title : "this soundtrack";
+
+          const confirmed = await showConfirmDialog({
+            title: "Delete Soundtrack",
+            message: `Are you sure you want to delete <strong>${escapeHtml(title)}</strong>?`,
+            confirmBtnText: "Delete Soundtrack",
+            isDanger: true
+          });
+
+          if (confirmed) {
+            btn.disabled = true;
+            await mediaManager.deleteMedia("audio", id);
+            showHudToast(`Deleted soundtrack: ${title}`);
+            await loadLibraryUI();
+            await loadTracksUI();
           }
         });
       });
@@ -507,10 +614,25 @@ async function loadTracksUI() {
       });
 
       tracksContainer.querySelectorAll(".btn-delete-track").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          if (confirm("Delete this track configuration?")) {
-            await fetch(`/api/tracks/${btn.dataset.id}`, { method: "DELETE" });
-            loadTracksUI();
+        btn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const track = cachedTracks ? cachedTracks.find(t => t.id === id) : null;
+          const title = track ? track.name : "this track";
+
+          const confirmed = await showConfirmDialog({
+            title: "Delete Scenic Track",
+            message: `Are you sure you want to delete track <strong>${escapeHtml(title)}</strong>?`,
+            confirmBtnText: "Delete Track",
+            isDanger: true
+          });
+
+          if (confirmed) {
+            btn.disabled = true;
+            await fetch(`/api/tracks/${id}`, { method: "DELETE" });
+            showHudToast(`Deleted track: ${title}`);
+            await loadTracksUI();
           }
         });
       });
@@ -1999,10 +2121,22 @@ async function loadHistoryUI() {
       }).join("");
 
       tbody.querySelectorAll(".btn-del-session").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          if (confirm("Delete this workout record?")) {
-            await fetch(`/api/sessions/${btn.dataset.id}`, { method: "DELETE" });
-            loadHistoryUI();
+        btn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const confirmed = await showConfirmDialog({
+            title: "Delete Workout Session",
+            message: "Are you sure you want to delete this recorded workout session?",
+            confirmBtnText: "Delete Session",
+            isDanger: true
+          });
+
+          if (confirmed) {
+            btn.disabled = true;
+            await fetch(`/api/sessions/${id}`, { method: "DELETE" });
+            showHudToast("Workout session deleted");
+            await loadHistoryUI();
           }
         });
       });
