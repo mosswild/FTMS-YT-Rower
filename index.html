@@ -31,10 +31,7 @@
   <!-- Top App Navigation -->
   <header class="app-header">
     <div class="brand">
-      <svg class="brand-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M2 12h20M2 12l5-5M2 12l5 5M22 12l-5-5M22 12l5 5"/>
-        <circle cx="12" cy="12" r="4"/>
-      </svg>
+      <img src="favicon.png" alt="FTMS Rower" class="brand-logo-img">
       <span class="brand-text">FTMS Rower</span>
     </div>
 
@@ -437,7 +434,10 @@
   <div id="modal-settings" class="modal-overlay">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title">Telemetry & Audio Settings</h3>
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <img src="favicon.png" alt="FTMS Rower" class="modal-header-logo">
+          <h3 class="modal-title">Telemetry & Audio Settings</h3>
+        </div>
         <button id="btn-close-settings" class="close-btn">&times;</button>
       </div>
 
@@ -541,6 +541,15 @@
               <div class="theme-choice-sub">Translucent frosted glass with soft sunrise gold and ice tones</div>
             </div>
           </button>
+        </div>
+      </div>
+
+      <!-- App Branding Footer Card -->
+      <div class="settings-about-card">
+        <img src="apple-touch-icon.png" alt="FTMS Rower Logo" class="about-logo-img">
+        <div class="about-info">
+          <div class="about-app-title">FTMS Rower <span class="about-version-tag">v1.2</span></div>
+          <div class="about-app-desc">Scenic Dashboard & Telemetry HUD for Concept2 and FTMS Indoor Rowers</div>
         </div>
       </div>
     </div>
