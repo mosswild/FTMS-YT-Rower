@@ -14,7 +14,7 @@ from backend.database import (
 from backend.downloader import (
     start_download_task, get_download_tasks, get_download_status,
     cancel_download_task, delete_download_task, clear_inactive_tasks,
-    update_media_title, get_library, delete_media_file, VIDEOS_DIR, AUDIO_DIR
+    update_media_title, update_media_metadata, get_library, delete_media_file, VIDEOS_DIR, AUDIO_DIR
 )
 from backend.streaming import range_streaming_response
 from backend.tcx_generator import generate_tcx
@@ -51,8 +51,10 @@ class DownloadRequest(BaseModel):
     url: str
     type: str = Field(default="both", description="video, audio, or both")
 
-class MediaRenameRequest(BaseModel):
-    title: str
+class MediaUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
 
 class WorkoutSampleModel(BaseModel):
     elapsed_seconds: float
@@ -131,17 +133,24 @@ async def delete_media(media_type: str, item_id: str):
 
 @app.patch("/api/media/{media_type}/{item_id}")
 @app.put("/api/media/{media_type}/{item_id}")
-async def rename_media(media_type: str, item_id: str, req: MediaRenameRequest):
+async def update_media_endpoint(media_type: str, item_id: str, req: MediaUpdateRequest):
     if media_type not in ("video", "audio"):
         raise HTTPException(status_code=400, detail="Invalid media type. Must be 'video' or 'audio'")
-    title = req.title.strip()
-    if not title:
-        raise HTTPException(status_code=400, detail="Title cannot be empty")
-    
-    updated = update_media_title(media_type, item_id, title)
+    updates = {}
+    if req.title is not None:
+        title = req.title.strip()
+        if not title:
+            raise HTTPException(status_code=400, detail="Title cannot be empty")
+        updates["title"] = title
+    if req.start_time is not None:
+        updates["start_time"] = req.start_time
+    if req.end_time is not None:
+        updates["end_time"] = req.end_time
+
+    updated = update_media_metadata(media_type, item_id, updates)
     if not updated:
         raise HTTPException(status_code=404, detail="Media item not found")
-    return {"id": item_id, "media_type": media_type, "title": title, "meta": updated}
+    return {"id": item_id, "media_type": media_type, "meta": updated}
 
 # ----------------- Streaming Endpoints (HTTP 206) -----------------
 @app.get("/api/media/video/{video_id}")

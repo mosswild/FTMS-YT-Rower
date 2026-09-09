@@ -149,3 +149,12 @@ Tests cover:
 Original proof-of-concept created by [Manuel Kamp](https://github.com/manuelkamp/FTMS-rower).  
 Modernized and expanded with decoupled audio, YouTube ingestion, PM5 HUD, Scenic Tracks, and session persistence.
 Released under the MIT License.
+
+## To Do / FIXMEs
+1. Clearing the ingestion queue isn't working very well. 
+2. We should not allow the user to just "load video" or "use as music" in the media center. Instead, we can have the option "create track from video" or "add music to track" instead.
+3. We should actually be able to change the start and end time for videos and music outside the track editing menu. Maybe in the media center, under the specific video or audio, there can be a button that allows the user to edit these, and then in the track editing window they don't set the start and end points of the video but instead just select one that has already been modified from the media pool.
+4. In the cockpit view, in the music selection dropdown on the actual video view, again it should only show the music that has been associated with that track. 
+5. In the cockpit view, in the video selection dropdown, it should ONLY show tracks, and not the raw video files. 
+6. In addition to getting videos from Youtube links, they user should be able to upload audio or video directly from their device. 
+7. We should be able to preview video and audio from the Media Center page. 

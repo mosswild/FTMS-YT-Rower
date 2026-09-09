@@ -33,6 +33,9 @@ export class AudioEngine {
     this.volume = 1.0;
     this.isPlaying = false;
 
+    this.startTime = 0;
+    this.endTime = 0;
+
     if (this.audio) {
       this.audio.addEventListener("playing", () => {
         this.isPlaying = true;
@@ -42,9 +45,16 @@ export class AudioEngine {
         this.isPlaying = false;
         this.emitStatus();
       });
+      this.audio.addEventListener("timeupdate", () => {
+        if (this.mode === "custom" && this.endTime > 0 && this.endTime > this.startTime) {
+          if (this.audio.currentTime >= this.endTime) {
+            this.audio.currentTime = this.startTime;
+          }
+        }
+      });
       this.audio.addEventListener("ended", () => {
-        // Loop audio
-        this.audio.currentTime = 0;
+        // Loop audio from start trim point if set
+        this.audio.currentTime = (this.mode === "custom" && this.startTime > 0) ? this.startTime : 0;
         this.play();
       });
     }
@@ -79,9 +89,11 @@ export class AudioEngine {
     }
   }
 
-  setCustomAudio(url, title = "Custom Soundtrack") {
+  setCustomAudio(url, title = "Custom Soundtrack", startTime = 0, endTime = 0) {
     this.customAudioUrl = url;
     this.customAudioTitle = title;
+    this.startTime = Math.max(0, startTime || 0);
+    this.endTime = Math.max(0, endTime || 0);
     this.mode = "custom";
     this.applyAudioSource(true);
   }
@@ -116,6 +128,9 @@ export class AudioEngine {
         this.audio.playbackRate = 1.0;
         this.audio.volume = this.volume;
         this.audio.muted = false;
+        if (this.mode === "custom" && this.startTime > 0) {
+          this.audio.currentTime = this.startTime;
+        }
       }
       if (autoPlay) {
         this.play();

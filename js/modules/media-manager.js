@@ -84,22 +84,26 @@ export class MediaManager {
     return this.clearInactiveTasks(true);
   }
 
-  async renameMedia(mediaType, itemId, newTitle) {
+  async updateMedia(mediaType, itemId, updates) {
     try {
       const res = await fetch(`/api/media/${mediaType}/${itemId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle })
+        body: JSON.stringify(updates)
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || "Failed to rename media");
+        throw new Error(err.detail || "Failed to update media");
       }
       return await res.json();
     } catch (err) {
-      console.error("[MediaManager] Rename media error:", err);
+      console.error("[MediaManager] Update media error:", err);
       throw err;
     }
+  }
+
+  async renameMedia(mediaType, itemId, newTitle) {
+    return this.updateMedia(mediaType, itemId, { title: newTitle });
   }
 
   async deleteMedia(mediaType, itemId) {

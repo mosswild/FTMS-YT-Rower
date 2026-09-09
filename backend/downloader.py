@@ -319,6 +319,8 @@ def get_library() -> Dict[str, List[Dict[str, Any]]]:
                 "id": video_id,
                 "title": meta.get("title", f"Video {video_id}"),
                 "duration": meta.get("duration", 0),
+                "start_time": float(meta.get("start_time", 0.0)),
+                "end_time": float(meta.get("end_time", 0.0)),
                 "thumbnail": meta.get("thumbnail", ""),
                 "filename": fname,
                 "size_bytes": meta.get("size_bytes", os.path.getsize(filepath)),
@@ -346,6 +348,8 @@ def get_library() -> Dict[str, List[Dict[str, Any]]]:
                 "id": audio_id,
                 "title": meta.get("title", f"Track {audio_id}"),
                 "duration": meta.get("duration", 0),
+                "start_time": float(meta.get("start_time", 0.0)),
+                "end_time": float(meta.get("end_time", 0.0)),
                 "thumbnail": meta.get("thumbnail", ""),
                 "filename": fname,
                 "size_bytes": meta.get("size_bytes", os.path.getsize(filepath)),
@@ -368,8 +372,8 @@ def delete_media_file(media_type: str, item_id: str) -> bool:
             deleted = True
     return deleted
 
-def update_media_title(media_type: str, item_id: str, new_title: str) -> Optional[Dict[str, Any]]:
-    """Update title in the metadata JSON file for video or audio."""
+def update_media_metadata(media_type: str, item_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Update title, start_time, or end_time in the metadata JSON file for video or audio."""
     target_dir = VIDEOS_DIR if media_type == "video" else AUDIO_DIR
     clean_id = item_id
     exts = [".mp4"] if media_type == "video" else [".m4a", ".mp3"]
@@ -401,7 +405,21 @@ def update_media_title(media_type: str, item_id: str, new_title: str) -> Optiona
             meta = {}
 
     meta["id"] = clean_id
-    meta["title"] = new_title.strip()
+    if "title" in updates and updates["title"] is not None:
+        t = str(updates["title"]).strip()
+        if t:
+            meta["title"] = t
+    if "start_time" in updates and updates["start_time"] is not None:
+        try:
+            meta["start_time"] = max(0.0, float(updates["start_time"]))
+        except (ValueError, TypeError):
+            pass
+    if "end_time" in updates and updates["end_time"] is not None:
+        try:
+            meta["end_time"] = max(0.0, float(updates["end_time"]))
+        except (ValueError, TypeError):
+            pass
+
     if not meta.get("filename") and found_ext:
         meta["filename"] = f"{clean_id}{found_ext}"
 
@@ -409,3 +427,6 @@ def update_media_title(media_type: str, item_id: str, new_title: str) -> Optiona
         json.dump(meta, f, indent=2)
 
     return meta
+
+def update_media_title(media_type: str, item_id: str, new_title: str) -> Optional[Dict[str, Any]]:
+    return update_media_metadata(media_type, item_id, {"title": new_title})

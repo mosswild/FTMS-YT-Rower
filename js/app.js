@@ -241,28 +241,51 @@ async function loadLibraryUI() {
     if (!cachedLibrary.videos || cachedLibrary.videos.length === 0) {
       videosContainer.innerHTML = `<div style="grid-column: 1/-1; color: var(--text-dim); text-align: center; padding: 2rem;">No scenic videos downloaded yet. Submit a YouTube link above!</div>`;
     } else {
-      videosContainer.innerHTML = cachedLibrary.videos.map(v => `
+      videosContainer.innerHTML = cachedLibrary.videos.map(v => {
+        const isTrimmed = (v.start_time > 0) || (v.end_time > 0 && v.end_time < (v.duration || 999999));
+        const trimBadge = isTrimmed
+          ? ` • <span style="color: var(--accent-emerald); font-weight: 600;">Trim: ${pm5Hud.formatTime(v.start_time)} → ${v.end_time > 0 ? pm5Hud.formatTime(v.end_time) : 'End'}</span>`
+          : "";
+
+        return `
         <div class="media-card">
-          <div class="media-thumb-box">
+          <div class="media-thumb-box" data-id="${v.id}" style="cursor: pointer;" title="Click to preview & trim video">
             ${v.thumbnail ? `<img src="${v.thumbnail}" class="media-thumb-img" alt="${v.title}">` : `<div class="media-thumb-fallback">Video</div>`}
+            <div class="media-thumb-play-overlay">
+              <div class="media-thumb-play-btn">▶</div>
+            </div>
           </div>
           <div class="media-card-body">
             <div>
               <div class="media-title" title="${v.title}">${v.title}</div>
-              <div class="media-meta-line">${v.duration ? `${Math.floor(v.duration / 60)}m ${v.duration % 60}s` : ""} • ${(v.size_bytes / (1024*1024)).toFixed(1)} MB</div>
+              <div class="media-meta-line">${v.duration ? `${Math.floor(v.duration / 60)}m ${v.duration % 60}s` : ""} • ${(v.size_bytes / (1024*1024)).toFixed(1)} MB${trimBadge}</div>
             </div>
             <div class="media-actions">
               <button class="btn btn-primary btn-sm btn-create-track-from-video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">Create Track</button>
+              <button class="btn btn-secondary btn-sm btn-trim-media" data-type="video" data-id="${v.id}">Preview & Trim</button>
               <button class="btn btn-secondary btn-sm btn-rename-media" data-type="video" data-id="${v.id}" data-title="${v.title.replace(/"/g, '&quot;')}">Rename</button>
               <button class="btn btn-secondary btn-sm btn-delete-media" data-type="video" data-id="${v.id}">Delete</button>
             </div>
           </div>
         </div>
-      `).join("");
+      `;
+      }).join("");
+
+      videosContainer.querySelectorAll(".media-thumb-box").forEach(box => {
+        box.addEventListener("click", () => {
+          openTrimMediaModal("video", box.dataset.id);
+        });
+      });
 
       videosContainer.querySelectorAll(".btn-create-track-from-video").forEach(btn => {
         btn.addEventListener("click", () => {
           openCreateTrackFromVideo(btn.dataset.id, btn.dataset.title);
+        });
+      });
+
+      videosContainer.querySelectorAll(".btn-trim-media").forEach(btn => {
+        btn.addEventListener("click", () => {
+          openTrimMediaModal("video", btn.dataset.id);
         });
       });
 
@@ -287,25 +310,54 @@ async function loadLibraryUI() {
     if (!cachedLibrary.audio || cachedLibrary.audio.length === 0) {
       audioContainer.innerHTML = `<div style="grid-column: 1/-1; color: var(--text-dim); text-align: center; padding: 2rem;">No custom soundtracks downloaded yet.</div>`;
     } else {
-      audioContainer.innerHTML = cachedLibrary.audio.map(a => `
+      audioContainer.innerHTML = cachedLibrary.audio.map(a => {
+        const isTrimmed = (a.start_time > 0) || (a.end_time > 0 && a.end_time < (a.duration || 999999));
+        const trimBadge = isTrimmed
+          ? ` • <span style="color: var(--accent-emerald); font-weight: 600;">Trim: ${pm5Hud.formatTime(a.start_time)} → ${a.end_time > 0 ? pm5Hud.formatTime(a.end_time) : 'End'}</span>`
+          : "";
+
+        return `
         <div class="media-card">
+          <div class="media-thumb-box media-audio-box" data-id="${a.id}" style="height: 60px; aspect-ratio: unset; background: linear-gradient(135deg, rgba(168,85,247,0.18), rgba(59,130,246,0.15)); display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Click to preview & trim soundtrack">
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--accent-purple, #c084fc); pointer-events: none;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              <span style="font-size: 0.8rem; font-weight: 600;">Soundtrack Audio</span>
+            </div>
+            <div class="media-thumb-play-overlay">
+              <div class="media-thumb-play-btn" style="background: var(--accent-purple, #9333ea);">▶</div>
+            </div>
+          </div>
           <div class="media-card-body">
             <div>
               <div class="media-title" title="${a.title}">${a.title}</div>
-              <div class="media-meta-line">${a.duration ? `${Math.floor(a.duration / 60)}m ${a.duration % 60}s` : ""} • ${(a.size_bytes / (1024*1024)).toFixed(1)} MB</div>
+              <div class="media-meta-line">${a.duration ? `${Math.floor(a.duration / 60)}m ${a.duration % 60}s` : ""} • ${(a.size_bytes / (1024*1024)).toFixed(1)} MB${trimBadge}</div>
             </div>
             <div class="media-actions">
               <button class="btn btn-primary btn-sm btn-add-audio-to-track" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">Add to Track</button>
+              <button class="btn btn-secondary btn-sm btn-trim-media" data-type="audio" data-id="${a.id}">Preview & Trim</button>
               <button class="btn btn-secondary btn-sm btn-rename-media" data-type="audio" data-id="${a.id}" data-title="${a.title.replace(/"/g, '&quot;')}">Rename</button>
               <button class="btn btn-secondary btn-sm btn-delete-media" data-type="audio" data-id="${a.id}">Delete</button>
             </div>
           </div>
         </div>
-      `).join("");
+      `;
+      }).join("");
+
+      audioContainer.querySelectorAll(".media-audio-box").forEach(box => {
+        box.addEventListener("click", () => {
+          openTrimMediaModal("audio", box.dataset.id);
+        });
+      });
 
       audioContainer.querySelectorAll(".btn-add-audio-to-track").forEach(btn => {
         btn.addEventListener("click", () => {
           openAddAudioToTrackModal(btn.dataset.id, btn.dataset.title);
+        });
+      });
+
+      audioContainer.querySelectorAll(".btn-trim-media").forEach(btn => {
+        btn.addEventListener("click", () => {
+          openTrimMediaModal("audio", btn.dataset.id);
         });
       });
 
@@ -477,7 +529,10 @@ function loadTrackIntoCockpit(track, autoPlay = false) {
     updateAudioTrackDropdown("mute", track.allowed_audios);
   } else {
     const audioUrl = `/api/media/audio/${track.default_audio}`;
-    audioEngine.setCustomAudio(audioUrl, "Track Soundtrack");
+    const audioObj = cachedLibrary.audio ? cachedLibrary.audio.find(a => a.id === track.default_audio) : null;
+    const startT = audioObj ? (audioObj.start_time || 0) : 0;
+    const endT = audioObj ? (audioObj.end_time || 0) : 0;
+    audioEngine.setCustomAudio(audioUrl, audioObj ? audioObj.title : "Track Soundtrack", startT, endT);
     updateAudioTrackDropdown(audioUrl, track.allowed_audios);
   }
 
@@ -535,11 +590,25 @@ const selectTrackVideo = document.getElementById("select-track-video");
 const selectTrackDefaultAudio = document.getElementById("select-track-default-audio");
 const containerTrackAllowedAudios = document.getElementById("container-track-allowed-audios");
 
+function parseTimeSeconds(val) {
+  if (!val) return 0;
+  const s = String(val).trim();
+  if (s.includes(":")) {
+    const parts = s.split(":").map(Number);
+    if (parts.length === 2) return (parts[0] * 60) + (parts[1] || 0);
+    if (parts.length === 3) return (parts[0] * 3600) + (parts[1] * 60) + (parts[2] || 0);
+  }
+  const num = parseFloat(s);
+  return isNaN(num) ? 0 : Math.max(0, num);
+}
+
 function populateTrackModalDropdowns() {
   if (selectTrackVideo) {
-    selectTrackVideo.innerHTML = (cachedLibrary.videos || []).map(v => `
-      <option value="${v.id}">${v.title}</option>
-    `).join("");
+    selectTrackVideo.innerHTML = (cachedLibrary.videos || []).map(v => {
+      const isTrimmed = (v.start_time > 0) || (v.end_time > 0 && v.end_time < (v.duration || 999999));
+      const trimTag = isTrimmed ? ` [Trimmed: ${pm5Hud.formatTime(v.start_time)} → ${pm5Hud.formatTime(v.end_time || v.duration)}]` : "";
+      return `<option value="${v.id}">${v.title}${trimTag}</option>`;
+    }).join("");
   }
 
   if (selectTrackDefaultAudio) {
@@ -725,6 +794,10 @@ function updateTrackVideoPreview(videoId) {
   const titleEl = document.getElementById("track-video-preview-title");
   const durEl = document.getElementById("track-video-preview-duration");
   const sizeEl = document.getElementById("track-video-preview-size");
+  const segmentText = document.getElementById("track-modal-segment-text");
+  const segmentSub = document.getElementById("track-modal-segment-sub");
+  const inputStart = document.getElementById("input-track-start");
+  const inputEnd = document.getElementById("input-track-end");
 
   if (!previewBox) return;
 
@@ -742,6 +815,36 @@ function updateTrackVideoPreview(videoId) {
     const mb = video.size_bytes ? (video.size_bytes / (1024 * 1024)).toFixed(1) : 0;
     sizeEl.textContent = `${mb} MB`;
   }
+
+  const startVal = parseFloat(video.start_time || 0);
+  const endVal = parseFloat(video.end_time || 0);
+  const isTrimmed = (startVal > 0) || (endVal > 0 && endVal < video.duration);
+
+  if (inputStart) inputStart.value = startVal;
+  if (inputEnd) inputEnd.value = endVal;
+
+  if (segmentText) {
+    if (isTrimmed) {
+      const segDuration = (endVal > startVal) ? endVal - startVal : (video.duration - startVal);
+      segmentText.textContent = `Trimmed: ${pm5Hud.formatTime(startVal)} → ${endVal > 0 ? pm5Hud.formatTime(endVal) : 'End'} (${pm5Hud.formatTime(segDuration)})`;
+    } else {
+      segmentText.textContent = `Full Video (0:00 → ${pm5Hud.formatTime(video.duration || 0)})`;
+    }
+  }
+  if (segmentSub) {
+    segmentSub.textContent = isTrimmed ? "Using pre-configured trim points from Media Center" : "Full video playback (can be trimmed in Media Center)";
+  }
+}
+
+const btnTrackModalEditTrim = document.getElementById("btn-track-modal-edit-trim");
+if (btnTrackModalEditTrim) {
+  btnTrackModalEditTrim.addEventListener("click", () => {
+    const videoId = selectTrackVideo ? selectTrackVideo.value : null;
+    if (videoId) {
+      closeTrackModal();
+      openTrimMediaModal("video", videoId);
+    }
+  });
 }
 
 if (selectTrackVideo) {
@@ -837,19 +940,8 @@ if (formCreateTrack) {
     const trackId = document.getElementById("input-track-id").value.trim() || undefined;
     const name = document.getElementById("input-track-name").value.trim();
     const videoId = selectTrackVideo.value;
-    const parseTime = (val) => {
-      if (!val) return 0;
-      const s = String(val).trim();
-      if (s.includes(":")) {
-        const parts = s.split(":").map(Number);
-        if (parts.length === 2) return (parts[0] * 60) + (parts[1] || 0);
-        if (parts.length === 3) return (parts[0] * 3600) + (parts[1] * 60) + (parts[2] || 0);
-      }
-      const num = parseFloat(s);
-      return isNaN(num) ? 0 : Math.max(0, num);
-    };
-    const startTime = parseTime(document.getElementById("input-track-start").value);
-    const endTime = parseTime(document.getElementById("input-track-end").value);
+    const startTime = parseTimeSeconds(document.getElementById("input-track-start").value);
+    const endTime = parseTimeSeconds(document.getElementById("input-track-end").value);
     const defaultAudio = selectTrackDefaultAudio.value;
 
     const allowedAudios = [];
@@ -1113,6 +1205,210 @@ if (formAddAudioToTrack) {
       if (btnSaveAddAudioTrack) {
         btnSaveAddAudioTrack.disabled = false;
         btnSaveAddAudioTrack.textContent = "Save Associations";
+      }
+    }
+  });
+}
+
+// ----------------- Media Trim & Preview Modal -----------------
+const modalTrimMedia = document.getElementById("modal-trim-media");
+const btnCloseTrimMedia = document.getElementById("btn-close-trim-media");
+const btnCancelTrimMedia = document.getElementById("btn-cancel-trim-media");
+const formTrimMedia = document.getElementById("form-trim-media");
+const inputTrimType = document.getElementById("input-trim-type");
+const inputTrimId = document.getElementById("input-trim-id");
+const inputTrimDuration = document.getElementById("input-trim-duration");
+const inputTrimStart = document.getElementById("input-trim-start");
+const inputTrimEnd = document.getElementById("input-trim-end");
+const trimMediaTitle = document.getElementById("trim-media-title");
+const trimMediaTypeBadge = document.getElementById("trim-media-type-badge");
+const trimMediaMetaLine = document.getElementById("trim-media-meta-line");
+const trimResultSummary = document.getElementById("trim-result-summary");
+const trimVideoContainer = document.getElementById("trim-video-container");
+const trimAudioContainer = document.getElementById("trim-audio-container");
+const trimPreviewVideo = document.getElementById("trim-preview-video");
+const trimPreviewAudio = document.getElementById("trim-preview-audio");
+const btnUseCurrentAsStart = document.getElementById("btn-use-current-as-start");
+const btnUseCurrentAsEnd = document.getElementById("btn-use-current-as-end");
+const btnResetTrim = document.getElementById("btn-reset-trim");
+const btnSaveTrimMedia = document.getElementById("btn-save-trim-media");
+
+function updateTrimSummary() {
+  const duration = parseFloat(inputTrimDuration?.value || 0);
+  const start = parseTimeSeconds(inputTrimStart?.value);
+  const rawEnd = parseTimeSeconds(inputTrimEnd?.value);
+  const end = rawEnd > 0 ? rawEnd : duration;
+
+  if (trimResultSummary) {
+    if (start > 0 || (rawEnd > 0 && rawEnd < duration)) {
+      const length = Math.max(0, end - start);
+      trimResultSummary.textContent = `${pm5Hud.formatTime(start)} → ${pm5Hud.formatTime(end)} (Length: ${pm5Hud.formatTime(length)})`;
+      trimResultSummary.style.color = "var(--accent-emerald)";
+    } else {
+      trimResultSummary.textContent = `0:00 → End (${pm5Hud.formatTime(duration)} Full Duration)`;
+      trimResultSummary.style.color = "var(--text-main)";
+    }
+  }
+}
+
+function stopTrimPlayers() {
+  if (trimPreviewVideo) {
+    trimPreviewVideo.pause();
+    trimPreviewVideo.removeAttribute("src");
+    trimPreviewVideo.load();
+  }
+  if (trimPreviewAudio) {
+    trimPreviewAudio.pause();
+    trimPreviewAudio.removeAttribute("src");
+    trimPreviewAudio.load();
+  }
+}
+
+function openTrimMediaModal(type, id) {
+  if (!modalTrimMedia) return;
+  stopTrimPlayers();
+
+  inputTrimType.value = type;
+  inputTrimId.value = id;
+
+  const item = (type === "video" ? cachedLibrary.videos : cachedLibrary.audio)?.find(m => m.id === id);
+  if (!item) return;
+
+  inputTrimDuration.value = item.duration || 0;
+  if (trimMediaTitle) trimMediaTitle.textContent = item.title;
+  if (trimMediaTypeBadge) {
+    trimMediaTypeBadge.textContent = type === "video" ? "Scenic Video" : "Soundtrack";
+    trimMediaTypeBadge.style.background = type === "video" ? "rgba(59,130,246,0.2)" : "rgba(168,85,247,0.2)";
+    trimMediaTypeBadge.style.color = type === "video" ? "var(--accent-blue)" : "var(--accent-purple, #c084fc)";
+  }
+  if (trimMediaMetaLine) {
+    const min = Math.floor((item.duration || 0) / 60);
+    const sec = (item.duration || 0) % 60;
+    trimMediaMetaLine.textContent = `Full File Duration: ${min}m ${sec}s (${pm5Hud.formatTime(item.duration || 0)}) • ${(item.size_bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  const startVal = item.start_time || 0;
+  const endVal = item.end_time || 0;
+  inputTrimStart.value = pm5Hud.formatTime(startVal);
+  inputTrimEnd.value = endVal > 0 ? pm5Hud.formatTime(endVal) : "0:00";
+  updateTrimSummary();
+
+  if (type === "video") {
+    if (trimVideoContainer) trimVideoContainer.style.display = "block";
+    if (trimAudioContainer) trimAudioContainer.style.display = "none";
+    if (trimPreviewVideo) {
+      trimPreviewVideo.src = `/api/media/video/${id}`;
+      trimPreviewVideo.load();
+      if (startVal > 0) {
+        trimPreviewVideo.currentTime = startVal;
+      }
+      trimPreviewVideo.play().catch(() => {});
+    }
+  } else {
+    if (trimVideoContainer) trimVideoContainer.style.display = "none";
+    if (trimAudioContainer) trimAudioContainer.style.display = "block";
+    if (trimPreviewAudio) {
+      trimPreviewAudio.src = `/api/media/audio/${id}`;
+      trimPreviewAudio.load();
+      if (startVal > 0) {
+        trimPreviewAudio.currentTime = startVal;
+      }
+      trimPreviewAudio.play().catch(() => {});
+    }
+  }
+
+  modalTrimMedia.classList.add("open");
+}
+
+function closeTrimMediaModal() {
+  stopTrimPlayers();
+  if (modalTrimMedia) modalTrimMedia.classList.remove("open");
+}
+
+if (btnCloseTrimMedia) btnCloseTrimMedia.addEventListener("click", closeTrimMediaModal);
+if (btnCancelTrimMedia) btnCancelTrimMedia.addEventListener("click", closeTrimMediaModal);
+if (modalTrimMedia) {
+  modalTrimMedia.addEventListener("click", (e) => {
+    if (e.target === modalTrimMedia) closeTrimMediaModal();
+  });
+}
+
+function getCurrentPlayerTime() {
+  const type = inputTrimType.value;
+  if (type === "video" && trimPreviewVideo) {
+    return trimPreviewVideo.currentTime || 0;
+  }
+  if (type === "audio" && trimPreviewAudio) {
+    return trimPreviewAudio.currentTime || 0;
+  }
+  return 0;
+}
+
+if (btnUseCurrentAsStart) {
+  btnUseCurrentAsStart.addEventListener("click", () => {
+    const cur = getCurrentPlayerTime();
+    inputTrimStart.value = pm5Hud.formatTime(Math.floor(cur));
+    updateTrimSummary();
+  });
+}
+
+if (btnUseCurrentAsEnd) {
+  btnUseCurrentAsEnd.addEventListener("click", () => {
+    const cur = getCurrentPlayerTime();
+    inputTrimEnd.value = pm5Hud.formatTime(Math.ceil(cur));
+    updateTrimSummary();
+  });
+}
+
+if (btnResetTrim) {
+  btnResetTrim.addEventListener("click", () => {
+    inputTrimStart.value = "0:00";
+    inputTrimEnd.value = "0:00";
+    updateTrimSummary();
+  });
+}
+
+if (inputTrimStart) inputTrimStart.addEventListener("input", updateTrimSummary);
+if (inputTrimEnd) inputTrimEnd.addEventListener("input", updateTrimSummary);
+
+if (formTrimMedia) {
+  formTrimMedia.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const type = inputTrimType.value;
+    const id = inputTrimId.value;
+    const startTime = parseTimeSeconds(inputTrimStart.value);
+    const endTime = parseTimeSeconds(inputTrimEnd.value);
+
+    if (btnSaveTrimMedia) {
+      btnSaveTrimMedia.disabled = true;
+      btnSaveTrimMedia.textContent = "Saving...";
+    }
+
+    try {
+      await mediaManager.updateMedia(type, id, {
+        start_time: startTime,
+        end_time: endTime
+      });
+
+      // Update cockpit track controller or audio engine if currently active
+      if (type === "video" && trackController.activeTrack && trackController.activeTrack.videoId === id) {
+        trackController.activeTrack.startTime = startTime;
+        trackController.activeTrack.endTime = endTime;
+      } else if (type === "audio" && audioEngine.currentSrc && audioEngine.currentSrc.includes(id)) {
+        audioEngine.startTime = startTime;
+        audioEngine.endTime = endTime;
+      }
+
+      closeTrimMediaModal();
+      await loadLibraryUI();
+      await loadTracksUI();
+      showHudToast("Trim points updated");
+    } catch (err) {
+      alert("Error saving trim points: " + (err.message || err));
+    } finally {
+      if (btnSaveTrimMedia) {
+        btnSaveTrimMedia.disabled = false;
+        btnSaveTrimMedia.textContent = "Save Trim Points";
       }
     }
   });
@@ -1545,7 +1841,11 @@ if (audioTrackSelect) {
       audioEngine.setMode("mute");
     } else {
       const selectedOption = audioTrackSelect.options[audioTrackSelect.selectedIndex];
-      audioEngine.setCustomAudio(val, selectedOption.textContent);
+      const audioId = val.split("/").pop();
+      const audioObj = cachedLibrary.audio ? cachedLibrary.audio.find(a => a.id === audioId) : null;
+      const startT = audioObj ? (audioObj.start_time || 0) : 0;
+      const endT = audioObj ? (audioObj.end_time || 0) : 0;
+      audioEngine.setCustomAudio(val, selectedOption.textContent, startT, endT);
     }
     audioEngine.play();
   });
@@ -1898,7 +2198,11 @@ function renderHudAudioDropdown() {
       } else if (mode === "custom") {
         const url = item.dataset.url;
         const title = item.dataset.title;
-        audioEngine.setCustomAudio(url, title);
+        const audioId = url.split("/").pop();
+        const audioObj = cachedLibrary.audio ? cachedLibrary.audio.find(a => a.id === audioId) : null;
+        const startT = audioObj ? (audioObj.start_time || 0) : 0;
+        const endT = audioObj ? (audioObj.end_time || 0) : 0;
+        audioEngine.setCustomAudio(url, title, startT, endT);
         updateAudioTrackDropdown(url);
         showHudToast(`Audio: ${title}`);
       }
@@ -1991,6 +2295,10 @@ window.addEventListener("keydown", (e) => {
     }
     if (modalCreateTrack && modalCreateTrack.classList.contains("open")) {
       closeTrackModal();
+      return;
+    }
+    if (modalTrimMedia && modalTrimMedia.classList.contains("open")) {
+      closeTrimMediaModal();
       return;
     }
     return;

@@ -1226,6 +1226,42 @@ body {
   color: var(--text-dim);
 }
 
+.media-thumb-play-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  pointer-events: none;
+}
+
+.media-thumb-box:hover .media-thumb-play-overlay {
+  opacity: 1;
+}
+
+.media-thumb-play-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.media-thumb-box:hover .media-thumb-play-btn {
+  transform: scale(1.1);
+  background: var(--accent-blue, #3b82f6);
+}
+
 .media-card-body {
   padding: 0.85rem;
   display: flex;
