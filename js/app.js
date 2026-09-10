@@ -2287,14 +2287,14 @@ async function loadHistoryUI() {
             <td class="cell-checkbox">
               <input type="checkbox" class="session-checkbox custom-checkbox" data-id="${s.id}" aria-label="Select workout from ${dateStr}">
             </td>
-            <td><strong>${dateStr}</strong></td>
-            <td>${durationStr}</td>
-            <td>${Math.round(s.distance_meters).toLocaleString()} m</td>
-            <td>${splitStr}</td>
-            <td>${Math.round(s.avg_watts)} W</td>
-            <td>${Math.round(s.avg_spm)}</td>
-            <td>${s.avg_hr > 0 ? Math.round(s.avg_hr) + " BPM" : "--"}</td>
-            <td>
+            <td class="cell-date" data-label="Date"><strong>${dateStr}</strong></td>
+            <td class="cell-duration" data-label="Duration">${durationStr}</td>
+            <td class="cell-distance" data-label="Distance">${Math.round(s.distance_meters).toLocaleString()} m</td>
+            <td class="cell-split" data-label="Avg Split">${splitStr}</td>
+            <td class="cell-watts" data-label="Avg Watts">${Math.round(s.avg_watts)} W</td>
+            <td class="cell-spm" data-label="Avg SPM">${Math.round(s.avg_spm)}</td>
+            <td class="cell-hr" data-label="Avg HR">${s.avg_hr > 0 ? Math.round(s.avg_hr) + " BPM" : "--"}</td>
+            <td class="cell-actions" data-label="Actions">
               <a href="/api/sessions/${s.id}/export/tcx" class="btn btn-secondary btn-sm" download>Export .TCX</a>
               <button class="btn btn-danger btn-sm btn-del-session" data-id="${s.id}">Delete</button>
             </td>
