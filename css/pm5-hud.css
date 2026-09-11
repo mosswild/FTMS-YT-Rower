@@ -4612,5 +4612,188 @@ body[data-theme="nordic"],
   }
 }
 
+/* --------------------------------------------------------------------------
+   Mobile Portrait Mode: Unified 2x3 Grid Across ALL HUD Themes
+   Ensures Modern Slate, Cyberpunk, Retro PM5, and Nordic all break the 6 metrics
+   into two clean rows of 3 with responsive font scaling for iPhone 11 and mobile viewports.
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) and (orientation: portrait), (max-width: 500px) {
+  .pm5-grid,
+  [data-theme] .pm5-grid,
+  [data-theme="cyberpunk"] .pm5-grid,
+  [data-theme="retro-pm5"] .pm5-grid,
+  [data-theme="nordic"] .pm5-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-rows: auto auto !important;
+    gap: 0.25rem !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .pm5-metrics-panel,
+  [data-theme] .pm5-metrics-panel,
+  [data-theme="cyberpunk"] .pm5-metrics-panel,
+  [data-theme="retro-pm5"] .pm5-metrics-panel,
+  [data-theme="nordic"] .pm5-metrics-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .pm5-cell,
+  [data-theme] .pm5-cell,
+  [data-theme="cyberpunk"] .pm5-cell,
+  [data-theme="retro-pm5"] .pm5-cell,
+  [data-theme="nordic"] .pm5-cell {
+    flex: none !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: auto !important;
+    padding: 0.25rem 0.25rem !important;
+    border-radius: 6px !important;
+    clip-path: none !important;
+    overflow: hidden !important;
+  }
+
+  .pm5-cell-header,
+  [data-theme] .pm5-cell-header,
+  [data-theme="cyberpunk"] .pm5-cell-header,
+  [data-theme="retro-pm5"] .pm5-cell-header,
+  [data-theme="nordic"] .pm5-cell-header {
+    margin-bottom: 0.05rem !important;
+  }
+
+  .pm5-label,
+  [data-theme] .pm5-label,
+  [data-theme="cyberpunk"] .pm5-label,
+  [data-theme="retro-pm5"] .pm5-label,
+  [data-theme="nordic"] .pm5-label {
+    font-size: 0.48rem !important;
+    letter-spacing: 0.01em !important;
+    line-height: 1 !important;
+  }
+
+  .pm5-unit,
+  [data-theme] .pm5-unit,
+  [data-theme="cyberpunk"] .pm5-unit,
+  [data-theme="retro-pm5"] .pm5-unit,
+  [data-theme="nordic"] .pm5-unit {
+    font-size: 0.46rem !important;
+    line-height: 1 !important;
+  }
+
+  .pm5-value,
+  [data-theme] .pm5-value,
+  [data-theme="cyberpunk"] .pm5-value,
+  [data-theme="retro-pm5"] .pm5-value,
+  [data-theme="nordic"] .pm5-value {
+    font-size: clamp(0.85rem, 3.4vw, 1.18rem) !important;
+    line-height: 1.05 !important;
+    letter-spacing: -0.02em !important;
+    white-space: nowrap !important;
+  }
+
+  .pm5-pulse-dot,
+  [data-theme] .pm5-pulse-dot,
+  [data-theme="cyberpunk"] .pm5-pulse-dot,
+  [data-theme="retro-pm5"] .pm5-pulse-dot,
+  [data-theme="nordic"] .pm5-pulse-dot {
+    width: 5px !important;
+    height: 5px !important;
+  }
+
+  .pm5-heart-icon,
+  [data-theme] .pm5-heart-icon,
+  [data-theme="cyberpunk"] .pm5-heart-icon,
+  [data-theme="retro-pm5"] .pm5-heart-icon,
+  [data-theme="nordic"] .pm5-heart-icon {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  [data-theme="cyberpunk"] .cyber-ecg-container {
+    height: 10px !important;
+    margin-top: 2px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Landscape Mode: Single-Row Broadcast Strip Across ALL Themes
+   Ensures Cyberpunk, Retro PM5, and Nordic stay in a sleek, non-wrapping
+   horizontal strip on mobile landscape viewports (<= 520px height).
+   -------------------------------------------------------------------------- */
+@media (max-height: 520px) {
+  .pm5-grid,
+  [data-theme] .pm5-grid,
+  [data-theme="cyberpunk"] .pm5-grid,
+  [data-theme="retro-pm5"] .pm5-grid,
+  [data-theme="nordic"] .pm5-grid {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 0.35rem !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .pm5-metrics-panel,
+  [data-theme] .pm5-metrics-panel,
+  [data-theme="cyberpunk"] .pm5-metrics-panel,
+  [data-theme="retro-pm5"] .pm5-metrics-panel,
+  [data-theme="nordic"] .pm5-metrics-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .pm5-cell,
+  [data-theme] .pm5-cell,
+  [data-theme="cyberpunk"] .pm5-cell,
+  [data-theme="retro-pm5"] .pm5-cell,
+  [data-theme="nordic"] .pm5-cell {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    padding: 0.25rem 0.45rem !important;
+    border-radius: 6px !important;
+    clip-path: none !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+  }
+
+  .pm5-label,
+  [data-theme] .pm5-label,
+  [data-theme="cyberpunk"] .pm5-label,
+  [data-theme="retro-pm5"] .pm5-label,
+  [data-theme="nordic"] .pm5-label {
+    font-size: 0.52rem !important;
+    letter-spacing: 0.02em !important;
+    line-height: 1 !important;
+  }
+
+  .pm5-unit,
+  [data-theme] .pm5-unit,
+  [data-theme="cyberpunk"] .pm5-unit,
+  [data-theme="retro-pm5"] .pm5-unit,
+  [data-theme="nordic"] .pm5-unit {
+    font-size: 0.5rem !important;
+    line-height: 1 !important;
+  }
+
+  .pm5-value,
+  [data-theme] .pm5-value,
+  [data-theme="cyberpunk"] .pm5-value,
+  [data-theme="retro-pm5"] .pm5-value,
+  [data-theme="nordic"] .pm5-value {
+    font-size: clamp(0.95rem, 2.7vw, 1.45rem) !important;
+    line-height: 1.05 !important;
+    letter-spacing: -0.02em !important;
+    white-space: nowrap !important;
+  }
+}
+
+
 
 
