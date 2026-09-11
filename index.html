@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=mobile-fluidity-v8">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=cadence-zones-v9">
   <script>
     (function() {
       try {
@@ -84,8 +84,32 @@
       <div class="pm5-hud-overlay">
         <!-- Top Bar -->
         <div class="hud-top-bar">
-          <div class="hud-left-tags">
-            <span id="hud-speed-badge" class="speed-badge normal">1.00×</span>
+            <!-- Speed Multiplier Badge & Mode Selector Dropdown -->
+            <div class="hud-dropdown-wrapper" id="hud-speed-dropdown-wrapper">
+              <button id="hud-speed-badge" class="speed-badge normal hud-picker-btn" type="button" title="Select Speed Mode" aria-haspopup="true" aria-expanded="false">
+                <span id="hud-speed-badge-text">1.00× [Base]</span>
+                <svg class="hud-caret" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div id="hud-speed-dropdown-menu" class="hud-dropdown-menu" style="display: none;">
+                <div class="hud-dropdown-header">
+                  <span>Speed Mode</span>
+                </div>
+                <div id="hud-speed-list-container" class="hud-dropdown-list">
+                  <button type="button" class="hud-dropdown-item active" data-speed-mode="zones">
+                    <div class="item-title">Cadence Zones (Smooth)</div>
+                    <div class="item-meta">0.85× / 1.0× / 1.25× / 1.5× • Zero stutter</div>
+                  </button>
+                  <button type="button" class="hud-dropdown-item" data-speed-mode="ambient">
+                    <div class="item-title">Ambient (Fixed 1.0×)</div>
+                    <div class="item-meta">Constant native speed scenery</div>
+                  </button>
+                  <button type="button" class="hud-dropdown-item" data-speed-mode="continuous">
+                    <div class="item-title">Continuous Dynamic</div>
+                    <div class="item-meta">Proportional rate scaling</div>
+                  </button>
+                </div>
+              </div>
+            </div>
 
             <!-- Scenic Track Selector Dropdown -->
             <div class="hud-dropdown-wrapper" id="hud-track-dropdown-wrapper">
@@ -818,6 +842,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=mobile-fluidity-v8"></script>
+  <script type="module" src="js/app.js?v=cadence-zones-v9"></script>
 </body>
 </html>

@@ -66,23 +66,28 @@ export class PM5Hud {
     }
   }
 
-  updateSpeedMultiplier(rate, isFixed = false) {
+  updateSpeedMultiplier(rate, isFixed = false, zoneName = null) {
     if (this.elements.speedBadge) {
+      const textEl = document.getElementById("hud-speed-badge-text") || this.elements.speedBadge;
       if (isFixed) {
-        this.elements.speedBadge.textContent = "1.00× (Ambient)";
-        this.elements.speedBadge.className = "speed-badge normal";
+        textEl.textContent = "1.00× [Ambient]";
+        this.elements.speedBadge.className = "speed-badge normal hud-picker-btn";
         return;
       }
 
-      this.elements.speedBadge.textContent = `${rate.toFixed(2)}×`;
+      if (zoneName && zoneName !== "Continuous") {
+        textEl.textContent = `${rate.toFixed(2)}× [${zoneName}]`;
+      } else {
+        textEl.textContent = `${rate.toFixed(2)}×`;
+      }
       
       // Color tint based on speed multiplier
       if (rate > 1.2) {
-        this.elements.speedBadge.className = "speed-badge high";
-      } else if (rate < 0.8) {
-        this.elements.speedBadge.className = "speed-badge low";
+        this.elements.speedBadge.className = "speed-badge high hud-picker-btn";
+      } else if (rate < 0.9) {
+        this.elements.speedBadge.className = "speed-badge low hud-picker-btn";
       } else {
-        this.elements.speedBadge.className = "speed-badge normal";
+        this.elements.speedBadge.className = "speed-badge normal hud-picker-btn";
       }
     }
   }

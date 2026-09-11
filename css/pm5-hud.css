@@ -261,6 +261,18 @@ body.in-fullscreen .app-header {
   border: 1px solid rgba(52, 211, 153, 0.4);
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
   backdrop-filter: blur(8px);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.speed-badge:hover,
+.speed-badge.active-dropdown {
+  background: rgba(16, 185, 129, 0.35);
+  border-color: #34d399;
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.4);
 }
 
 .speed-badge.high {

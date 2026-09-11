@@ -1,13 +1,13 @@
-import { RowerBLE } from "./modules/ble-rower.js?v=mobile-fluidity-v8";
-import { HeartRateBLE } from "./modules/ble-heartrate.js?v=mobile-fluidity-v8";
-import { RateController } from "./modules/rate-controller.js?v=mobile-fluidity-v8";
-import { AudioEngine } from "./modules/audio-engine.js?v=mobile-fluidity-v8";
-import { PM5Hud } from "./modules/hud.js?v=mobile-fluidity-v8";
-import { SessionTracker } from "./modules/session-tracker.js?v=mobile-fluidity-v8";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=mobile-fluidity-v8";
-import { MediaManager } from "./modules/media-manager.js?v=mobile-fluidity-v8";
-import { TrackController } from "./modules/track-controller.js?v=mobile-fluidity-v8";
-import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=mobile-fluidity-v8";
+import { RowerBLE } from "./modules/ble-rower.js?v=cadence-zones-v9";
+import { HeartRateBLE } from "./modules/ble-heartrate.js?v=cadence-zones-v9";
+import { RateController } from "./modules/rate-controller.js?v=cadence-zones-v9";
+import { AudioEngine } from "./modules/audio-engine.js?v=cadence-zones-v9";
+import { PM5Hud } from "./modules/hud.js?v=cadence-zones-v9";
+import { SessionTracker } from "./modules/session-tracker.js?v=cadence-zones-v9";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=cadence-zones-v9";
+import { MediaManager } from "./modules/media-manager.js?v=cadence-zones-v9";
+import { TrackController } from "./modules/track-controller.js?v=cadence-zones-v9";
+import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=cadence-zones-v9";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -75,12 +75,18 @@ function updateAudioUI(status) {
 }
 
 // Initialize Rate Controller
+const savedSpeedMode = localStorage.getItem("ftms_speed_mode") || "zones";
 const rateController = new RateController(videoEl, {
   baselineSpm: 20,
   alpha: 0.25,
+  speedMode: savedSpeedMode,
   autoPauseTimeoutMs: 3500,
-  onRateChange: (rate) => {
-    pm5Hud.updateSpeedMultiplier(rate, rateController ? rateController.isFixedSpeed : false);
+  onRateChange: (rate, zoneName) => {
+    pm5Hud.updateSpeedMultiplier(
+      rate,
+      rateController ? (rateController.isFixedSpeed || rateController.speedMode === "ambient") : false,
+      zoneName
+    );
   },
   onAutoPauseState: (isPaused) => {
     pm5Hud.setAutoPause(isPaused);
@@ -2788,9 +2794,12 @@ function closeHudDropdowns() {
   const audioMenu = document.getElementById("hud-audio-dropdown-menu");
   const trackBtn = document.getElementById("btn-hud-track-picker");
   const audioBtn = document.getElementById("btn-hud-audio-picker");
+  const speedMenu = document.getElementById("hud-speed-dropdown-menu");
+  const speedBtn = document.getElementById("hud-speed-badge");
 
   if (trackMenu) trackMenu.style.display = "none";
   if (audioMenu) audioMenu.style.display = "none";
+  if (speedMenu) speedMenu.style.display = "none";
   if (trackBtn) {
     trackBtn.classList.remove("active-dropdown");
     trackBtn.setAttribute("aria-expanded", "false");
@@ -2798,6 +2807,10 @@ function closeHudDropdowns() {
   if (audioBtn) {
     audioBtn.classList.remove("active-dropdown");
     audioBtn.setAttribute("aria-expanded", "false");
+  }
+  if (speedBtn) {
+    speedBtn.classList.remove("active-dropdown");
+    speedBtn.setAttribute("aria-expanded", "false");
   }
 }
 
@@ -3003,6 +3016,48 @@ if (btnHudAudioPicker && hudAudioDropdownMenu) {
       btnHudAudioPicker.classList.add("active-dropdown");
       btnHudAudioPicker.setAttribute("aria-expanded", "true");
     }
+  });
+}
+
+const btnHudSpeedPicker = document.getElementById("hud-speed-badge");
+const hudSpeedDropdownMenu = document.getElementById("hud-speed-dropdown-menu");
+function updateSpeedDropdownSelection() {
+  if (!hudSpeedDropdownMenu || !rateController) return;
+  const currentMode = rateController.speedMode || "zones";
+  hudSpeedDropdownMenu.querySelectorAll(".hud-dropdown-item").forEach(item => {
+    if (item.getAttribute("data-speed-mode") === currentMode) {
+      item.classList.add("active");
+    } else {
+      item.classList.remove("active");
+    }
+  });
+}
+
+if (btnHudSpeedPicker && hudSpeedDropdownMenu) {
+  btnHudSpeedPicker.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = hudSpeedDropdownMenu.style.display === "flex";
+    closeHudDropdowns();
+    if (!isOpen) {
+      updateSpeedDropdownSelection();
+      hudSpeedDropdownMenu.style.display = "flex";
+      btnHudSpeedPicker.classList.add("active-dropdown");
+      btnHudSpeedPicker.setAttribute("aria-expanded", "true");
+    }
+  });
+
+  const speedItems = hudSpeedDropdownMenu.querySelectorAll(".hud-dropdown-item");
+  speedItems.forEach(item => {
+    item.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const mode = item.getAttribute("data-speed-mode");
+      if (mode && rateController) {
+        rateController.setSpeedMode(mode);
+        localStorage.setItem("ftms_speed_mode", mode);
+        updateSpeedDropdownSelection();
+      }
+      closeHudDropdowns();
+    });
   });
 }
 
