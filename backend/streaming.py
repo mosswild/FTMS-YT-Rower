@@ -42,6 +42,7 @@ def range_streaming_response(file_path: str, range_header: str | None, media_typ
     response = FileResponse(
         file_path,
         media_type=media_type,
+        headers={"Access-Control-Allow-Origin": "*", "Accept-Ranges": "bytes"},
     )
     response.chunk_size = CHUNK_SIZE
     return response

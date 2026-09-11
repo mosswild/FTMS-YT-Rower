@@ -53,6 +53,13 @@ export class AudioEngine {
     this.activeStart = 0;
     this.activeEnd = 0;
 
+    // Web Audio API Pipeline for iOS Safari / WebKit Volume Modulation
+    // (HTMLMediaElement.volume is strictly read-only on iOS; Web Audio GainNode enables true software volume control)
+    this.audioContext = null;
+    this.gainNode = null;
+    this.sourceNode = null;
+    this.setupAudioUnlock();
+
     if (this.audio) {
       this.audio.addEventListener("playing", () => {
         this.isPlaying = true;
@@ -88,6 +95,60 @@ export class AudioEngine {
         this.audio.currentTime = start;
         this.play();
       });
+    }
+  }
+
+  setupAudioUnlock() {
+    const unlock = () => {
+      this.initAudioContext();
+      if (this.audioContext && this.audioContext.state === "suspended") {
+        this.audioContext.resume().catch(() => {});
+      }
+    };
+    ["touchstart", "touchend", "click", "pointerdown", "keydown"].forEach((evt) => {
+      window.addEventListener(evt, unlock, { passive: true });
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && this.isPlaying && this.audioContext && this.audioContext.state === "suspended") {
+        this.audioContext.resume().catch(() => {});
+      }
+    });
+  }
+
+  initAudioContext() {
+    if (this.audioContext && this.gainNode) {
+      if (this.audioContext.state === "suspended") {
+        this.audioContext.resume().catch(() => {});
+      }
+      return;
+    }
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass || !this.audio) return;
+
+    try {
+      this.audioContext = new AudioContextClass();
+      this.gainNode = this.audioContext.createGain();
+
+      // Ensure MediaElementAudioSourceNode is only created ONCE per HTMLAudioElement
+      if (!this.audio._webAudioSourceNode) {
+        this.audio._webAudioSourceNode = this.audioContext.createMediaElementSource(this.audio);
+      }
+      this.sourceNode = this.audio._webAudioSourceNode;
+      this.sourceNode.connect(this.gainNode);
+      this.gainNode.connect(this.audioContext.destination);
+
+      const scale = (this.cadenceVolumeModulation && !this.isAmbient) ? this.currentCadenceScale : 1.0;
+      const effVol = Math.max(0, Math.min(1.0, this.volume * scale));
+      this.gainNode.gain.setValueAtTime(effVol, this.audioContext.currentTime);
+
+      if (this.audioContext.state === "suspended") {
+        this.audioContext.resume().catch(() => {});
+      }
+      console.log("[AudioEngine] Web Audio API GainNode initialized. iOS WebKit software volume unlocked.");
+    } catch (err) {
+      console.warn("[AudioEngine] Web Audio API initialization fallback to HTMLAudioElement:", err);
     }
   }
 
@@ -192,6 +253,12 @@ export class AudioEngine {
 
   async play() {
     if (!this.audio || this.mode === "mute" || !this.currentSrc) return;
+    this.initAudioContext();
+    if (this.audioContext && this.audioContext.state === "suspended") {
+      try {
+        await this.audioContext.resume();
+      } catch (e) {}
+    }
     this.audio.playbackRate = 1.0;
     this.applyEffectiveVolume();
 
@@ -330,8 +397,28 @@ export class AudioEngine {
     if (!this.audio) return;
     const scale = (this.cadenceVolumeModulation && !this.isAmbient) ? this.currentCadenceScale : 1.0;
     const effVol = Math.max(0, Math.min(1.0, this.volume * scale));
-    this.audio.volume = effVol;
-    this.audio.muted = (effVol === 0 || this.volume === 0);
+
+    if (this.gainNode && this.audioContext) {
+      if (this.audioContext.state === "suspended" && this.isPlaying) {
+        this.audioContext.resume().catch(() => {});
+      }
+      try {
+        const now = this.audioContext.currentTime;
+        this.gainNode.gain.cancelScheduledValues(now);
+        this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, now);
+        this.gainNode.gain.linearRampToValueAtTime(effVol, now + 0.08);
+      } catch (e) {
+        this.gainNode.gain.value = effVol;
+      }
+      // On iOS Safari, audio.volume is strictly read-only.
+      // In standard browsers with Web Audio, keeping audio.volume at 1.0 avoids double attenuation.
+      this.audio.volume = 1.0;
+      this.audio.muted = (effVol === 0 || this.volume === 0);
+    } else {
+      // Fallback for environments where Web Audio API is unavailable
+      this.audio.volume = effVol;
+      this.audio.muted = (effVol === 0 || this.volume === 0);
+    }
   }
 
   startVolumeRamping() {
@@ -387,6 +474,7 @@ export class AudioEngine {
   }
 
   setVolume(volumeFraction) {
+    this.initAudioContext();
     this.volume = Math.max(0, Math.min(1, volumeFraction));
     this.applyEffectiveVolume();
     this.emitStatus();
