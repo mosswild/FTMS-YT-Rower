@@ -99,16 +99,6 @@ export class AudioEngine {
   }
 
   setupAudioUnlock() {
-    const unlock = () => {
-      this.initAudioContext();
-      if (this.audioContext && this.audioContext.state === "suspended") {
-        this.audioContext.resume().catch(() => {});
-      }
-    };
-    ["touchstart", "touchend", "click", "pointerdown", "keydown"].forEach((evt) => {
-      window.addEventListener(evt, unlock, { passive: true });
-    });
-
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible" && this.isPlaying && this.audioContext && this.audioContext.state === "suspended") {
         this.audioContext.resume().catch(() => {});
@@ -169,27 +159,27 @@ export class AudioEngine {
     this.pauseOnStrokeStop = !!enabled;
   }
 
-  setMode(mode) {
+  setMode(mode, autoPlay = false) {
     this.mode = mode;
-    this.applyAudioSource(true);
+    this.applyAudioSource(autoPlay);
   }
 
-  setScenicVideo(videoId, title = "", startTime = 0, endTime = 0) {
+  setScenicVideo(videoId, title = "", startTime = 0, endTime = 0, autoPlay = false) {
     this.currentVideoId = videoId;
     this.videoStartTime = Math.max(0, startTime || 0);
     this.videoEndTime = Math.max(0, endTime || 0);
     if (this.mode === "original") {
-      this.applyAudioSource(true);
+      this.applyAudioSource(autoPlay);
     }
   }
 
-  setCustomAudio(url, title = "Custom Soundtrack", startTime = 0, endTime = 0) {
+  setCustomAudio(url, title = "Custom Soundtrack", startTime = 0, endTime = 0, autoPlay = false) {
     this.customAudioUrl = url;
     this.customAudioTitle = title;
     this.startTime = Math.max(0, startTime || 0);
     this.endTime = Math.max(0, endTime || 0);
     this.mode = "custom";
-    this.applyAudioSource(true);
+    this.applyAudioSource(autoPlay);
   }
 
   applyAudioSource(autoPlay = false) {
@@ -474,9 +464,10 @@ export class AudioEngine {
   }
 
   setVolume(volumeFraction) {
-    this.initAudioContext();
     this.volume = Math.max(0, Math.min(1, volumeFraction));
-    this.applyEffectiveVolume();
+    if (this.gainNode) {
+      this.applyEffectiveVolume();
+    }
     this.emitStatus();
   }
 

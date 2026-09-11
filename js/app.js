@@ -618,7 +618,7 @@ function loadVideoIntoCockpit(videoId, title, autoPlay = false, isTrack = false)
   videoEl.src = `/api/media/video/${videoId}`;
   videoEl.load();
   pm5Hud.setVideoTitle(title);
-  audioEngine.setScenicVideo(videoId, title);
+  audioEngine.setScenicVideo(videoId, title, 0, 0, autoPlay);
   sessionTracker.setMeta(videoId, audioEngine.mode);
   if (!isTrack) {
     trackController.clearTrack();
@@ -629,7 +629,6 @@ function loadVideoIntoCockpit(videoId, title, autoPlay = false, isTrack = false)
 
   if (autoPlay) {
     videoEl.play().catch(e => console.warn(e));
-    audioEngine.play();
   }
 }
 
@@ -741,17 +740,17 @@ function loadTrackIntoCockpit(track, autoPlay = false) {
     const vStart = track.start_time !== undefined ? track.start_time : (videoObj ? videoObj.start_time : 0);
     const vEnd = track.end_time !== undefined ? track.end_time : (videoObj ? videoObj.end_time : 0);
     audioEngine.setScenicVideo(track.video_id, track.name, vStart, vEnd);
-    audioEngine.setMode("original");
+    audioEngine.setMode("original", false);
     updateAudioTrackDropdown("original", track.allowed_audios);
   } else if (track.default_audio === "mute") {
-    audioEngine.setMode("mute");
+    audioEngine.setMode("mute", false);
     updateAudioTrackDropdown("mute", track.allowed_audios);
   } else {
     const audioUrl = `/api/media/audio/${track.default_audio}`;
     const audioObj = cachedLibrary.audio ? cachedLibrary.audio.find(a => a.id === track.default_audio) : null;
     const startT = audioObj ? (audioObj.start_time || 0) : 0;
     const endT = audioObj ? (audioObj.end_time || 0) : 0;
-    audioEngine.setCustomAudio(audioUrl, audioObj ? audioObj.title : "Track Soundtrack", startT, endT);
+    audioEngine.setCustomAudio(audioUrl, audioObj ? audioObj.title : "Track Soundtrack", startT, endT, false);
     updateAudioTrackDropdown(audioUrl, track.allowed_audios);
   }
 
