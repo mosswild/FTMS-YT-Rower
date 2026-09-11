@@ -2105,7 +2105,7 @@ body.in-fullscreen .app-header {
    Mobile Portrait Mode (<= 640px and Portrait)
    Ensures video overlay metrics fit inside 16:9 container without wrapping/clipping
    -------------------------------------------------------------------------- */
-@media (max-width: 640px) and (orientation: portrait) {
+@media (max-width: 640px) and (orientation: portrait), (max-width: 500px) {
   .cockpit-view {
     padding: 0.5rem 0.35rem;
   }
@@ -2118,51 +2118,119 @@ body.in-fullscreen .app-header {
     padding: 0.45rem;
   }
 
+  /* 2-tier Grid for Top Bar to prevent audio picker and action icons from overlapping */
   .hud-top-bar {
-    gap: 0.25rem;
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    grid-template-rows: auto auto !important;
+    row-gap: 0.35rem !important;
+    column-gap: 0.4rem !important;
+    align-items: center !important;
+    width: 100% !important;
   }
 
   .hud-left-tags {
-    gap: 0.25rem;
-    min-width: 0;
-    flex: 1;
+    display: contents !important;
   }
 
-  .hud-picker-btn {
-    font-size: 0.68rem;
-    padding: 0.2rem 0.35rem;
-    max-width: 130px;
-    min-width: 0;
+  #hud-track-dropdown-wrapper {
+    grid-column: 1 / 2 !important;
+    grid-row: 1 / 2 !important;
+    min-width: 0 !important;
+    justify-self: start !important;
+    max-width: 100% !important;
   }
 
-  .hud-picker-text {
-    max-width: 80px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    display: inline-block;
+  #hud-track-dropdown-wrapper .hud-picker-btn {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 0.22rem 0.5rem !important;
+    font-size: 0.70rem !important;
+    border-radius: 5px !important;
   }
 
-  .speed-badge {
-    font-size: 0.65rem;
-    padding: 0.2rem 0.35rem;
-    white-space: nowrap;
-    flex-shrink: 0;
+  #hud-track-dropdown-wrapper .hud-picker-text {
+    max-width: calc(100vw - 150px) !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
   }
 
   .hud-right-actions {
-    gap: 0.25rem;
-    flex-shrink: 0;
+    grid-column: 2 / 3 !important;
+    grid-row: 1 / 2 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 0.3rem !important;
+    flex-shrink: 0 !important;
   }
 
   .hud-icon-btn {
-    width: 26px;
-    height: 26px;
+    width: 28px !important;
+    height: 28px !important;
+    flex-shrink: 0 !important;
   }
 
   .hud-icon-btn svg {
-    width: 13px;
-    height: 13px;
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  #hud-speed-dropdown-wrapper {
+    grid-column: 1 / 2 !important;
+    grid-row: 2 / 3 !important;
+    justify-self: start !important;
+    min-width: 0 !important;
+  }
+
+  .speed-badge {
+    font-size: 0.68rem !important;
+    padding: 0.22rem 0.5rem !important;
+    white-space: nowrap !important;
+    border-radius: 5px !important;
+    flex-shrink: 0 !important;
+  }
+
+  #hud-audio-dropdown-wrapper {
+    grid-column: 2 / 3 !important;
+    grid-row: 2 / 3 !important;
+    justify-self: end !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  #hud-audio-dropdown-wrapper .hud-picker-btn {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 0.22rem 0.5rem !important;
+    font-size: 0.68rem !important;
+    border-radius: 5px !important;
+  }
+
+  #hud-audio-dropdown-wrapper .hud-picker-text {
+    max-width: calc(100vw - 170px) !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
+  }
+
+  .hud-dropdown-menu {
+    max-width: calc(100vw - 20px) !important;
+    max-height: 48vh !important;
+  }
+
+  #hud-audio-dropdown-menu {
+    right: 0 !important;
+    left: auto !important;
+  }
+
+  #hud-speed-dropdown-menu,
+  #hud-track-dropdown-menu {
+    left: 0 !important;
+    right: auto !important;
   }
 
   /* 3 columns x 2 rows compact grid fitting within mobile 16:9 viewport */
