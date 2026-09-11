@@ -1,13 +1,13 @@
-import { RowerBLE } from "./modules/ble-rower.js?v=hud-restore-v10";
-import { HeartRateBLE } from "./modules/ble-heartrate.js?v=hud-restore-v10";
-import { RateController } from "./modules/rate-controller.js?v=hud-restore-v10";
-import { AudioEngine } from "./modules/audio-engine.js?v=hud-restore-v10";
-import { PM5Hud } from "./modules/hud.js?v=hud-restore-v10";
-import { SessionTracker } from "./modules/session-tracker.js?v=hud-restore-v10";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=hud-restore-v10";
-import { MediaManager } from "./modules/media-manager.js?v=hud-restore-v10";
-import { TrackController } from "./modules/track-controller.js?v=hud-restore-v10";
-import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=hud-restore-v10";
+import { RowerBLE } from "./modules/ble-rower.js?v=cadence-volume-v11";
+import { HeartRateBLE } from "./modules/ble-heartrate.js?v=cadence-volume-v11";
+import { RateController } from "./modules/rate-controller.js?v=cadence-volume-v11";
+import { AudioEngine } from "./modules/audio-engine.js?v=cadence-volume-v11";
+import { PM5Hud } from "./modules/hud.js?v=cadence-volume-v11";
+import { SessionTracker } from "./modules/session-tracker.js?v=cadence-volume-v11";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=cadence-volume-v11";
+import { MediaManager } from "./modules/media-manager.js?v=cadence-volume-v11";
+import { TrackController } from "./modules/track-controller.js?v=cadence-volume-v11";
+import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=cadence-volume-v11";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -39,8 +39,16 @@ const trackTimeDisplay = document.getElementById("track-time-display");
 // Initialize PM5 HUD
 const pm5Hud = new PM5Hud(viewportContainer);
 
+// Load persisted Cadence Volume setting
+let initialCadenceAudioVol = false;
+try {
+  initialCadenceAudioVol = localStorage.getItem("ftms_cadence_audio_vol") === "true";
+} catch (e) {}
+
 // Initialize Audio Engine with status callback
 const audioEngine = new AudioEngine(videoEl, audioEl, {
+  cadenceVolumeModulation: initialCadenceAudioVol,
+  baselineSpm: 20,
   onStatusChange: (status) => {
     updateAudioUI(status);
   }
@@ -150,6 +158,7 @@ function handleTelemetryPacket(data) {
   pm5Hud.updateMetrics(data);
   if (data.strokeRate !== undefined) {
     rateController.updateCadence(data.strokeRate);
+    audioEngine.updateCadence(data.strokeRate);
   }
   sessionTracker.updateTelemetry(data);
 
@@ -2621,6 +2630,7 @@ if (settingBaselineSpm) {
     const val = parseInt(e.target.value, 10);
     settingBaselineSpmVal.textContent = val;
     rateController.setBaselineSpm(val);
+    audioEngine.setBaselineSpm(val);
   });
 }
 
@@ -2638,6 +2648,33 @@ const settingPauseAudio = document.getElementById("setting-pause-audio-on-stop")
 if (settingPauseAudio) {
   settingPauseAudio.addEventListener("change", (e) => {
     audioEngine.setPauseOnStrokeStop(e.target.checked);
+  });
+}
+
+const settingCadenceVol = document.getElementById("setting-cadence-audio-volume");
+const hudCadenceVolToggle = document.getElementById("hud-audio-cadence-vol-toggle");
+
+function setCadenceAudioVolPreference(enabled) {
+  audioEngine.setCadenceVolumeModulation(enabled);
+  try {
+    localStorage.setItem("ftms_cadence_audio_vol", enabled ? "true" : "false");
+  } catch (e) {}
+  if (settingCadenceVol) settingCadenceVol.checked = enabled;
+  if (hudCadenceVolToggle) hudCadenceVolToggle.checked = enabled;
+  showHudToast(`Cadence Volume: ${enabled ? 'Enabled' : 'Disabled'}`);
+}
+
+if (settingCadenceVol) {
+  settingCadenceVol.checked = audioEngine.cadenceVolumeModulation;
+  settingCadenceVol.addEventListener("change", (e) => {
+    setCadenceAudioVolPreference(e.target.checked);
+  });
+}
+
+if (hudCadenceVolToggle) {
+  hudCadenceVolToggle.checked = audioEngine.cadenceVolumeModulation;
+  hudCadenceVolToggle.addEventListener("change", (e) => {
+    setCadenceAudioVolPreference(e.target.checked);
   });
 }
 
@@ -2870,7 +2907,7 @@ function renderHudAudioDropdown() {
   const currentMode = audioEngine.mode;
   const currentUrl = audioEngine.customAudioUrl;
 
-  // Sync volume slider
+  // Sync volume slider and cadence volume toggle
   const slider = document.getElementById("hud-audio-volume-slider");
   const volVal = document.getElementById("hud-volume-val");
   if (slider) {
@@ -2878,6 +2915,9 @@ function renderHudAudioDropdown() {
   }
   if (volVal) {
     volVal.textContent = `${Math.round(audioEngine.volume * 100)}%`;
+  }
+  if (hudCadenceVolToggle) {
+    hudCadenceVolToggle.checked = audioEngine.cadenceVolumeModulation;
   }
 
   let html = "";

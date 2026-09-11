@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=hud-restore-v10">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=cadence-volume-v11">
   <script>
     (function() {
       try {
@@ -142,6 +142,13 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
                   <input type="range" id="hud-audio-volume-slider" min="0" max="1" step="0.05" value="1.0" class="hud-volume-slider" title="Soundtrack Volume">
                   <span id="hud-volume-val">100%</span>
+                </div>
+                <div class="hud-dropdown-toggle-row">
+                  <div class="hud-toggle-text">
+                    <span class="hud-toggle-title">Cadence Volume</span>
+                    <span class="hud-toggle-sub">Dips on rest, swells on sprint</span>
+                  </div>
+                  <input type="checkbox" id="hud-audio-cadence-vol-toggle" class="hud-checkbox-toggle" title="Dynamically modulate volume with cadence">
                 </div>
                 <div class="hud-dropdown-divider"></div>
                 <div id="hud-audio-list-container" class="hud-dropdown-list"></div>
@@ -511,6 +518,14 @@
         <input type="checkbox" id="setting-pause-audio-on-stop" style="width: 20px; height: 20px; accent-color: var(--accent-blue);">
       </div>
 
+      <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 1.25rem;">
+        <div>
+          <label class="form-label" style="margin-bottom: 0;">Cadence-Proportional Audio Volume</label>
+          <p class="form-hint">Subtly dips soundtrack volume during rest/glides (~0.55×) and swells during sprints (~1.20×) while keeping audio speed steady at 1.0×.</p>
+        </div>
+        <input type="checkbox" id="setting-cadence-audio-volume" style="width: 20px; height: 20px; accent-color: var(--accent-blue);">
+      </div>
+
       <div class="form-group" style="margin-top: 1.5rem;">
         <label class="form-label">HUD Density & Scale</label>
         <p class="form-hint" style="margin-bottom: 0.75rem;">Adjust the sizing of telemetry metrics for small screens, mobile landscape, or TV mirroring.</p>
@@ -843,6 +858,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=hud-restore-v10"></script>
+  <script type="module" src="js/app.js?v=cadence-volume-v11"></script>
 </body>
 </html>

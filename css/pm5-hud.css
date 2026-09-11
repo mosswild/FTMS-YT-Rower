@@ -541,6 +541,41 @@ body.in-fullscreen .app-header {
   text-align: right;
 }
 
+.hud-dropdown-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.5rem 0.85rem;
+  background: rgba(0, 0, 0, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hud-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.hud-toggle-title {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.hud-toggle-sub {
+  font-size: 0.67rem;
+  color: var(--text-muted);
+}
+
+.hud-checkbox-toggle {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #38bdf8;
+  flex-shrink: 0;
+}
+
 .hud-right-actions {
   display: flex;
   align-items: center;
@@ -3408,6 +3443,15 @@ body.in-fullscreen .app-header {
 
 [data-theme="retro-pm5"] #hud-volume-val {
   color: #86efac;
+}
+
+[data-theme="retro-pm5"] .hud-dropdown-toggle-row {
+  background: rgba(22, 30, 24, 0.75);
+  border-top-color: #364a38;
+}
+
+[data-theme="retro-pm5"] .hud-checkbox-toggle {
+  accent-color: #86efac;
 }
 
 [data-theme="retro-pm5"] .hud-notice-toast {
