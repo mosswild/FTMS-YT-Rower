@@ -40,6 +40,7 @@ export class AudioEngine {
     this.cadenceVolumeModulation = options.cadenceVolumeModulation !== undefined ? options.cadenceVolumeModulation : true;
     this.isAmbient = options.isAmbient || false;
     this.baselineSpm = options.baselineSpm || 20;
+    this.volumeSensitivity = options.volumeSensitivity !== undefined ? options.volumeSensitivity : 1.0;
     this.lastCadenceSpm = 20;
     this.currentCadenceScale = (this.cadenceVolumeModulation && !this.isAmbient) ? this.calculateCadenceVolumeScale(this.lastCadenceSpm) : 1.0;
     this.targetCadenceScale = this.currentCadenceScale;
@@ -284,15 +285,35 @@ export class AudioEngine {
     }
   }
 
+  setVolumeSensitivity(sensitivity) {
+    const s = parseFloat(sensitivity);
+    if (!isNaN(s) && s >= 0.1 && s <= 3.0) {
+      this.volumeSensitivity = s;
+      if (this.cadenceVolumeModulation && !this.isAmbient) {
+        this.targetCadenceScale = this.calculateCadenceVolumeScale(this.lastCadenceSpm);
+        if (this.isPlaying) {
+          this.startVolumeRamping();
+        }
+      }
+    }
+  }
+
   calculateCadenceVolumeScale(spm) {
-    if (spm <= 0) return 0.55; // Resting / auto-paused volume: gentle, unobtrusive ambient bed
+    const sens = this.volumeSensitivity !== undefined ? this.volumeSensitivity : 1.0;
+    if (spm <= 0) {
+      // Resting / auto-paused volume: baseline drop scaled by sensitivity
+      return Math.max(0.05, 1.0 - 0.45 * sens);
+    }
     const ratio = spm / this.baselineSpm;
     if (ratio <= 1.0) {
-      // Range from 0 SPM (0.55) to baseline SPM (1.00)
-      return 0.55 + 0.45 * ratio;
+      // Rate of decrease below baseline
+      const drop = 0.45 * (1.0 - ratio) * sens;
+      return Math.max(0.05, 1.0 - drop);
     } else {
-      // Range from baseline SPM (1.00) up to 1.5 ratio (1.20)
-      return 1.00 + 0.20 * Math.min(1.0, (ratio - 1.0) / 0.5);
+      // Rate of increase above baseline
+      const surgeRatio = Math.min(1.0, (ratio - 1.0) / 0.5);
+      const boost = 0.20 * surgeRatio * sens;
+      return 1.00 + boost;
     }
   }
 
@@ -326,7 +347,8 @@ export class AudioEngine {
       if (Math.abs(diff) < 0.01) {
         this.currentCadenceScale = this.targetCadenceScale;
       } else {
-        this.currentCadenceScale += diff * 0.12;
+        const rateFactor = 0.12 * Math.max(0.75, Math.min(1.5, Math.sqrt(this.volumeSensitivity || 1.0)));
+        this.currentCadenceScale += diff * rateFactor;
       }
       this.applyEffectiveVolume();
     }, 100);

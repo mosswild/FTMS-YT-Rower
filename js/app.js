@@ -1,13 +1,13 @@
-import { RowerBLE } from "./modules/ble-rower.js?v=cadence-vol-default-v12";
-import { HeartRateBLE } from "./modules/ble-heartrate.js?v=cadence-vol-default-v12";
-import { RateController } from "./modules/rate-controller.js?v=cadence-vol-default-v12";
-import { AudioEngine } from "./modules/audio-engine.js?v=cadence-vol-default-v12";
-import { PM5Hud } from "./modules/hud.js?v=cadence-vol-default-v12";
-import { SessionTracker } from "./modules/session-tracker.js?v=cadence-vol-default-v12";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=cadence-vol-default-v12";
-import { MediaManager } from "./modules/media-manager.js?v=cadence-vol-default-v12";
-import { TrackController } from "./modules/track-controller.js?v=cadence-vol-default-v12";
-import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=cadence-vol-default-v12";
+import { RowerBLE } from "./modules/ble-rower.js?v=cadence-sensitivity-v13";
+import { HeartRateBLE } from "./modules/ble-heartrate.js?v=cadence-sensitivity-v13";
+import { RateController } from "./modules/rate-controller.js?v=cadence-sensitivity-v13";
+import { AudioEngine } from "./modules/audio-engine.js?v=cadence-sensitivity-v13";
+import { PM5Hud } from "./modules/hud.js?v=cadence-sensitivity-v13";
+import { SessionTracker } from "./modules/session-tracker.js?v=cadence-sensitivity-v13";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=cadence-sensitivity-v13";
+import { MediaManager } from "./modules/media-manager.js?v=cadence-sensitivity-v13";
+import { TrackController } from "./modules/track-controller.js?v=cadence-sensitivity-v13";
+import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=cadence-sensitivity-v13";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -48,6 +48,18 @@ try {
   }
 } catch (e) {}
 
+// Load persisted Cadence Volume Sensitivity (defaults to 1.0)
+let initialCadenceAudioSensitivity = 1.0;
+try {
+  const savedSens = localStorage.getItem("ftms_cadence_audio_sensitivity");
+  if (savedSens !== null) {
+    const parsed = parseFloat(savedSens);
+    if (!isNaN(parsed) && parsed >= 0.25 && parsed <= 2.5) {
+      initialCadenceAudioSensitivity = parsed;
+    }
+  }
+} catch (e) {}
+
 // Check if initial speed mode is ambient
 let initialIsAmbient = false;
 try {
@@ -57,6 +69,7 @@ try {
 // Initialize Audio Engine with status callback
 const audioEngine = new AudioEngine(videoEl, audioEl, {
   cadenceVolumeModulation: initialCadenceAudioVol,
+  volumeSensitivity: initialCadenceAudioSensitivity,
   isAmbient: initialIsAmbient,
   baselineSpm: 20,
   onStatusChange: (status) => {
@@ -2667,6 +2680,24 @@ if (settingPauseAudio) {
 
 const settingCadenceVol = document.getElementById("setting-cadence-audio-volume");
 const hudCadenceVolToggle = document.getElementById("hud-audio-cadence-vol-toggle");
+const settingCadenceSensitivity = document.getElementById("setting-cadence-volume-sensitivity");
+const settingCadenceSensitivityVal = document.getElementById("setting-cadence-volume-sensitivity-val");
+const settingCadenceSensitivityContainer = document.getElementById("setting-cadence-sensitivity-container");
+
+function getSensitivityLabel(val) {
+  if (val <= 0.5) return `${val.toFixed(2)}× (Subtle)`;
+  if (val < 1.0) return `${val.toFixed(2)}× (Moderate)`;
+  if (val === 1.0) return `1.00× (Standard)`;
+  if (val <= 1.5) return `${val.toFixed(2)}× (Dynamic)`;
+  return `${val.toFixed(2)}× (Aggressive)`;
+}
+
+function updateCadenceSensitivityContainerVisibility(enabled) {
+  if (settingCadenceSensitivityContainer) {
+    settingCadenceSensitivityContainer.style.opacity = enabled ? "1" : "0.35";
+    settingCadenceSensitivityContainer.style.pointerEvents = enabled ? "auto" : "none";
+  }
+}
 
 function setCadenceAudioVolPreference(enabled) {
   audioEngine.setCadenceVolumeModulation(enabled);
@@ -2675,12 +2706,14 @@ function setCadenceAudioVolPreference(enabled) {
   } catch (e) {}
   if (settingCadenceVol) settingCadenceVol.checked = enabled;
   if (hudCadenceVolToggle) hudCadenceVolToggle.checked = enabled;
+  updateCadenceSensitivityContainerVisibility(enabled);
   renderHudAudioDropdown();
   showHudToast(`Cadence Volume: ${enabled ? 'Enabled' : 'Disabled'}`);
 }
 
 if (settingCadenceVol) {
   settingCadenceVol.checked = audioEngine.cadenceVolumeModulation;
+  updateCadenceSensitivityContainerVisibility(audioEngine.cadenceVolumeModulation);
   settingCadenceVol.addEventListener("change", (e) => {
     setCadenceAudioVolPreference(e.target.checked);
   });
@@ -2690,6 +2723,24 @@ if (hudCadenceVolToggle) {
   hudCadenceVolToggle.checked = audioEngine.cadenceVolumeModulation;
   hudCadenceVolToggle.addEventListener("change", (e) => {
     setCadenceAudioVolPreference(e.target.checked);
+  });
+}
+
+if (settingCadenceSensitivity) {
+  settingCadenceSensitivity.value = audioEngine.volumeSensitivity.toFixed(2);
+  if (settingCadenceSensitivityVal) {
+    settingCadenceSensitivityVal.textContent = getSensitivityLabel(audioEngine.volumeSensitivity);
+  }
+  settingCadenceSensitivity.addEventListener("input", (e) => {
+    const val = parseFloat(e.target.value);
+    if (settingCadenceSensitivityVal) {
+      settingCadenceSensitivityVal.textContent = getSensitivityLabel(val);
+    }
+    audioEngine.setVolumeSensitivity(val);
+    try {
+      localStorage.setItem("ftms_cadence_audio_sensitivity", val.toString());
+    } catch (err) {}
+    renderHudAudioDropdown();
   });
 }
 
@@ -2939,7 +2990,9 @@ function renderHudAudioDropdown() {
     if (audioEngine.isAmbient) {
       hudCadenceVolSub.textContent = "Bypassed (Ambient 1.0× Track)";
     } else {
-      hudCadenceVolSub.textContent = "Dips on rest, swells on sprint";
+      const sens = audioEngine.volumeSensitivity !== undefined ? audioEngine.volumeSensitivity : 1.0;
+      const rateLabel = sens === 1.0 ? "1.0× rate" : `${sens.toFixed(2)}× rate`;
+      hudCadenceVolSub.textContent = `Dips on rest, swells on sprint (${rateLabel})`;
     }
   }
 

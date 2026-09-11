@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=cadence-vol-default-v12">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=cadence-sensitivity-v13">
   <script>
     (function() {
       try {
@@ -521,9 +521,20 @@
       <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 1.25rem;">
         <div>
           <label class="form-label" style="margin-bottom: 0;">Cadence-Proportional Audio Volume</label>
-          <p class="form-hint">Subtly dips soundtrack volume during rest/glides (~0.55×) and swells during sprints (~1.20×) while keeping audio speed steady at 1.0×.</p>
+          <p class="form-hint">Subtly dips soundtrack volume during rest/glides and swells during sprints while keeping audio speed steady at 1.0×.</p>
         </div>
         <input type="checkbox" id="setting-cadence-audio-volume" style="width: 20px; height: 20px; accent-color: var(--accent-blue);">
+      </div>
+
+      <div id="setting-cadence-sensitivity-container" class="form-group" style="margin-top: 0.85rem; padding: 0.85rem 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08); transition: opacity 0.2s ease;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+          <label class="form-label" style="margin-bottom: 0;">Cadence Volume Modulation Rate</label>
+          <span id="setting-cadence-volume-sensitivity-val" class="range-val-badge">1.00× (Standard)</span>
+        </div>
+        <div class="range-with-val" style="margin-top: 0.4rem;">
+          <input type="range" id="setting-cadence-volume-sensitivity" min="0.25" max="2.50" value="1.00" step="0.25">
+        </div>
+        <p class="form-hint" style="margin-top: 0.4rem; margin-bottom: 0;">Controls the rate of volume change based on stroke cadence (0.5× = subtle modulation, 1.0× = standard, 1.5×–2.5× = dynamic surges & deeper rest dips).</p>
       </div>
 
       <div class="form-group" style="margin-top: 1.5rem;">
@@ -858,6 +869,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=cadence-vol-default-v12"></script>
+  <script type="module" src="js/app.js?v=cadence-sensitivity-v13"></script>
 </body>
 </html>
