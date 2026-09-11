@@ -1,13 +1,13 @@
-import { RowerBLE } from "./modules/ble-rower.js?v=cadence-zones-v9";
-import { HeartRateBLE } from "./modules/ble-heartrate.js?v=cadence-zones-v9";
-import { RateController } from "./modules/rate-controller.js?v=cadence-zones-v9";
-import { AudioEngine } from "./modules/audio-engine.js?v=cadence-zones-v9";
-import { PM5Hud } from "./modules/hud.js?v=cadence-zones-v9";
-import { SessionTracker } from "./modules/session-tracker.js?v=cadence-zones-v9";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=cadence-zones-v9";
-import { MediaManager } from "./modules/media-manager.js?v=cadence-zones-v9";
-import { TrackController } from "./modules/track-controller.js?v=cadence-zones-v9";
-import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=cadence-zones-v9";
+import { RowerBLE } from "./modules/ble-rower.js?v=hud-restore-v10";
+import { HeartRateBLE } from "./modules/ble-heartrate.js?v=hud-restore-v10";
+import { RateController } from "./modules/rate-controller.js?v=hud-restore-v10";
+import { AudioEngine } from "./modules/audio-engine.js?v=hud-restore-v10";
+import { PM5Hud } from "./modules/hud.js?v=hud-restore-v10";
+import { SessionTracker } from "./modules/session-tracker.js?v=hud-restore-v10";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=hud-restore-v10";
+import { MediaManager } from "./modules/media-manager.js?v=hud-restore-v10";
+import { TrackController } from "./modules/track-controller.js?v=hud-restore-v10";
+import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=hud-restore-v10";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
