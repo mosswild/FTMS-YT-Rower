@@ -19,8 +19,8 @@ export class RateController {
     this.autoPauseTimeoutMs = options.autoPauseTimeoutMs || 3500;
 
     // Deadband rate quantization to prevent AVPlayer / hardware decoder stalls on iOS / mobile
-    this.deadbandThreshold = options.deadbandThreshold !== undefined ? options.deadbandThreshold : 0.05;
-    this.minUpdateIntervalMs = options.minUpdateIntervalMs !== undefined ? options.minUpdateIntervalMs : 350;
+    this.deadbandThreshold = options.deadbandThreshold !== undefined ? options.deadbandThreshold : 0.06;
+    this.minUpdateIntervalMs = options.minUpdateIntervalMs !== undefined ? options.minUpdateIntervalMs : 1200;
     this.appliedRate = 1.0;
     this.lastRateUpdateTime = 0;
 
@@ -34,6 +34,22 @@ export class RateController {
 
     this.onRateChange = options.onRateChange || null;
     this.onAutoPauseState = options.onAutoPauseState || null;
+
+    if (this.video) {
+      const disableAudioTracks = () => {
+        try {
+          if (this.video.audioTracks) {
+            for (let i = 0; i < this.video.audioTracks.length; i++) {
+              this.video.audioTracks[i].enabled = false;
+            }
+          }
+        } catch (e) {}
+      };
+      disableAudioTracks();
+      if (typeof this.video.addEventListener === "function") {
+        this.video.addEventListener("loadedmetadata", disableAudioTracks);
+      }
+    }
 
     this.startWatchdog();
   }
@@ -83,28 +99,30 @@ export class RateController {
 
     if (!this.video) return;
 
+    // Quantize hardware playback rate to 0.05 steps (e.g. 0.90, 0.95, 1.00, 1.05, 1.10)
+    // to shield mobile AVPlayer hardware clocks from tiny continuous variations
+    const quantizedRate = Math.round(roundedRate * 20) / 20;
+
     const now = Date.now();
-    const rateDiff = Math.abs(roundedRate - this.appliedRate);
+    const rateDiff = Math.abs(quantizedRate - this.appliedRate);
     const timeSinceLastUpdate = now - this.lastRateUpdateTime;
 
     // Check whether hardware playbackRate should be updated:
-    // 1. Forced update (e.g. fixed speed mode, workout start/stop, reaching bounds)
-    // 2. Change is significant (>= deadbandThreshold, default 0.05)
-    // 3. Minimum interval (350ms) elapsed AND change is >= 0.02
-    // 4. Rate reaches absolute min (0.3) or max (2.5) boundaries
+    // 1. Forced update (fixed speed toggle, workout start/stop, auto-pause transitions)
+    // 2. Rate reaches absolute min (0.3) or max (2.5) boundaries
+    // 3. Significant speed change (>= deadbandThreshold) AND at least minUpdateIntervalMs (1200ms) has elapsed
     const isAtBoundary = (roundedRate <= this.minRate && this.appliedRate !== this.minRate) ||
                          (roundedRate >= this.maxRate && this.appliedRate !== this.maxRate);
 
     const shouldUpdate = force ||
       isAtBoundary ||
-      rateDiff >= this.deadbandThreshold ||
-      (timeSinceLastUpdate >= this.minUpdateIntervalMs && rateDiff >= 0.02);
+      (rateDiff >= this.deadbandThreshold && timeSinceLastUpdate >= this.minUpdateIntervalMs);
 
     if (shouldUpdate) {
-      this.appliedRate = roundedRate;
+      this.appliedRate = quantizedRate;
       this.lastRateUpdateTime = now;
-      if (this.video.playbackRate !== roundedRate) {
-        this.video.playbackRate = roundedRate;
+      if (this.video.playbackRate !== quantizedRate) {
+        this.video.playbackRate = quantizedRate;
       }
     }
 

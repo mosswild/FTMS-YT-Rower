@@ -174,6 +174,10 @@ body {
   height: 100%;
   object-fit: cover;
   display: block;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Fullscreen mode (native top-layer and mobile pseudo-fullscreen) */
@@ -744,13 +748,14 @@ body.in-fullscreen .app-header {
   height: 8px;
   border-radius: 50%;
   background: var(--text-dim);
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+  will-change: transform, opacity;
 }
 
 .pm5-pulse-dot.pulse {
   background: var(--accent-blue);
-  transform: scale(1.6);
-  box-shadow: 0 0 10px var(--accent-blue);
+  transform: scale(1.4);
+  opacity: 1;
 }
 
 .pm5-heart-icon {
@@ -4436,6 +4441,51 @@ body[data-theme="nordic"],
 [data-theme="nordic"] #modal-audio-preview-bar {
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
+}
+
+/* ----------------- Mobile / Touch / iPad Performance Optimizations ----------------- */
+/* Eliminate WebKit backdrop-filter GPU readback bottlenecks during video playback */
+@media (hover: none) and (pointer: coarse), (max-width: 1024px) {
+  .pm5-cell,
+  .hud-picker-btn,
+  .speed-badge,
+  .hud-icon-btn,
+  .hud-info-badge,
+  .hud-dropdown-menu,
+  [data-theme="nordic"] .pm5-cell,
+  [data-theme="nordic"] .speed-badge,
+  [data-theme="nordic"] .hud-info-badge,
+  [data-theme="nordic"] .pm5-hud-overlay .hud-icon-btn,
+  [data-theme="nordic"] .hud-picker-btn,
+  [data-theme="cyberpunk"] .pm5-cell,
+  [data-theme="retro-pm5"] .pm5-cell {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .pm5-cell {
+    background: rgba(15, 23, 42, 0.88) !important;
+  }
+
+  [data-theme="nordic"] .pm5-cell {
+    background: rgba(248, 250, 252, 0.94) !important;
+  }
+
+  [data-theme="nordic"] .speed-badge,
+  [data-theme="nordic"] .hud-info-badge,
+  [data-theme="nordic"] .hud-picker-btn,
+  [data-theme="nordic"] .pm5-hud-overlay .hud-icon-btn {
+    background: rgba(241, 245, 249, 0.92) !important;
+    color: #0f172a !important;
+  }
+
+  [data-theme="cyberpunk"] .pm5-cell {
+    background: rgba(10, 10, 18, 0.94) !important;
+  }
+
+  .pm5-pulse-dot {
+    box-shadow: none !important;
+  }
 }
 
 

@@ -1,10 +1,10 @@
 import os
 import re
-from typing import Tuple, Generator
+from typing import Tuple
 from fastapi import HTTPException
-from starlette.responses import StreamingResponse
+from starlette.responses import FileResponse
 
-CHUNK_SIZE = 1024 * 1024  # 1 MB chunks (expanded for mobile Wi-Fi buffer headroom)
+CHUNK_SIZE = 512 * 1024  # 512 KB chunk size for non-blocking async file streaming
 
 def parse_range_header(range_header: str, file_size: int) -> Tuple[int, int]:
     """Parse HTTP Range header: e.g. 'bytes=0-1024' or 'bytes=1024-'."""
@@ -30,48 +30,18 @@ def parse_range_header(range_header: str, file_size: int) -> Tuple[int, int]:
     end = max(start, min(end, file_size - 1))
     return start, end
 
-def file_chunk_generator(file_path: str, start: int, end: int, chunk_size: int = CHUNK_SIZE) -> Generator[bytes, None, None]:
-    with open(file_path, "rb") as f:
-        f.seek(start)
-        remaining = end - start + 1
-        while remaining > 0:
-            read_len = min(chunk_size, remaining)
-            data = f.read(read_len)
-            if not data:
-                break
-            remaining -= len(data)
-            yield data
-
-def range_streaming_response(file_path: str, range_header: str | None, media_type: str) -> StreamingResponse:
+def range_streaming_response(file_path: str, range_header: str | None, media_type: str) -> FileResponse:
+    """
+    Return an RFC-compliant, asynchronous, non-blocking FileResponse.
+    Starlette's FileResponse natively processes HTTP Range headers (HTTP 206 Partial Content),
+    calculates Content-Range and ETags, and streams asynchronously via anyio without blocking the main event loop.
+    """
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=404, detail="Media file not found")
 
-    file_size = os.path.getsize(file_path)
-
-    if range_header:
-        start, end = parse_range_header(range_header, file_size)
-        content_length = end - start + 1
-        headers = {
-            "Content-Range": f"bytes {start}-{end}/{file_size}",
-            "Accept-Ranges": "bytes",
-            "Content-Length": str(content_length),
-            "Content-Type": media_type,
-        }
-        return StreamingResponse(
-            file_chunk_generator(file_path, start, end),
-            status_code=206,
-            headers=headers,
-            media_type=media_type,
-        )
-    else:
-        headers = {
-            "Accept-Ranges": "bytes",
-            "Content-Length": str(file_size),
-            "Content-Type": media_type,
-        }
-        return StreamingResponse(
-            file_chunk_generator(file_path, 0, file_size - 1),
-            status_code=200,
-            headers=headers,
-            media_type=media_type,
-        )
+    response = FileResponse(
+        file_path,
+        media_type=media_type,
+    )
+    response.chunk_size = CHUNK_SIZE
+    return response

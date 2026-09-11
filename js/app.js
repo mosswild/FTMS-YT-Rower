@@ -1,13 +1,13 @@
-import { RowerBLE } from "./modules/ble-rower.js";
-import { HeartRateBLE } from "./modules/ble-heartrate.js";
-import { RateController } from "./modules/rate-controller.js";
-import { AudioEngine } from "./modules/audio-engine.js";
-import { PM5Hud } from "./modules/hud.js";
-import { SessionTracker } from "./modules/session-tracker.js";
-import { VirtualRowerSimulator } from "./modules/simulator.js";
-import { MediaManager } from "./modules/media-manager.js";
-import { TrackController } from "./modules/track-controller.js";
-import { WebSocketTelemetry } from "./modules/ws-telemetry.js";
+import { RowerBLE } from "./modules/ble-rower.js?v=mobile-fluidity-v8";
+import { HeartRateBLE } from "./modules/ble-heartrate.js?v=mobile-fluidity-v8";
+import { RateController } from "./modules/rate-controller.js?v=mobile-fluidity-v8";
+import { AudioEngine } from "./modules/audio-engine.js?v=mobile-fluidity-v8";
+import { PM5Hud } from "./modules/hud.js?v=mobile-fluidity-v8";
+import { SessionTracker } from "./modules/session-tracker.js?v=mobile-fluidity-v8";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=mobile-fluidity-v8";
+import { MediaManager } from "./modules/media-manager.js?v=mobile-fluidity-v8";
+import { TrackController } from "./modules/track-controller.js?v=mobile-fluidity-v8";
+import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=mobile-fluidity-v8";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
