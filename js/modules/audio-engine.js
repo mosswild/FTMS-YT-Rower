@@ -9,9 +9,12 @@ export class AudioEngine {
     this.audio = audioElement;
     this.onStatusChange = options.onStatusChange || null;
 
-    // Scenic video is strictly muted
+    // Scenic video is strictly muted; disable audio time-stretching DSP overhead on WebKit / Chromium
     if (this.video) {
       this.video.muted = true;
+      this.video.preservesPitch = false;
+      this.video.webkitPreservesPitch = false;
+      this.video.mozPreservesPitch = false;
     }
 
     // Soundtrack audio always plays at fixed native 1.0x speed

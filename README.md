@@ -270,13 +270,9 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 - [ ] **Cockpit HUD Cadence Sync vs. Ambient Toggle:** Ability to dynamically switch between **Ambient** (locked 1.0× video playback) and **Cadence Synced** (video playback speed modulated dynamically by rower stroke rate) directly from the Cockpit HUD controls.
   - This toggle only affects the active session on the fly.
   - The track's underlying default playback mode (configured when creating or editing the track) remains unchanged in the database.
-- [ ] **Mobile Video Playback & Dynamic Rate Synchronization Optimizations (iPhone / iOS WebKit):** Improve video playback fluidity during dynamic speed transitions on mobile devices:
-  - **Deadband Rate Quantization:** Prevent micro-stutters by updating `video.playbackRate` only when rate changes exceed a minimum threshold (e.g. $\ge 0.05$) rather than on every telemetry packet, avoiding constant AVPlayer clock re-synchronizations.
-  - **Pitch Preservation Bypass:** Set `video.preservesPitch = false` on the muted video element so WebKit skips real-time Phase Vocoder time-stretching DSP overhead.
-  - **Expanded Streaming Chunk Size:** Increase `CHUNK_SIZE` in `backend/streaming.py` (from 256 KB to 1–2 MB) to give mobile Safari larger playback buffer headroom and prevent Wi-Fi buffer underruns during high-speed rowing sprints.
-  - **Mobile Video Preset (720p):** Provide a mobile-optimized 720p download/transcode option to dramatically lower mobile GPU decoder load at high playback rates (1.5×–2.5×).
 
 ### Completed
+- [x] **Mobile Video Playback & Dynamic Rate Synchronization Optimizations (iPhone / iOS WebKit):** Optimized mobile video playback fluidity during dynamic cadence transitions by introducing deadband rate quantization to prevent AVPlayer clock re-sync stalls, disabling pitch preservation on the muted video element to bypass WebKit Phase Vocoder DSP overhead, expanding streaming range chunk sizes from 256 KB to 1 MB, and capping download streams to 1080p.
 - [x] **Mobile & iPhone 11 Responsive Layout & Standalone Web App Polishing:** Full portrait and landscape optimization for iPhone 11 and compact smartphones across Cockpit HUD metrics, fluid audio controls, responsive Workout History cards (no horizontal overflow), modal sizing, and iOS Home Screen standalone web app safe-area insets (`env(safe-area-inset-*)`).
 - [x] **Multi-Workout Bulk Export & Deletion:** Multi-select workouts with row checkboxes and a master toggle, export multiple or all workouts at once as a `.zip` archive of formatted `.tcx` files (or multi-activity TCX), and batch delete sessions.
 - [x] **Queue Management:** Clear ingestion queue with partial download cleanup without deleting library media.

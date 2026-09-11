@@ -4,7 +4,7 @@ from typing import Tuple, Generator
 from fastapi import HTTPException
 from starlette.responses import StreamingResponse
 
-CHUNK_SIZE = 1024 * 256  # 256 KB chunks
+CHUNK_SIZE = 1024 * 1024  # 1 MB chunks (expanded for mobile Wi-Fi buffer headroom)
 
 def parse_range_header(range_header: str, file_size: int) -> Tuple[int, int]:
     """Parse HTTP Range header: e.g. 'bytes=0-1024' or 'bytes=1024-'."""

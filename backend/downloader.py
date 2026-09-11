@@ -116,7 +116,7 @@ def run_download_worker(task_id: str, url: str, dl_type: str):
 
             task["status"] = "downloading_video"
             video_opts = {
-                "format": "bestvideo[vcodec^=avc1][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+                "format": "bestvideo[height<=1080][vcodec^=avc1][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best",
                 "merge_output_format": "mp4",
                 "outtmpl": os.path.join(VIDEOS_DIR, "%(id)s.%(ext)s"),
                 "ffmpeg_location": ffmpeg_path,

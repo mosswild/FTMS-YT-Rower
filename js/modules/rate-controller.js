@@ -6,11 +6,23 @@
 export class RateController {
   constructor(videoElement, options = {}) {
     this.video = videoElement;
+    if (this.video) {
+      // Scenic video is strictly muted; disable audio time-stretching DSP overhead on WebKit / Chromium
+      this.video.preservesPitch = false;
+      this.video.webkitPreservesPitch = false;
+      this.video.mozPreservesPitch = false;
+    }
     this.baselineSpm = options.baselineSpm || 20;
     this.alpha = options.alpha !== undefined ? options.alpha : 0.25;
     this.minRate = options.minRate || 0.3;
     this.maxRate = options.maxRate || 2.5;
     this.autoPauseTimeoutMs = options.autoPauseTimeoutMs || 3500;
+
+    // Deadband rate quantization to prevent AVPlayer / hardware decoder stalls on iOS / mobile
+    this.deadbandThreshold = options.deadbandThreshold !== undefined ? options.deadbandThreshold : 0.05;
+    this.minUpdateIntervalMs = options.minUpdateIntervalMs !== undefined ? options.minUpdateIntervalMs : 350;
+    this.appliedRate = 1.0;
+    this.lastRateUpdateTime = 0;
 
     this.isFixedSpeed = false;
     this.isWorkoutLive = false;
@@ -31,8 +43,8 @@ export class RateController {
     if (this.isWorkoutLive) {
       this.lastStrokeTime = Date.now();
       if (this.isFixedSpeed) {
+        this.applyRate(1.0, true);
         this.resumeVideo();
-        if (this.onRateChange) this.onRateChange(1.0);
       }
     } else {
       this.pauseVideo(true);
@@ -44,14 +56,9 @@ export class RateController {
     if (this.isFixedSpeed) {
       this.smoothedRate = 1.0;
       this.targetRate = 1.0;
-      if (this.video) {
-        this.video.playbackRate = 1.0;
-        if (this.isWorkoutLive && (this.isAutoPaused || this.video.paused)) {
-          this.resumeVideo();
-        }
-      }
-      if (this.onRateChange) {
-        this.onRateChange(1.0);
+      this.applyRate(1.0, true);
+      if (this.isWorkoutLive && (this.isAutoPaused || (this.video && this.video.paused))) {
+        this.resumeVideo();
       }
     }
   }
@@ -68,19 +75,51 @@ export class RateController {
     }
   }
 
+  applyRate(roundedRate, force = false) {
+    // Notify UI listener immediately so the speed badge (e.g. "1.12x") remains reactive to every stroke
+    if (this.onRateChange) {
+      this.onRateChange(roundedRate);
+    }
+
+    if (!this.video) return;
+
+    const now = Date.now();
+    const rateDiff = Math.abs(roundedRate - this.appliedRate);
+    const timeSinceLastUpdate = now - this.lastRateUpdateTime;
+
+    // Check whether hardware playbackRate should be updated:
+    // 1. Forced update (e.g. fixed speed mode, workout start/stop, reaching bounds)
+    // 2. Change is significant (>= deadbandThreshold, default 0.05)
+    // 3. Minimum interval (350ms) elapsed AND change is >= 0.02
+    // 4. Rate reaches absolute min (0.3) or max (2.5) boundaries
+    const isAtBoundary = (roundedRate <= this.minRate && this.appliedRate !== this.minRate) ||
+                         (roundedRate >= this.maxRate && this.appliedRate !== this.maxRate);
+
+    const shouldUpdate = force ||
+      isAtBoundary ||
+      rateDiff >= this.deadbandThreshold ||
+      (timeSinceLastUpdate >= this.minUpdateIntervalMs && rateDiff >= 0.02);
+
+    if (shouldUpdate) {
+      this.appliedRate = roundedRate;
+      this.lastRateUpdateTime = now;
+      if (this.video.playbackRate !== roundedRate) {
+        this.video.playbackRate = roundedRate;
+      }
+    }
+
+    if (this.isAutoPaused || this.video.paused) {
+      this.resumeVideo();
+    }
+  }
+
   updateCadence(currentSpm) {
     if (this.isFixedSpeed) {
       // Ambient fixed speed: video plays at constant 1.0x rate during live workout
-      // Never slows down, decelerates, or pauses when rower pauses
       this.lastStrokeTime = Date.now();
-      if (this.video) {
-        this.video.playbackRate = 1.0;
-        if (this.isWorkoutLive && (this.isAutoPaused || this.video.paused)) {
-          this.resumeVideo();
-        }
-      }
-      if (this.onRateChange) {
-        this.onRateChange(1.0);
+      this.applyRate(1.0, false);
+      if (this.isWorkoutLive && (this.isAutoPaused || (this.video && this.video.paused))) {
+        this.resumeVideo();
       }
       return;
     }
@@ -90,12 +129,7 @@ export class RateController {
       if (!this.isAutoPaused && this.smoothedRate > this.minRate) {
         this.smoothedRate = Math.max(this.minRate, this.smoothedRate * 0.88);
         const roundedRate = Math.round(this.smoothedRate * 100) / 100;
-        if (this.video && !this.video.paused) {
-          this.video.playbackRate = roundedRate;
-        }
-        if (this.onRateChange) {
-          this.onRateChange(roundedRate);
-        }
+        this.applyRate(roundedRate, false);
       }
       return;
     }
@@ -113,16 +147,7 @@ export class RateController {
     const clampedRate = Math.max(this.minRate, Math.min(this.maxRate, this.smoothedRate));
     const roundedRate = Math.round(clampedRate * 100) / 100;
 
-    if (this.video) {
-      this.video.playbackRate = roundedRate;
-      if (this.isAutoPaused || this.video.paused) {
-        this.resumeVideo();
-      }
-    }
-
-    if (this.onRateChange) {
-      this.onRateChange(roundedRate);
-    }
+    this.applyRate(roundedRate, false);
   }
 
   resumeVideo() {
