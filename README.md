@@ -28,13 +28,29 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
 
 ## Key Features
 
-### 1. Decoupled Audio Pipeline
-- **Muted Scenic Video:** The scenic video element is strictly muted so its playback rate can fluctuate freely between $0.3\times$ (paddle) and $2.5\times$ (all-out sprint) without audio pitch distortion or chipmunk effects.
-- **Fixed-Rate Soundtrack:** A decoupled HTML5 `<audio>` element streams the extracted soundtrack or custom playlist at native $1.0\times$ speed.
+### 1. Decoupled Audio Pipeline & Cadence-Proportional Volume
+- **Muted Scenic Video:** The scenic video element is strictly muted so its playback rate can fluctuate freely ($0.3\times \dots 2.5\times$) without audio pitch distortion, chipmunking, or WebKit Phase Vocoder DSP overhead.
+- **Fixed-Rate Soundtrack at 1.0×:** A decoupled HTML5 `<audio>` element streams soundtracks at natural $1.0\times$ playback speed with crystal-clear fidelity.
+- **Dynamic Cadence-Proportional Audio Volume:** Ambient soundtrack volume subtly tracks your rowing cadence—lowering to **0.55×** during rests, glides, or pauses, and swelling up to **1.20×** during high-cadence sprints (up to your master volume ceiling). This eliminates confusing disconnects where high-energy music blares while the athlete is paused or resting.
+  - **On by Default for Cadence Tracks:** Enabled automatically on cadence-locked tracks and seamlessly bypassed on Fixed 1.0× Ambient tracks.
+  - **Smooth Exponential Ramping:** An internal 100ms exponential low-pass filter (`diff * 0.12`) transitions volume smoothly over ~1.2s, completely eliminating clicks or abrupt volume jumps.
+  - **In-HUD & Settings Toggles:** Toggle cadence volume on or off on the fly from the HUD Audio dropdown or Settings modal.
 - **Dynamic Auto-Pause:** When rowing halts or pauses on cadence-synced tracks, the video pauses while the audio soundtrack continues smoothly (or pauses if configured in Settings).
 - **Autoplay Handling:** Includes one-click un-mute prompt complying with modern browser autoplay policies.
 
-### 2. Dual Ingestion Engine (YouTube & Local Device Upload)
+### 2. Zero-Stutter Cadence Zones & Cockpit Speed Modes
+- **Hardware Stutter Elimination for iOS / iPadOS / Safari:** Eliminates AVPlayer clock re-sync stalls on WebKit mobile devices during continuous cadence variations by quantizing playback into 4 discrete, stable cadence tiers:
+  - **Recovery / Glide** (< 18 SPM): **0.85×**
+  - **Base / Steady-State** (18 – 23 SPM): **1.00×** *(Native video speed — rock-solid, zero stutters for 90%+ of workout)*
+  - **Tempo / Power** (24 – 27 SPM): **1.25×**
+  - **Sprint / Max Effort** (28+ SPM): **1.50×**
+- **3.0-Second Hysteresis Dwell Time:** Video playback rate only transitions after sustaining a new cadence zone for 3 continuous seconds, preventing single-stroke cadence flutter from resetting the video presentation clock.
+- **In-Cockpit Speed Mode Dropdown:** Click the HUD speed badge to switch on the fly between:
+  - **Cadence Zones (Smooth):** Zero-stutter zone-based playback with 3s hysteresis (default).
+  - **Ambient (Fixed 1.0×):** Steady native speed scenery that never accelerates, decelerates, or auto-pauses.
+  - **Continuous Dynamic:** Proportional real-time rate scaling with 1.5s smoothing.
+
+### 3. Dual Ingestion Engine (YouTube & Local Device Upload)
 - **YouTube Ingestion:** Ingests 1080p/4K H.264 video and extracts separate high-quality M4A audio tracks via FastAPI, `yt-dlp`, and `ffmpeg`.
 - **Direct Device Media Upload:** Drag-and-drop or browse videos (`.mp4`, `.mov`, `.webm`, `.mkv`) and soundtrack audio (`.mp3`, `.m4a`, `.wav`, `.flac`) directly from your computer with live chunked streaming upload progress and automatic poster thumbnail extraction.
 - **In-Library Trimming & Previews:** Preview any video or soundtrack in the Media Center, adjust trim start/end points with interactive scrubbers, and rename media assets.
@@ -45,9 +61,9 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   <em>Media Center: YouTube ingestion, direct device file upload, and configured scenic tracks with cadence-synced and ambient modes.</em>
 </p>
 
-### 3. Scenic "Tracks" Feature & Cockpit Transport
+### 4. Scenic "Tracks" Feature & Cockpit Transport
 - **Custom Track Segments:** Define and save segments within videos with specified `start_time` and `end_time` (e.g., a pristine 5K river loop).
-- **Ambient vs. Cadence Modes:** Configure tracks to dynamically sync video speed with your rowing cadence, or lock to a steady **Fixed 1.0× Ambient** speed for relaxing scenery that never speeds up, slows down, or auto-pauses during intervals.
+- **Ambient vs. Cadence Modes:** Configure tracks to dynamically sync video speed and audio volume with your rowing cadence, or lock to a steady **Fixed 1.0× Ambient** speed for relaxing scenery that never speeds up, slows down, or auto-pauses during intervals.
 - **Loop Boundary Enforcement:** Videos loop smoothly within the track's configured start and end timestamps.
 - **Audio Association & Live Preview Player:** Assign default audio soundtracks and curate allowed playlists with an in-modal audio preview player and timeline scrubber to audition tracks before saving.
 - **Edit Existing Tracks & Video Thumbnails:** Edit any existing track at any time with live video thumbnail previews displaying duration and file sizes.
@@ -57,7 +73,7 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   - **Pan Forward 10s (`⏩ 10s`):** Steps forward within the track bounds.
   - **Track Scrubber:** Responsive timeline slider bounded specifically to the active track duration.
 
-### 4. Concept2 PM5-Style Telemetry HUD & Visual Themes
+### 5. Concept2 PM5-Style Telemetry HUD & Visual Themes
 - **Real-time Glassmorphism Cockpit:**
   - **Pace / 500m:** Instantaneous pace computed from power/stroke rate.
   - **Cadence (SPM):** Stroke rate with boat glide deceleration and 3.5s inactivity auto-pause watchdog.
@@ -79,7 +95,7 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   <em>Left: Neon Cyberpunk theme on ambient underwater coral route. Right: Modern Slate (default dark theme) during a high-cadence lake sprint.</em>
 </p>
 
-### 5. Dual-Source Telemetry & Virtual Simulator
+### 6. Dual-Source Telemetry & Virtual Simulator
 - **Web Bluetooth FTMS:** Connects to standard FTMS rowing machines (`0x2AD1`) including Merach Q1S, Concept2 PM5, WaterRower ComModule, and standard BLE Heart Rate monitors (`0x180D`).
 - **Dynamic Workout Simulator:** Built-in rowing simulator with two operating modes:
   - **Dynamic Program:** Automatically cycles through structured interval training phases:
@@ -92,7 +108,7 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   - **Manual Slider:** Fine-tune target SPM ($14 \dots 38$) with live split and watt calculations.
   - **Instant Pause / Resume:** "Pause Pulling" button to immediately halt stroke production and test boat glide and auto-pause.
 
-### 6. Session Persistence & Garmin TCX Export
+### 7. Session Persistence & Garmin TCX Export
 - Workouts and per-second trackpoint telemetry are stored locally in SQLite (`data/sessions.db`).
 - Export complete workout history to standard **Garmin Training Center XML (`.TCX`)** format compatible with Strava, Garmin Connect, and TrainingPeaks.
 
@@ -269,7 +285,7 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 - [ ] **Live GitHub Pages Demo:** Deploy a static client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and workout simulator directly in the browser (will include bundled lightweight demo video and ambient audio assets).
 
 ### Completed
-- [x] **Dynamic Cadence-Proportional Audio Volume:** Added an optional setting in the HUD Audio dropdown and Settings modal allowing ambient soundtrack volume to subtly modulate with rowing cadence (lowering to ~0.55× on rests/glides, swelling up to ~1.20× on sprints with smooth exponential ramping). Keeps audio at natural 1.0× pitch without pitch/DSP distortion to prevent jarring situations where sprinting audio blares while the athlete is paused or resting.
+- [x] **Dynamic Cadence-Proportional Audio Volume (Enabled by Default for Cadence Tracks):** Added dynamic soundtrack volume modulation that subtly tracks rowing cadence (lowering to ~0.55× on rests/glides, swelling up to ~1.20× on sprints with smooth 100ms exponential ramping). Enabled by default on cadence-locked tracks and bypassed on Fixed 1.0× Ambient tracks, keeping audio at natural 1.0× pitch without pitch/DSP distortion. Includes quick toggles in both the HUD Audio dropdown and Settings modal.
 - [x] **Cockpit HUD Speed Sync Mode Dropdown & Cadence Zones (Zero-Stutter iOS Playback):** Added an interactive in-cockpit speed selector allowing users to switch on the fly between **Cadence Zones (Smooth)** (0.85× / 1.0× / 1.25× / 1.5× with 3s hysteresis dwell time for zero-stutter iOS playback), **Ambient (Fixed 1.0×)**, and **Continuous Dynamic**.
 - [x] **Mobile Video Playback & Dynamic Rate Synchronization Optimizations (iPhone / iOS WebKit):** Optimized mobile video playback fluidity during dynamic cadence transitions by introducing deadband rate quantization to prevent AVPlayer clock re-sync stalls, disabling pitch preservation on the muted video element to bypass WebKit Phase Vocoder DSP overhead, expanding streaming range chunk sizes from 256 KB to 1 MB, and capping download streams to 1080p.
 - [x] **Mobile & iPhone 11 Responsive Layout & Standalone Web App Polishing:** Full portrait and landscape optimization for iPhone 11 and compact smartphones across Cockpit HUD metrics, fluid audio controls, responsive Workout History cards (no horizontal overflow), modal sizing, and iOS Home Screen standalone web app safe-area insets (`env(safe-area-inset-*)`).

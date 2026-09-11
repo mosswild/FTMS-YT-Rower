@@ -37,12 +37,13 @@ export class AudioEngine {
     this.isPlaying = false;
 
     // Dynamic Cadence-Proportional Audio Volume
-    this.cadenceVolumeModulation = options.cadenceVolumeModulation || false;
+    this.cadenceVolumeModulation = options.cadenceVolumeModulation !== undefined ? options.cadenceVolumeModulation : true;
+    this.isAmbient = options.isAmbient || false;
     this.baselineSpm = options.baselineSpm || 20;
-    this.currentCadenceScale = 1.0;
-    this.targetCadenceScale = 1.0;
-    this.volumeRampInterval = null;
     this.lastCadenceSpm = 20;
+    this.currentCadenceScale = (this.cadenceVolumeModulation && !this.isAmbient) ? this.calculateCadenceVolumeScale(this.lastCadenceSpm) : 1.0;
+    this.targetCadenceScale = this.currentCadenceScale;
+    this.volumeRampInterval = null;
 
     this.startTime = 0;
     this.endTime = 0;
@@ -246,7 +247,7 @@ export class AudioEngine {
 
   setCadenceVolumeModulation(enabled) {
     this.cadenceVolumeModulation = !!enabled;
-    if (!this.cadenceVolumeModulation) {
+    if (!this.cadenceVolumeModulation || this.isAmbient) {
       this.currentCadenceScale = 1.0;
       this.targetCadenceScale = 1.0;
       this.applyEffectiveVolume();
@@ -259,10 +260,25 @@ export class AudioEngine {
     }
   }
 
+  setAmbientMode(isAmbient) {
+    this.isAmbient = !!isAmbient;
+    if (this.isAmbient) {
+      this.currentCadenceScale = 1.0;
+      this.targetCadenceScale = 1.0;
+      this.applyEffectiveVolume();
+      this.stopVolumeRamping();
+    } else if (this.cadenceVolumeModulation) {
+      this.targetCadenceScale = this.calculateCadenceVolumeScale(this.lastCadenceSpm);
+      if (this.isPlaying) {
+        this.startVolumeRamping();
+      }
+    }
+  }
+
   setBaselineSpm(baseline) {
     if (baseline > 0) {
       this.baselineSpm = baseline;
-      if (this.cadenceVolumeModulation) {
+      if (this.cadenceVolumeModulation && !this.isAmbient) {
         this.targetCadenceScale = this.calculateCadenceVolumeScale(this.lastCadenceSpm);
       }
     }
@@ -282,7 +298,7 @@ export class AudioEngine {
 
   updateCadence(spm) {
     this.lastCadenceSpm = spm !== undefined ? spm : this.lastCadenceSpm;
-    if (!this.cadenceVolumeModulation) return;
+    if (!this.cadenceVolumeModulation || this.isAmbient) return;
     this.targetCadenceScale = this.calculateCadenceVolumeScale(spm);
     if (!this.volumeRampInterval && this.isPlaying) {
       this.startVolumeRamping();
@@ -291,7 +307,7 @@ export class AudioEngine {
 
   applyEffectiveVolume() {
     if (!this.audio) return;
-    const scale = this.cadenceVolumeModulation ? this.currentCadenceScale : 1.0;
+    const scale = (this.cadenceVolumeModulation && !this.isAmbient) ? this.currentCadenceScale : 1.0;
     const effVol = Math.max(0, Math.min(1.0, this.volume * scale));
     this.audio.volume = effVol;
     this.audio.muted = (effVol === 0 || this.volume === 0);
@@ -300,8 +316,8 @@ export class AudioEngine {
   startVolumeRamping() {
     if (this.volumeRampInterval) return;
     this.volumeRampInterval = setInterval(() => {
-      if (!this.cadenceVolumeModulation || !this.audio || !this.isPlaying) {
-        if (!this.isPlaying) {
+      if (!this.cadenceVolumeModulation || this.isAmbient || !this.audio || !this.isPlaying) {
+        if (!this.isPlaying || this.isAmbient) {
           this.stopVolumeRamping();
         }
         return;
@@ -333,7 +349,7 @@ export class AudioEngine {
         this.play();
       }
     } else {
-      if (this.cadenceVolumeModulation) {
+      if (this.cadenceVolumeModulation && !this.isAmbient) {
         if (isPaused) {
           this.updateCadence(0);
         } else {

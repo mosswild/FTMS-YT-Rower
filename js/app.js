@@ -1,13 +1,13 @@
-import { RowerBLE } from "./modules/ble-rower.js?v=cadence-volume-v11";
-import { HeartRateBLE } from "./modules/ble-heartrate.js?v=cadence-volume-v11";
-import { RateController } from "./modules/rate-controller.js?v=cadence-volume-v11";
-import { AudioEngine } from "./modules/audio-engine.js?v=cadence-volume-v11";
-import { PM5Hud } from "./modules/hud.js?v=cadence-volume-v11";
-import { SessionTracker } from "./modules/session-tracker.js?v=cadence-volume-v11";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=cadence-volume-v11";
-import { MediaManager } from "./modules/media-manager.js?v=cadence-volume-v11";
-import { TrackController } from "./modules/track-controller.js?v=cadence-volume-v11";
-import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=cadence-volume-v11";
+import { RowerBLE } from "./modules/ble-rower.js?v=cadence-vol-default-v12";
+import { HeartRateBLE } from "./modules/ble-heartrate.js?v=cadence-vol-default-v12";
+import { RateController } from "./modules/rate-controller.js?v=cadence-vol-default-v12";
+import { AudioEngine } from "./modules/audio-engine.js?v=cadence-vol-default-v12";
+import { PM5Hud } from "./modules/hud.js?v=cadence-vol-default-v12";
+import { SessionTracker } from "./modules/session-tracker.js?v=cadence-vol-default-v12";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=cadence-vol-default-v12";
+import { MediaManager } from "./modules/media-manager.js?v=cadence-vol-default-v12";
+import { TrackController } from "./modules/track-controller.js?v=cadence-vol-default-v12";
+import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=cadence-vol-default-v12";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -39,15 +39,25 @@ const trackTimeDisplay = document.getElementById("track-time-display");
 // Initialize PM5 HUD
 const pm5Hud = new PM5Hud(viewportContainer);
 
-// Load persisted Cadence Volume setting
-let initialCadenceAudioVol = false;
+// Load persisted Cadence Volume setting (defaults to true for cadence-locked tracks)
+let initialCadenceAudioVol = true;
 try {
-  initialCadenceAudioVol = localStorage.getItem("ftms_cadence_audio_vol") === "true";
+  const savedCadenceVol = localStorage.getItem("ftms_cadence_audio_vol");
+  if (savedCadenceVol !== null) {
+    initialCadenceAudioVol = (savedCadenceVol === "true");
+  }
+} catch (e) {}
+
+// Check if initial speed mode is ambient
+let initialIsAmbient = false;
+try {
+  initialIsAmbient = (localStorage.getItem("ftms_speed_mode") === "ambient");
 } catch (e) {}
 
 // Initialize Audio Engine with status callback
 const audioEngine = new AudioEngine(videoEl, audioEl, {
   cadenceVolumeModulation: initialCadenceAudioVol,
+  isAmbient: initialIsAmbient,
   baselineSpm: 20,
   onStatusChange: (status) => {
     updateAudioUI(status);
@@ -600,6 +610,7 @@ function loadVideoIntoCockpit(videoId, title, autoPlay = false, isTrack = false)
   if (!isTrack) {
     trackController.clearTrack();
     rateController.setFixedSpeed(false);
+    audioEngine.setAmbientMode(rateController && rateController.speedMode === "ambient");
     updateAudioTrackDropdown("original", null);
   }
 
@@ -707,7 +718,9 @@ async function loadTracksUI() {
 function loadTrackIntoCockpit(track, autoPlay = false) {
   loadVideoIntoCockpit(track.video_id, track.name, false, true);
   trackController.loadTrack(track);
+  const isAmbient = !!track.fixed_speed || (rateController && rateController.speedMode === "ambient");
   rateController.setFixedSpeed(!!track.fixed_speed);
+  audioEngine.setAmbientMode(isAmbient);
 
   // Set audio based on track default
   if (track.default_audio === "original") {
@@ -1272,6 +1285,7 @@ if (formCreateTrack) {
       if (trackController.activeTrack && trackController.activeTrack.id === trackId) {
         trackController.loadTrack(payload);
         rateController.setFixedSpeed(fixedSpeed);
+        audioEngine.setAmbientMode(fixedSpeed || (rateController && rateController.speedMode === "ambient"));
         pm5Hud.updateSpeedMultiplier(rateController.smoothedRate, fixedSpeed);
         updateAudioTrackDropdown(null, payload.allowed_audios);
       }
@@ -2661,6 +2675,7 @@ function setCadenceAudioVolPreference(enabled) {
   } catch (e) {}
   if (settingCadenceVol) settingCadenceVol.checked = enabled;
   if (hudCadenceVolToggle) hudCadenceVolToggle.checked = enabled;
+  renderHudAudioDropdown();
   showHudToast(`Cadence Volume: ${enabled ? 'Enabled' : 'Disabled'}`);
 }
 
@@ -2919,6 +2934,14 @@ function renderHudAudioDropdown() {
   if (hudCadenceVolToggle) {
     hudCadenceVolToggle.checked = audioEngine.cadenceVolumeModulation;
   }
+  const hudCadenceVolSub = document.getElementById("hud-audio-cadence-vol-sub");
+  if (hudCadenceVolSub) {
+    if (audioEngine.isAmbient) {
+      hudCadenceVolSub.textContent = "Bypassed (Ambient 1.0× Track)";
+    } else {
+      hudCadenceVolSub.textContent = "Dips on rest, swells on sprint";
+    }
+  }
 
   let html = "";
 
@@ -3095,6 +3118,7 @@ if (btnHudSpeedPicker && hudSpeedDropdownMenu) {
         rateController.setSpeedMode(mode);
         localStorage.setItem("ftms_speed_mode", mode);
         updateSpeedDropdownSelection();
+        audioEngine.setAmbientMode(mode === "ambient" || rateController.isFixedSpeed);
       }
       closeHudDropdowns();
     });
