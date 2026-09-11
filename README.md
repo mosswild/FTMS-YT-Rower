@@ -266,12 +266,11 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 ## Development Roadmap
 
 ### Upcoming
+- [ ] **Dynamic Cadence-Proportional Audio Volume:** Optional setting allowing ambient soundtrack volume to subtly modulate with rowing cadence. Keeps audio at natural 1.0× pitch without pitch/DSP distortion, but gently lowers volume during rests/glides and swells during high-cadence sprints (e.g., within a gentle $\pm 20$–$30\%$ dynamic window around user master volume) to prevent jarring situations where intense sprinting audio blares while the athlete is resting.
 - [ ] **Live GitHub Pages Demo:** Deploy a static client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and workout simulator directly in the browser (will include bundled lightweight demo video and ambient audio assets).
-- [ ] **Cockpit HUD Cadence Sync vs. Ambient Toggle:** Ability to dynamically switch between **Ambient** (locked 1.0× video playback) and **Cadence Synced** (video playback speed modulated dynamically by rower stroke rate) directly from the Cockpit HUD controls.
-  - This toggle only affects the active session on the fly.
-  - The track's underlying default playback mode (configured when creating or editing the track) remains unchanged in the database.
 
 ### Completed
+- [x] **Cockpit HUD Speed Sync Mode Dropdown & Cadence Zones (Zero-Stutter iOS Playback):** Added an interactive in-cockpit speed selector allowing users to switch on the fly between **Cadence Zones (Smooth)** (0.85× / 1.0× / 1.25× / 1.5× with 3s hysteresis dwell time for zero-stutter iOS playback), **Ambient (Fixed 1.0×)**, and **Continuous Dynamic**.
 - [x] **Mobile Video Playback & Dynamic Rate Synchronization Optimizations (iPhone / iOS WebKit):** Optimized mobile video playback fluidity during dynamic cadence transitions by introducing deadband rate quantization to prevent AVPlayer clock re-sync stalls, disabling pitch preservation on the muted video element to bypass WebKit Phase Vocoder DSP overhead, expanding streaming range chunk sizes from 256 KB to 1 MB, and capping download streams to 1080p.
 - [x] **Mobile & iPhone 11 Responsive Layout & Standalone Web App Polishing:** Full portrait and landscape optimization for iPhone 11 and compact smartphones across Cockpit HUD metrics, fluid audio controls, responsive Workout History cards (no horizontal overflow), modal sizing, and iOS Home Screen standalone web app safe-area insets (`env(safe-area-inset-*)`).
 - [x] **Multi-Workout Bulk Export & Deletion:** Multi-select workouts with row checkboxes and a master toggle, export multiple or all workouts at once as a `.zip` archive of formatted `.tcx` files (or multi-activity TCX), and batch delete sessions.
