@@ -87,7 +87,7 @@ class ConsoleHUD:
 
 
 def format_telemetry_summary(device_name: str, metrics: dict) -> str:
-    """Formats live rowing telemetry into a concise, compact single-line HUD string that fits in standard 80-column terminals."""
+    """Formats live rowing telemetry into a concise, compact single-line HUD string with a live updating timestamp."""
     parts = []
 
     # 1. Cadence
@@ -130,12 +130,22 @@ def format_telemetry_summary(device_name: str, metrics: dict) -> str:
 
     body = " | ".join(parts) if parts else "Receiving packets..."
 
-    # Keep device tag concise so the line never wraps or truncates
-    tag = device_name
-    if len(tag) > 15:
-        tag = tag[:15]
+    t_str = datetime.datetime.now().strftime("%I:%M:%S %p")
+    tag = device_name[:14] if len(device_name) > 14 else device_name
 
-    return f"[{tag}] {body}"
+    line = f"[{t_str}] [{tag}] {body}"
+
+    try:
+        cols = max(40, shutil.get_terminal_size((80, 24)).columns - 1)
+    except Exception:
+        cols = 79
+
+    # If line is tight on standard 80-col terminals, shorten device tag (e.g. MRK-2CEE)
+    if len(line) > cols and "-" in tag:
+        tag_short = "MRK-" + tag.split("-")[-1] if tag.startswith("MRK") else tag.split("-")[-1]
+        line = f"[{t_str}] [{tag_short}] {body}"
+
+    return line
 
 
 def format_scan_status(last_connected_dt, nearby_count: int = 0) -> str:
