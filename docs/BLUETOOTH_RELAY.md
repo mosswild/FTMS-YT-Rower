@@ -158,3 +158,4 @@ If your Linux host has native Bluetooth hardware and BlueZ installed, the contai
 | `--address <MAC>`| Target an exact Bluetooth MAC or UUID | `--address "D4:22:CD:00:1A:2B"` |
 | `-v`, `--verbose`| Enable verbose multi-line scrolling logs instead of single-line HUD | `python scripts/bluetooth_relay.py -v` |
 | `--idle-timeout <SEC>`| Inactivity timeout in seconds before auto-disconnecting to conserve battery (default: 300 / 5 min; 0 to disable) | `python scripts/bluetooth_relay.py --idle-timeout 600` |
+| `--silence-window <SEC>`| Radio silence window in seconds after idle disconnect allowing rower to sleep (default: 480 / 8 min) | `python scripts/bluetooth_relay.py --silence-window 600` |

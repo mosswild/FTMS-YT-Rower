@@ -460,11 +460,13 @@ async def run_relay(args):
 
                 disconnect_time = datetime.datetime.now().strftime("%I:%M:%S %p")
                 if idle_disconnected:
-                    hud.log(f"[Idle] Disconnected at {disconnect_time} to save battery.")
-                    hud.log("       Allowing rower console to power off (~2 min). Press any key to force reconnect.")
-
+                    cooldown_sec = getattr(args, "silence_window", 480)
                     cooldown_start = time.time()
-                    max_cooldown_sec = 210  # 3.5 minutes max
+                    m_silence = round(cooldown_sec / 60, 1)
+                    m_silence_str = f"{int(m_silence)}" if m_silence.is_integer() else f"{m_silence}"
+
+                    hud.log(f"[Idle] Disconnected at {disconnect_time} to save battery.")
+                    hud.log(f"       Entering {m_silence_str}m radio silence so rower powers off. Press any key to resume early.")
 
                     while True:
                         # Check keyboard interrupt on Windows/cmd
@@ -478,33 +480,20 @@ async def run_relay(args):
                             pass
 
                         if interrupted:
-                            hud.log("[Input] Manual reconnect requested by user.")
+                            hud.log("[Input] Manual reconnect requested by user. Resuming scanner...")
                             break
 
                         elapsed = int(time.time() - cooldown_start)
-                        if elapsed >= max_cooldown_sec:
-                            hud.log("[Notice] Idle cooldown finished. Resuming scanner.")
-                            break
-
-                        # Passive scan to check if the rower is still broadcasting
-                        try:
-                            check_devices = await BleakScanner.discover(timeout=4.0)
-                            still_advertising = any(
-                                (target_device.address and d.address == target_device.address) or
-                                (target_device.name and d.name == target_device.name)
-                                for d in check_devices
-                            )
-                        except Exception:
-                            still_advertising = True
-
-                        if not still_advertising:
-                            hud.log(f"[OK] Rower console has powered off into sleep mode at {datetime.datetime.now().strftime('%I:%M:%S %p')}.")
+                        if elapsed >= cooldown_sec:
+                            hud.log(f"[OK] {m_silence_str}m radio silence complete. Rower should now be powered off.")
                             hud.log("     Battery conserved! Pull handle or press dial to wake.")
                             break
 
-                        remaining = max(0, max_cooldown_sec - elapsed)
-                        hud.update(f"[Sleeping] Waiting for rower to power down ({remaining}s remaining)... Press any key to resume")
-                        await asyncio.sleep(2.0)
+                        remaining = max(0, cooldown_sec - elapsed)
+                        rem_m = remaining // 60
+                        rem_s = remaining % 60
+                        hud.update(f"[Radio Silence] Muted for {rem_m:02d}:{rem_s:02d} to let rower sleep... (Press any key to resume)")
+                        await asyncio.sleep(1.0)
                 else:
                     hud.log(f"! Rower disconnected at {disconnect_time} (inactive/asleep). Resuming search...")
 
@@ -526,6 +515,7 @@ def main():
     parser.add_argument("--address", help="Exact Bluetooth MAC address / UUID to connect to")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose multi-line scrolling logs instead of single-line HUD")
     parser.add_argument("--idle-timeout", type=int, default=300, help="Inactivity timeout in seconds before disconnecting to save rower battery (default: 300 / 5 min; 0 to disable)")
+    parser.add_argument("--silence-window", type=int, default=480, help="Duration in seconds of total radio silence after idle disconnect to allow rower to sleep (default: 480 / 8 min)")
 
     args = parser.parse_args()
 
