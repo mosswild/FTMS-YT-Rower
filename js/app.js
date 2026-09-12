@@ -1,6 +1,6 @@
 import { RowerBLE } from "./modules/ble-rower.js?v=cadence-sensitivity-v13";
 import { HeartRateBLE } from "./modules/ble-heartrate.js?v=cadence-sensitivity-v13";
-import { RateController } from "./modules/rate-controller.js?v=cadence-sensitivity-v13";
+import { RateController } from "./modules/rate-controller.js?v=screen-wake-lock-v18";
 import { AudioEngine } from "./modules/audio-engine.js?v=cadence-sensitivity-v13";
 import { PM5Hud } from "./modules/hud.js?v=cadence-sensitivity-v13";
 import { SessionTracker } from "./modules/session-tracker.js?v=cadence-sensitivity-v13";
@@ -149,6 +149,58 @@ const trackController = new TrackController(videoEl, {
   }
 });
 
+// ----------------- Screen Wake Lock (Keep Display Awake) -----------------
+let wakeLockSentinel = null;
+
+async function requestScreenWakeLock() {
+  if ("wakeLock" in navigator && !wakeLockSentinel) {
+    try {
+      wakeLockSentinel = await navigator.wakeLock.request("screen");
+      wakeLockSentinel.addEventListener("release", () => {
+        wakeLockSentinel = null;
+        console.log("[WakeLock] Screen wake lock released by OS/browser");
+      });
+      console.log("[WakeLock] Screen wake lock acquired");
+    } catch (err) {
+      console.warn("[WakeLock] Could not acquire screen wake lock:", err);
+    }
+  }
+}
+
+async function releaseScreenWakeLock() {
+  if (wakeLockSentinel) {
+    try {
+      await wakeLockSentinel.release();
+      wakeLockSentinel = null;
+      console.log("[WakeLock] Screen wake lock released by request");
+    } catch (err) {
+      console.warn("[WakeLock] Error releasing screen wake lock:", err);
+    }
+  }
+}
+
+// Re-acquire wake lock if user switches back to the app while workout or video is active
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    if (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) {
+      requestScreenWakeLock();
+    } else if (videoEl && !videoEl.paused) {
+      requestScreenWakeLock();
+    }
+  }
+});
+
+if (videoEl) {
+  videoEl.addEventListener("play", () => {
+    requestScreenWakeLock();
+  });
+  videoEl.addEventListener("pause", () => {
+    if (!sessionTracker || (sessionTracker.state !== "active" && sessionTracker.state !== "paused")) {
+      releaseScreenWakeLock();
+    }
+  });
+}
+
 // Initialize Session Tracker
 const sessionTracker = new SessionTracker({
   onTick: (summary) => {},
@@ -156,6 +208,7 @@ const sessionTracker = new SessionTracker({
     const workoutBtn = document.getElementById("btn-toggle-workout");
     if (workoutBtn) {
       if (state === "active" || state === "paused") {
+        requestScreenWakeLock();
         workoutBtn.textContent = "Finish Workout";
         workoutBtn.className = "btn btn-danger";
         pm5Hud.setActiveSession(true);
@@ -165,6 +218,7 @@ const sessionTracker = new SessionTracker({
           audioEngine.play();
         }
       } else {
+        releaseScreenWakeLock();
         workoutBtn.textContent = "Start Workout";
         workoutBtn.className = "btn btn-success";
         pm5Hud.setActiveSession(false);

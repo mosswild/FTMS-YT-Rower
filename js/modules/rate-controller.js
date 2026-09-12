@@ -38,6 +38,7 @@ export class RateController {
     this.lastStrokeTime = 0;
     this.isAutoPaused = false;
     this.watchdogInterval = null;
+    this.pendingPlaybackRate = null;
 
     this.onRateChange = options.onRateChange || null;
     this.onAutoPauseState = options.onAutoPauseState || null;
@@ -53,8 +54,20 @@ export class RateController {
         } catch (e) {}
       };
       disableAudioTracks();
+
+      const onBufferReady = () => {
+        if (this.pendingPlaybackRate !== null && this.video && this.video.readyState >= 2) {
+          try {
+            this.video.playbackRate = this.pendingPlaybackRate;
+          } catch (e) {}
+          this.pendingPlaybackRate = null;
+        }
+      };
+
       if (typeof this.video.addEventListener === "function") {
         this.video.addEventListener("loadedmetadata", disableAudioTracks);
+        this.video.addEventListener("loadeddata", onBufferReady);
+        this.video.addEventListener("canplay", onBufferReady);
       }
     }
 
@@ -134,7 +147,14 @@ export class RateController {
       this.appliedRate = rate;
       this.lastRateUpdateTime = now;
       if (this.video.playbackRate !== rate) {
-        this.video.playbackRate = rate;
+        if (this.video.readyState >= 2) {
+          try {
+            this.video.playbackRate = rate;
+            this.pendingPlaybackRate = null;
+          } catch (e) {}
+        } else {
+          this.pendingPlaybackRate = rate;
+        }
       }
     }
 
@@ -169,7 +189,14 @@ export class RateController {
       this.appliedRate = quantizedRate;
       this.lastRateUpdateTime = now;
       if (this.video.playbackRate !== quantizedRate) {
-        this.video.playbackRate = quantizedRate;
+        if (this.video.readyState >= 2) {
+          try {
+            this.video.playbackRate = quantizedRate;
+            this.pendingPlaybackRate = null;
+          } catch (e) {}
+        } else {
+          this.pendingPlaybackRate = quantizedRate;
+        }
       }
     }
 
