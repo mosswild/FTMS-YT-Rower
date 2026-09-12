@@ -282,7 +282,7 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 
 ## Known Issues & Bug Tracker
 
-- [ ] **Scenic Video Freeze on Initial Workout Launch (iOS Safari / WebKit):** When launching the application and starting a workout for the first time on iOS (Safari or PWA), the scenic video can occasionally remain frozen on its initial poster frame while live telemetry metrics, HUD numbers, and soundtrack audio function normally. This occurs because WebKit's video element can defer playback until an explicit touch gesture or buffer kickstart occurs when workout telemetry arrives via WebSocket relay. *(Workaround: Toggle pause/resume on the workout or re-select the track in the cockpit to kickstart video playback).*
+- [ ] **Scenic Video Freeze on Initial Workout Launch (iOS Safari / WebKit):** When launching the application and starting a workout for the first time on iOS (Safari or PWA), the scenic video can occasionally remain frozen on its initial frame while live telemetry metrics, HUD numbers, and soundtrack audio function normally. Tapping or toggling does not unfreeze the video; resolving it requires completely closing and re-opening the web app / browser tab.
 
 ---
 
