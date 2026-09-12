@@ -86,31 +86,56 @@ class ConsoleHUD:
             sys.stdout.flush()
 
 
-def format_telemetry_summary(device_name: str, parsed: dict) -> str:
-    """Formats live rowing telemetry into a concise single-line HUD string."""
+def format_telemetry_summary(device_name: str, metrics: dict) -> str:
+    """Formats live rowing telemetry into a concise, compact single-line HUD string that fits in standard 80-column terminals."""
     parts = []
-    if "stroke_rate" in parsed and parsed["stroke_rate"] is not None:
-        parts.append(f"SPM: {parsed['stroke_rate']}")
-    if "watts" in parsed and parsed["watts"] is not None:
-        parts.append(f"Power: {parsed['watts']}W")
-    if "split_seconds" in parsed and parsed["split_seconds"] is not None:
-        s = parsed["split_seconds"]
-        if 0 < s < 3600:
-            parts.append(f"Split: {s // 60}:{s % 60:02d}/500m")
+
+    # 1. Cadence
+    spm = metrics.get("stroke_rate")
+    if spm is not None:
+        parts.append(f"{spm} SPM")
+
+    # 2. Power
+    watts = metrics.get("watts")
+    if watts is not None:
+        parts.append(f"{watts}W")
+
+    # 3. 500m Split
+    split_s = metrics.get("split_seconds")
+    if split_s is not None:
+        if 0 < split_s < 3600:
+            parts.append(f"{split_s // 60}:{split_s % 60:02d}/500m")
         else:
-            parts.append("Split: --/500m")
-    if "distance" in parsed and parsed["distance"] is not None:
-        parts.append(f"Dist: {parsed['distance']:,}m")
-    if "resistance" in parsed and parsed["resistance"] is not None:
-        parts.append(f"Res: Lvl {parsed['resistance']}")
-    if "hr" in parsed and parsed["hr"] is not None:
-        parts.append(f"HR: {parsed['hr']} bpm")
-    if "elapsed_seconds" in parsed and parsed["elapsed_seconds"] is not None:
-        el = parsed["elapsed_seconds"]
-        parts.append(f"Time: {el // 60:02d}:{el % 60:02d}")
+            parts.append("--/500m")
+
+    # 4. Total Distance
+    dist = metrics.get("distance")
+    if dist is not None:
+        parts.append(f"{dist:,}m")
+
+    # 5. Elapsed Time
+    el = metrics.get("elapsed_seconds")
+    if el is not None:
+        parts.append(f"{el // 60:02d}:{el % 60:02d}")
+
+    # 6. Resistance (if reported)
+    res = metrics.get("resistance")
+    if res is not None:
+        parts.append(f"Res:{res}")
+
+    # 7. Heart Rate (if reported)
+    hr = metrics.get("hr")
+    if hr is not None:
+        parts.append(f"{hr}bpm")
 
     body = " | ".join(parts) if parts else "Receiving packets..."
-    return f"[Connected: {device_name}] {body}"
+
+    # Keep device tag concise so the line never wraps or truncates
+    tag = device_name
+    if len(tag) > 15:
+        tag = tag[:15]
+
+    return f"[{tag}] {body}"
 
 
 def format_scan_status(last_connected_dt, nearby_count: int = 0) -> str:
@@ -320,6 +345,7 @@ async def run_relay(args):
     dev_name = "FTMS Rower"
     last_connected_dt = None
     last_active_time = time.time()
+    composite_metrics = {}
 
     def notification_handler(sender, data: bytearray):
         nonlocal last_connected_dt, last_active_time
@@ -329,16 +355,25 @@ async def run_relay(args):
             if (parsed.get("stroke_rate") or 0) > 0 or (parsed.get("watts") or 0) > 0:
                 last_active_time = time.time()
 
-            publisher.publish(parsed)
+            # Merge incoming fields into composite state so alternating FTMS packets
+            # (cadence/power in packet 1, distance/time in packet 2) combine into a single complete display
+            for k, v in parsed.items():
+                if v is not None and k not in ("timestamp", "source"):
+                    composite_metrics[k] = v
+            composite_metrics["timestamp"] = parsed.get("timestamp", time.time())
+            composite_metrics["source"] = "ble-relay"
+
+            publisher.publish(composite_metrics)
             if args.verbose:
-                spm = parsed.get("stroke_rate", "--")
-                watts = parsed.get("watts", "--")
-                split = parsed.get("split_seconds", "--")
-                res = parsed.get("resistance")
+                spm = composite_metrics.get("stroke_rate", "--")
+                watts = composite_metrics.get("watts", "--")
+                split = composite_metrics.get("split_seconds", "--")
+                dist = composite_metrics.get("distance", "--")
+                res = composite_metrics.get("resistance")
                 res_str = f" | Res: Lvl {res}" if res is not None else ""
-                logger.info(f"Live Metric -> SPM: {spm:<3} | Watts: {watts:<4} | 500m Split: {split}s{res_str}")
+                logger.info(f"Live Metric -> SPM: {spm:<3} | Watts: {watts:<4} | 500m Split: {split}s | Dist: {dist}m{res_str}")
             else:
-                hud.update(format_telemetry_summary(dev_name, parsed))
+                hud.update(format_telemetry_summary(dev_name, composite_metrics))
 
     print("\n=======================================================")
     print(" FTMS-Rower Bluetooth Relay Bridge Active")
@@ -398,6 +433,7 @@ async def run_relay(args):
             async with BleakClient(target_device) as client:
                 last_connected_dt = datetime.datetime.now()
                 last_active_time = time.time()
+                composite_metrics.clear()
                 t_str = last_connected_dt.strftime("%I:%M:%S %p")
                 hud.log(f"[OK] Connected to {dev_name} at {t_str}! Streaming telemetry to {publisher.endpoint}")
 
