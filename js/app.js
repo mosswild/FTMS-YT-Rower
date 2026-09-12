@@ -2757,6 +2757,9 @@ if (btnConnectRower) {
         alert("Could not connect to FTMS rower: " + err.message);
       }
     }
+  });
+}
+
 if (btnConnectHr) {
   btnConnectHr.addEventListener("click", async () => {
     if (simulator.isRunning && simulator.isHrEnabled) {
