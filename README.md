@@ -283,6 +283,11 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 ## Known Issues & Bug Tracker
 
 - [ ] **Scenic Video Freeze on Initial Workout Launch (iOS Safari / WebKit):** When launching the application and starting a workout for the first time on iOS (Safari or PWA), the scenic video can occasionally remain frozen on its initial frame while live telemetry metrics, HUD numbers, and soundtrack audio function normally. Tapping or toggling does not unfreeze the video; resolving it requires completely closing and re-opening the web app / browser tab.
+  - *Suspected Root Cause:* In iOS WebKit, the underlying AVFoundation `AVPlayerItem` pipeline can permanently deadlock if `video.playbackRate` is mutated or if `video.play()` is triggered while `video.readyState < 2` (`HAVE_CURRENT_DATA` / `HAVE_FUTURE_DATA`) before the initial keyframes are fully decoded. Once stalled, the native player element stops presenting frames even though JavaScript reports `paused == false`.
+  - *Proposed Fix:* 
+    1. Guard `video.playbackRate` assignment in `RateController`: defer non-1.0 rate changes until `video.readyState >= 2` (or upon `canplay`).
+    2. Add a `pendingRate` queue that applies automatically once the video buffer has signaled ready.
+    3. Implement an internal watchdog: if `video.paused === false` but `video.currentTime` fails to advance after ~1.5s of live workout telemetry, trigger an internal soft element re-attach rather than stranding the user.
 
 ---
 
