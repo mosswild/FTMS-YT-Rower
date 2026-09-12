@@ -21,14 +21,59 @@ export class PM5Hud {
       hr: document.getElementById("hud-hr"),
       hrIcon: document.getElementById("hud-hr-icon"),
       speedBadge: document.getElementById("hud-speed-badge"),
+      resistanceBadge: document.getElementById("hud-resistance-badge"),
+      resistanceVal: document.getElementById("hud-resistance-val"),
       videoTitle: document.getElementById("hud-video-title"),
       audioBadge: document.getElementById("hud-audio-badge"),
       autoPauseBadge: document.getElementById("hud-autopause-badge"),
       fullscreenBtn: document.getElementById("hud-fullscreen-btn"),
+      noticeToast: document.getElementById("hud-notice-toast")
     };
+
+    this.distanceOffset = 0;
+    this.timeOffset = 0;
+    this.rawDistance = 0;
+    this.rawElapsedSeconds = 0;
+    this.toastTimeout = null;
 
     this.setupInactivityWatchdog();
     this.setupFullscreen();
+  }
+
+  resetOffsets(dist, time) {
+    this.distanceOffset = dist !== undefined ? dist : this.rawDistance;
+    this.timeOffset = time !== undefined ? time : this.rawElapsedSeconds;
+    if (this.elements.distance) this.elements.distance.textContent = "0";
+    if (this.elements.time) this.elements.time.textContent = "00:00";
+  }
+
+  resetDistance() {
+    this.distanceOffset = this.rawDistance;
+    if (this.elements.distance) this.elements.distance.textContent = "0";
+  }
+
+  resetTime() {
+    this.timeOffset = this.rawElapsedSeconds;
+    if (this.elements.time) this.elements.time.textContent = "00:00";
+  }
+
+  updateResistance(level) {
+    if (this.elements.resistanceBadge && this.elements.resistanceVal) {
+      if (level !== undefined && level !== null && level > 0) {
+        this.elements.resistanceBadge.style.display = "inline-flex";
+        this.elements.resistanceVal.textContent = `Lvl ${level}`;
+      }
+    }
+  }
+
+  showNotice(msg, durationMs = 2500) {
+    if (!this.elements.noticeToast) return;
+    this.elements.noticeToast.textContent = msg;
+    this.elements.noticeToast.style.display = "block";
+    clearTimeout(this.toastTimeout);
+    this.toastTimeout = setTimeout(() => {
+      this.elements.noticeToast.style.display = "none";
+    }, durationMs);
   }
 
   updateMetrics(data) {
@@ -48,12 +93,24 @@ export class PM5Hud {
       this.elements.watts.textContent = data.watts > 0 ? Math.round(data.watts) : "--";
     }
 
-    if (data.distance !== undefined && this.elements.distance) {
-      this.elements.distance.textContent = Math.round(data.distance).toLocaleString();
+    if (data.distance !== undefined) {
+      this.rawDistance = data.distance;
+      const displayDistance = Math.max(0, data.distance - this.distanceOffset);
+      if (this.elements.distance) {
+        this.elements.distance.textContent = Math.round(displayDistance).toLocaleString();
+      }
     }
 
-    if (data.elapsedSeconds !== undefined && this.elements.time) {
-      this.elements.time.textContent = this.formatTime(data.elapsedSeconds);
+    if (data.elapsedSeconds !== undefined) {
+      this.rawElapsedSeconds = data.elapsedSeconds;
+      const displaySeconds = Math.max(0, data.elapsedSeconds - this.timeOffset);
+      if (this.elements.time) {
+        this.elements.time.textContent = this.formatTime(displaySeconds);
+      }
+    }
+
+    if (data.resistance !== undefined) {
+      this.updateResistance(data.resistance);
     }
 
     if (data.heartRate !== undefined && this.elements.hr) {

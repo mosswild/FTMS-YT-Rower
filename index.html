@@ -154,6 +154,12 @@
                 <div id="hud-audio-list-container" class="hud-dropdown-list"></div>
               </div>
             </div>
+
+            <!-- Live Resistance Level Badge -->
+            <div id="hud-resistance-badge" class="resistance-badge" style="display: none;" title="Rower Damper / Resistance Level">
+              <span class="badge-label" style="font-size: 0.68rem; opacity: 0.75; font-weight: 800; letter-spacing: 0.05em;">RES</span>
+              <span id="hud-resistance-val" style="font-family: var(--font-mono); font-weight: 700;">--</span>
+            </div>
           </div>
 
           <div class="hud-right-actions">
@@ -231,8 +237,8 @@
               <div class="pm5-value" id="hud-watts">--</div>
             </div>
 
-            <!-- Cell 4: Distance -->
-            <div class="pm5-cell pm5-cell-distance">
+            <!-- Cell 4: Distance (Click to Reset) -->
+            <div class="pm5-cell pm5-cell-distance pm5-cell-resettable" id="hud-cell-distance" title="Click to zero distance" role="button" tabindex="0">
               <div class="pm5-cell-header">
                 <span class="pm5-label">Distance</span>
                 <span class="pm5-unit">meters</span>
@@ -240,8 +246,8 @@
               <div class="pm5-value" id="hud-distance">0</div>
             </div>
 
-            <!-- Cell 5: Elapsed Time -->
-            <div class="pm5-cell pm5-cell-time">
+            <!-- Cell 5: Elapsed Time (Click to Reset) -->
+            <div class="pm5-cell pm5-cell-time pm5-cell-resettable" id="hud-cell-time" title="Click to zero elapsed time" role="button" tabindex="0">
               <div class="pm5-cell-header">
                 <span class="pm5-label">Elapsed Time</span>
                 <span class="pm5-unit">time</span>
@@ -846,6 +852,28 @@
     </div>
   </div>
 
+  <!-- Modal: Confirmation Dialog for Resetting Distance / Time -->
+  <div id="modal-confirm-reset" class="modal-overlay">
+    <div class="modal-card" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 id="modal-reset-title" class="modal-title" style="color: var(--accent-blue);">Reset Metric</h3>
+        <button id="btn-close-confirm-reset" class="close-btn" type="button">&times;</button>
+      </div>
+      <div style="margin: 1.25rem 0 0.5rem 0;">
+        <p id="modal-reset-message" style="color: var(--text-main); font-size: 0.95rem; line-height: 1.5; margin-bottom: 0.5rem;">
+          Reset distance to 0m?
+        </p>
+        <p style="color: var(--text-dim); font-size: 0.8rem; margin: 0;">
+          This zeroes the active display counter without affecting saved workout history.
+        </p>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+        <button type="button" id="btn-cancel-confirm-reset" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="btn-action-confirm-reset" class="btn btn-primary">Zero Counter</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Confirmation Dialog for Deletions -->
   <div id="modal-confirm-delete" class="modal-overlay">
     <div class="modal-card" style="max-width: 440px;">
@@ -869,6 +897,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=screen-wake-lock-v18"></script>
+  <script type="module" src="js/app.js?v=res-and-metric-reset-v19"></script>
 </body>
 </html>

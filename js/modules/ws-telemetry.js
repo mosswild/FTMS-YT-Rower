@@ -50,6 +50,9 @@ export class WebSocketTelemetry {
     if (raw.totalStrokes !== undefined) clean.totalStrokes = raw.totalStrokes;
     else if (raw.total_strokes !== undefined) clean.totalStrokes = raw.total_strokes;
 
+    if (raw.resistance !== undefined) clean.resistance = raw.resistance;
+    else if (raw.resistance_level !== undefined) clean.resistance = raw.resistance_level;
+
     return clean;
   }
 

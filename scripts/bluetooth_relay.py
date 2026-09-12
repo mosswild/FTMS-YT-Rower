@@ -89,9 +89,15 @@ def parse_ftms_rower_data(data: bytearray) -> dict:
     if (flags & (1 << 6)) and idx + 2 <= len(data):
         idx += 2
 
-    # Bit 7: Resistance Level present
-    if (flags & (1 << 7)) and idx + 2 <= len(data):
-        idx += 2
+    # Bit 7: Resistance Level present (sint16 in 0.1 resolution or uint8)
+    if (flags & (1 << 7)) and idx + 1 <= len(data):
+        if idx + 2 <= len(data):
+            raw_res = int.from_bytes(data[idx:idx+2], byteorder="little", signed=True)
+            parsed["resistance"] = round(raw_res * 0.1) if raw_res > 50 else raw_res
+            idx += 2
+        else:
+            parsed["resistance"] = data[idx]
+            idx += 1
 
     # Bit 8: Expended Energy present (uint16 total, uint16/hr, uint8/min)
     if (flags & (1 << 8)) and idx + 5 <= len(data):
@@ -229,7 +235,9 @@ async def run_relay(args):
             spm = parsed.get("stroke_rate", "--")
             watts = parsed.get("watts", "--")
             split = parsed.get("split_seconds", "--")
-            logger.info(f"Live Metric -> SPM: {spm:<3} | Watts: {watts:<4} | 500m Split: {split}s")
+            res = parsed.get("resistance")
+            res_str = f" | Res: Lvl {res}" if res is not None else ""
+            logger.info(f"Live Metric -> SPM: {spm:<3} | Watts: {watts:<4} | 500m Split: {split}s{res_str}")
             publisher.publish(parsed)
 
     print("\n=======================================================")

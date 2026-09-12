@@ -1,13 +1,13 @@
-import { RowerBLE } from "./modules/ble-rower.js?v=cadence-sensitivity-v13";
-import { HeartRateBLE } from "./modules/ble-heartrate.js?v=cadence-sensitivity-v13";
-import { RateController } from "./modules/rate-controller.js?v=screen-wake-lock-v18";
-import { AudioEngine } from "./modules/audio-engine.js?v=cadence-sensitivity-v13";
-import { PM5Hud } from "./modules/hud.js?v=cadence-sensitivity-v13";
-import { SessionTracker } from "./modules/session-tracker.js?v=cadence-sensitivity-v13";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=cadence-sensitivity-v13";
-import { MediaManager } from "./modules/media-manager.js?v=cadence-sensitivity-v13";
-import { TrackController } from "./modules/track-controller.js?v=cadence-sensitivity-v13";
-import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=cadence-sensitivity-v13";
+import { RowerBLE } from "./modules/ble-rower.js?v=res-and-metric-reset-v19";
+import { HeartRateBLE } from "./modules/ble-heartrate.js?v=res-and-metric-reset-v19";
+import { RateController } from "./modules/rate-controller.js?v=res-and-metric-reset-v19";
+import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
+import { PM5Hud } from "./modules/hud.js?v=res-and-metric-reset-v19";
+import { SessionTracker } from "./modules/session-tracker.js?v=res-and-metric-reset-v19";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=res-and-metric-reset-v19";
+import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
+import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
+import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -212,6 +212,7 @@ const sessionTracker = new SessionTracker({
         workoutBtn.textContent = "Finish Workout";
         workoutBtn.className = "btn btn-danger";
         pm5Hud.setActiveSession(true);
+        pm5Hud.resetOffsets();
         rateController.setWorkoutLive(true);
         if (state === "active" && videoEl && videoEl.paused && (rateController.isFixedSpeed || rateController.smoothedRate > 0)) {
           rateController.resumeVideo();
@@ -229,6 +230,77 @@ const sessionTracker = new SessionTracker({
     }
   }
 });
+
+// ----------------- Metric Reset Confirmation Handlers -----------------
+const modalConfirmReset = document.getElementById("modal-confirm-reset");
+const modalResetTitle = document.getElementById("modal-reset-title");
+const modalResetMessage = document.getElementById("modal-reset-message");
+const btnCloseConfirmReset = document.getElementById("btn-close-confirm-reset");
+const btnCancelConfirmReset = document.getElementById("btn-cancel-confirm-reset");
+const btnActionConfirmReset = document.getElementById("btn-action-confirm-reset");
+
+let pendingResetAction = null;
+
+function openResetConfirmModal(title, message, onConfirm) {
+  if (!modalConfirmReset) return;
+  modalResetTitle.textContent = title;
+  modalResetMessage.textContent = message;
+  pendingResetAction = onConfirm;
+  modalConfirmReset.classList.add("open");
+}
+
+function closeResetConfirmModal() {
+  if (!modalConfirmReset) return;
+  modalConfirmReset.classList.remove("open");
+  pendingResetAction = null;
+}
+
+if (btnCloseConfirmReset) btnCloseConfirmReset.addEventListener("click", closeResetConfirmModal);
+if (btnCancelConfirmReset) btnCancelConfirmReset.addEventListener("click", closeResetConfirmModal);
+if (btnActionConfirmReset) {
+  btnActionConfirmReset.addEventListener("click", () => {
+    if (pendingResetAction) {
+      pendingResetAction();
+    }
+    closeResetConfirmModal();
+  });
+}
+
+// Distance Cell Click
+const cellDistance = document.getElementById("hud-cell-distance");
+if (cellDistance) {
+  cellDistance.addEventListener("click", () => {
+    openResetConfirmModal(
+      "Reset Distance",
+      "Are you sure you want to zero the displayed workout distance to 0 meters?",
+      () => {
+        pm5Hud.resetDistance();
+        if (sessionTracker) {
+          sessionTracker.resetDistance();
+        }
+        pm5Hud.showNotice("Distance zeroed to 0m");
+      }
+    );
+  });
+}
+
+// Elapsed Time Cell Click
+const cellTime = document.getElementById("hud-cell-time");
+if (cellTime) {
+  cellTime.addEventListener("click", () => {
+    openResetConfirmModal(
+      "Reset Elapsed Time",
+      "Are you sure you want to zero the displayed elapsed time to 00:00?",
+      () => {
+        pm5Hud.resetTime();
+        if (sessionTracker) {
+          sessionTracker.resetTime();
+        }
+        pm5Hud.showNotice("Elapsed time zeroed to 00:00");
+      }
+    );
+  });
+}
 
 // Telemetry Dispatcher (handles both BLE Rower and Simulator)
 function handleTelemetryPacket(data) {

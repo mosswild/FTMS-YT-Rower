@@ -44,6 +44,8 @@ export class SessionTracker {
     this.state = "active";
     this.startTime = new Date().toISOString();
     this.elapsedSeconds = 0;
+    this.baseDistance = this.currentMetrics.distance || 0;
+    this.baseStrokes = this.currentMetrics.strokes || 0;
     this.samples = [];
 
     // 1-second elapsed timer
@@ -88,14 +90,23 @@ export class SessionTracker {
     }
   }
 
+  resetDistance() {
+    this.baseDistance = this.currentMetrics.distance || 0;
+  }
+
+  resetTime() {
+    this.elapsedSeconds = 0;
+  }
+
   recordSample() {
+    const sessionDist = Math.max(0, (this.currentMetrics.distance || 0) - (this.baseDistance || 0));
     this.samples.push({
       elapsed_seconds: this.elapsedSeconds,
       stroke_rate: this.currentMetrics.spm,
       split_seconds: this.currentMetrics.split,
       watts: this.currentMetrics.watts,
       hr: this.currentMetrics.hr,
-      distance: this.currentMetrics.distance
+      distance: sessionDist
     });
   }
 

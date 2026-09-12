@@ -285,6 +285,44 @@ body.in-fullscreen .app-header {
   background: rgba(245, 158, 11, 0.2);
   color: #fbbf24;
   border-color: rgba(245, 158, 11, 0.4);
+.resistance-badge {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(168, 85, 247, 0.18);
+  color: #c084fc;
+  border: 1px solid rgba(192, 132, 252, 0.4);
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+  backdrop-filter: blur(8px);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+[data-theme="cyberpunk"] .resistance-badge {
+  background: rgba(217, 70, 239, 0.2);
+  color: #f472b6;
+  border-color: rgba(244, 114, 182, 0.5);
+  box-shadow: 0 0 15px rgba(217, 70, 239, 0.4);
+}
+
+[data-theme="retro-pm5"] .resistance-badge {
+  background: #253e16;
+  color: #a8d58a;
+  border: 1px solid #3b6024;
+  box-shadow: none;
+  border-radius: 3px;
+}
+
+[data-theme="nordic"] .resistance-badge {
+  background: rgba(168, 85, 247, 0.12);
+  color: #9333ea;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15);
 }
 
 .hud-info-badge {
@@ -733,6 +771,22 @@ body.in-fullscreen .app-header {
   border-color: rgba(56, 189, 248, 0.45);
   background: rgba(15, 23, 42, 0.82);
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.pm5-cell.pm5-cell-resettable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.pm5-cell.pm5-cell-resettable:hover {
+  border-color: rgba(56, 189, 248, 0.65);
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 14px 36px rgba(56, 189, 248, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.pm5-cell.pm5-cell-resettable:active {
+  transform: scale(0.97);
 }
 
 .pm5-cell.highlight {

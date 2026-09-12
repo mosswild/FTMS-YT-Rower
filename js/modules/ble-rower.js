@@ -143,10 +143,16 @@ export class RowerBLE {
       byteIndex += 2;
     }
 
-    // Flag Bit 7: Resistance Level (uint8)
+    // Flag Bit 7: Resistance Level (uint8 or sint16)
     if ((flags & (1 << 7)) !== 0 && byteIndex < value.byteLength) {
-      data.resistance = value.getUint8(byteIndex);
-      byteIndex += 1;
+      if (byteIndex + 1 < value.byteLength) {
+        const rawRes = value.getInt16(byteIndex, true);
+        data.resistance = rawRes > 50 ? Math.round(rawRes * 0.1) : rawRes;
+        byteIndex += 2;
+      } else {
+        data.resistance = value.getUint8(byteIndex);
+        byteIndex += 1;
+      }
     }
 
     // Flag Bit 8: Total Energy (uint16 kcal), Per Hour (uint16), Per Min (uint8)
