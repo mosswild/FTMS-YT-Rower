@@ -352,12 +352,38 @@ const hrBle = new HeartRateBLE(
   }
 );
 
+const btnConnectRower = document.getElementById("btn-connect-rower");
+
 // UI Status Helpers
-function updateRowerStatus(connected, text) {
+function updateRowerStatus(connected, text, mode = null, deviceName = null) {
   const pill = document.getElementById("status-rower");
   if (pill) {
     pill.className = connected ? "status-pill connected" : "status-pill";
     pill.querySelector(".status-text").textContent = text || (connected ? "Rower Connected" : "Rower Disconnected");
+  }
+
+  if (btnConnectRower) {
+    if (connected) {
+      if (mode === "relay") {
+        const devLabel = deviceName ? ` (${deviceName})` : "";
+        btnConnectRower.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 5px; vertical-align: -2px;"><polyline points="20 6 9 17 4 12"/></svg>Connected (Relay${devLabel})`;
+        btnConnectRower.className = "btn btn-success btn-connected";
+        btnConnectRower.title = `Rower is actively connected via the Bluetooth Relay bridge (${deviceName || "Relay"}). Direct browser connection is disabled.`;
+      } else if (mode === "ble") {
+        const devLabel = deviceName ? `: ${deviceName}` : "";
+        btnConnectRower.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 5px; vertical-align: -2px;"><polyline points="20 6 9 17 4 12"/></svg>Connected${devLabel}`;
+        btnConnectRower.className = "btn btn-success btn-connected";
+        btnConnectRower.title = "Connected to rower via Web Bluetooth. Click to disconnect.";
+      } else if (mode === "sim") {
+        btnConnectRower.innerHTML = "Connect FTMS Rower";
+        btnConnectRower.className = "btn btn-primary";
+        btnConnectRower.title = "Connect to your rowing machine via Web Bluetooth";
+      }
+    } else {
+      btnConnectRower.innerHTML = "Connect FTMS Rower";
+      btnConnectRower.className = "btn btn-primary";
+      btnConnectRower.title = "Connect to your rowing machine via Web Bluetooth";
+    }
   }
 }
 
@@ -371,16 +397,41 @@ function updateHrStatus(connected, text) {
 
 // WebSocket Telemetry Gateway Listener (Enables Wi-Fi relay to standard browsers e.g. iOS Safari)
 let relayActive = false;
+let relayDeviceName = null;
 let relayTimeout = null;
 
 const wsTelemetry = new WebSocketTelemetry(
   (data) => {
+    // Explicit relay connection lifecycle events from bluetooth_relay.py
+    if (data.event === "connected") {
+      relayActive = true;
+      relayDeviceName = data.deviceName || "Rower";
+      if (!rowerBle.isConnected && !simulator.isRunning) {
+        updateRowerStatus(true, `${relayDeviceName} (Relay)`, "relay", relayDeviceName);
+      }
+      return;
+    }
+
+    if (data.event === "disconnected") {
+      relayActive = false;
+      relayDeviceName = null;
+      if (relayTimeout) clearTimeout(relayTimeout);
+      if (!rowerBle.isConnected && !simulator.isRunning) {
+        updateRowerStatus(false, "Relay Disconnected");
+      }
+      return;
+    }
+
     // If local BLE rower is not actively connected and simulator is not running, relay drives the cockpit
     if (!rowerBle.isConnected && !simulator.isRunning) {
       handleTelemetryPacket(data);
       if (!relayActive) {
         relayActive = true;
-        updateRowerStatus(true, "Rower (Relay)");
+        relayDeviceName = data.deviceName || relayDeviceName || "Rower";
+        updateRowerStatus(true, `${relayDeviceName} (Relay)`, "relay", relayDeviceName);
+      } else if (data.deviceName && !relayDeviceName) {
+        relayDeviceName = data.deviceName;
+        updateRowerStatus(true, `${relayDeviceName} (Relay)`, "relay", relayDeviceName);
       }
       if (data.heartRate !== undefined && !hrBle.isConnected) {
         updateHrStatus(true, "HR (Relay)");
@@ -391,11 +442,17 @@ const wsTelemetry = new WebSocketTelemetry(
         if (!rowerBle.isConnected && !simulator.isRunning) {
           updateRowerStatus(false, "Relay Idle");
         }
-      }, 5000);
+      }, 10000);
     }
   },
   (connected, text) => {
     console.log("[WS Gateway]", connected, text);
+    if (!connected && relayActive) {
+      relayActive = false;
+      if (!rowerBle.isConnected && !simulator.isRunning) {
+        updateRowerStatus(false, "Relay Offline");
+      }
+    }
   }
 );
 wsTelemetry.connect();
@@ -2604,22 +2661,54 @@ async function loadHistoryUI() {
 
 
 // ----------------- Bluetooth Hardware Pairing -----------------
-document.getElementById("btn-connect-rower").addEventListener("click", async () => {
-  try {
-    updateRowerStatus(false, "Connecting...");
-    const name = await rowerBle.connect();
-    updateRowerStatus(true, name);
-    if (simulator.isRunning) {
-      simulator.stop();
-      simBtn.textContent = "Start Simulator";
-      simBtn.className = "btn btn-secondary";
+if (btnConnectRower) {
+  btnConnectRower.addEventListener("click", async () => {
+    // 1. Prevent connecting through browser if already connected through Bluetooth Relay
+    if (relayActive) {
+      showHudToast(`Rower is already connected and streaming via Bluetooth Relay (${relayDeviceName || "Bridge"}).`);
+      return;
     }
-  } catch (err) {
-    console.error("[BLE Rower Error]", err);
-    updateRowerStatus(false, "Connection Failed");
-    alert("Could not connect to FTMS rower: " + err.message);
-  }
-});
+
+    // 2. If already connected via direct Web Bluetooth, prompt to disconnect
+    if (rowerBle.isConnected) {
+      const confirmed = await showConfirmDialog({
+        title: "Disconnect Rower",
+        message: "Are you sure you want to disconnect from your FTMS rowing machine?",
+        confirmBtnText: "Disconnect",
+        isDanger: false
+      });
+      if (confirmed) {
+        rowerBle.disconnect();
+        updateRowerStatus(false, "Disconnected");
+        showHudToast("Rower disconnected");
+      }
+      return;
+    }
+
+    // 3. Connect via Web Bluetooth
+    try {
+      updateRowerStatus(false, "Connecting...");
+      btnConnectRower.disabled = true;
+      btnConnectRower.textContent = "Connecting...";
+      const name = await rowerBle.connect();
+      btnConnectRower.disabled = false;
+      updateRowerStatus(true, name, "ble", name);
+      if (simulator.isRunning) {
+        simulator.stop();
+        simBtn.textContent = "Start Simulator";
+        simBtn.className = "btn btn-secondary";
+      }
+      showHudToast(`Connected to ${name}`);
+    } catch (err) {
+      btnConnectRower.disabled = false;
+      console.error("[BLE Rower Error]", err);
+      updateRowerStatus(false, "Connection Failed");
+      if (err.name !== "NotFoundError") {
+        alert("Could not connect to FTMS rower: " + err.message);
+      }
+    }
+  });
+}
 
 document.getElementById("btn-connect-hr").addEventListener("click", async () => {
   try {
@@ -2676,7 +2765,7 @@ if (simBtn) {
       if (btnOpenSimPanel) {
         btnOpenSimPanel.innerHTML = '<span class="status-dot online" style="margin-right: 6px;"></span>Sim Running';
       }
-      updateRowerStatus(true, `Sim: ${simulator.mode === "dynamic" ? "Dynamic Program" : "Manual"}`);
+      updateRowerStatus(true, `Sim: ${simulator.mode === "dynamic" ? "Dynamic Program" : "Manual"}`, "sim");
 
       if (sessionTracker.state !== "active") {
         sessionTracker.start();
@@ -2702,12 +2791,12 @@ if (simModeBtn) {
       simulator.setMode("manual");
       simModeBtn.textContent = "Mode: Manual Slider";
       if (simManualControls) simManualControls.style.display = "flex";
-      updateRowerStatus(true, "Sim: Manual");
+      updateRowerStatus(true, "Sim: Manual", "sim");
     } else {
       simulator.setMode("dynamic");
       simModeBtn.textContent = "Mode: Dynamic Program";
       if (simManualControls) simManualControls.style.display = "none";
-      updateRowerStatus(true, "Sim: Dynamic Program");
+      updateRowerStatus(true, "Sim: Dynamic Program", "sim");
     }
   });
 }

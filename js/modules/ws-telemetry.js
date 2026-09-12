@@ -30,6 +30,10 @@ export class WebSocketTelemetry {
       source: raw.source || "relay"
     };
 
+    if (raw.event !== undefined) clean.event = raw.event;
+    if (raw.device_name !== undefined) clean.deviceName = raw.device_name;
+    else if (raw.deviceName !== undefined) clean.deviceName = raw.deviceName;
+
     if (raw.strokeRate !== undefined) clean.strokeRate = raw.strokeRate;
     else if (raw.stroke_rate !== undefined) clean.strokeRate = raw.stroke_rate;
 

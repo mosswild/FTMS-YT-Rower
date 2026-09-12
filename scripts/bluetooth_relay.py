@@ -372,6 +372,7 @@ async def run_relay(args):
                     composite_metrics[k] = v
             composite_metrics["timestamp"] = parsed.get("timestamp", time.time())
             composite_metrics["source"] = "ble-relay"
+            composite_metrics["device_name"] = dev_name
 
             publisher.publish(composite_metrics)
             if args.verbose:
@@ -446,6 +447,12 @@ async def run_relay(args):
                 composite_metrics.clear()
                 t_str = last_connected_dt.strftime("%I:%M:%S %p")
                 hud.log(f"[OK] Connected to {dev_name} at {t_str}! Streaming telemetry to {publisher.endpoint}")
+                publisher.publish({
+                    "event": "connected",
+                    "device_name": dev_name,
+                    "source": "ble-relay",
+                    "timestamp": time.time()
+                })
 
                 await client.start_notify(ROWER_DATA_CHAR_UUID, notification_handler)
 
@@ -469,6 +476,12 @@ async def run_relay(args):
                             break
 
                 disconnect_time = datetime.datetime.now().strftime("%I:%M:%S %p")
+                publisher.publish({
+                    "event": "disconnected",
+                    "device_name": dev_name,
+                    "source": "ble-relay",
+                    "timestamp": time.time()
+                })
                 if idle_disconnected:
                     cooldown_sec = getattr(args, "silence_window", 480)
                     cooldown_start = time.time()
