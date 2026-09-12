@@ -17,13 +17,19 @@ The **FTMS-Rower Bluetooth Relay Bridge** connects directly to your rowing machi
 
 ---
 
-## ⚡ How It Works (Persistent Daemon)
+## ⚡ How It Works (Persistent Daemon & Live Console HUD)
 
-The relay script ([scripts/bluetooth_relay.py](../scripts/bluetooth_relay.py)) includes **continuous auto-discovery and persistent reconnection loops**:
+The relay script ([scripts/bluetooth_relay.py](../scripts/bluetooth_relay.py)) includes **continuous auto-discovery, persistent reconnection loops, and a single-line real-time terminal HUD**:
 
-1. **Rower Asleep:** When your rower monitor is off, the script idles quietly in the background without exiting.
-2. **Workout Starts:** The moment you pull the handle or tap the monitor, the script detects it within seconds, connects, and streams metrics to Docker.
-3. **Workout Ends:** When the monitor powers off from inactivity, the script cleanly returns to waiting for your next session.
+1. **Rower Asleep / Scanning:** The script updates a single line in place without flooding your terminal:
+   ```text
+   [Scanning] Searching for FTMS rower... (Last connected: 09:12:15 PM - Pull handle to wake)
+   ```
+2. **Workout Starts:** The moment you pull the handle or tap the monitor, the script detects it within seconds, establishes a BLE connection, and streams telemetry:
+   ```text
+   [Connected: MRK-CRYDN-2CEE] SPM: 24 | Power: 145W | Split: 2:12/500m | Dist: 1,240m | Res: Lvl 6
+   ```
+3. **Workout Ends:** When the monitor powers off from inactivity, the script logs the disconnection time and seamlessly returns to scanning mode for your next session.
 
 ---
 
@@ -150,3 +156,4 @@ If your Linux host has native Bluetooth hardware and BlueZ installed, the contai
 | `--scan` | Scans and lists all nearby Bluetooth fitness devices | `python scripts/bluetooth_relay.py --scan` |
 | `--name <NAME>` | Filter connection to a specific machine name | `--name "PM5"` or `--name "Merach"` |
 | `--address <MAC>`| Target an exact Bluetooth MAC or UUID | `--address "D4:22:CD:00:1A:2B"` |
+| `-v`, `--verbose`| Enable verbose multi-line scrolling logs instead of single-line HUD | `python scripts/bluetooth_relay.py -v` |

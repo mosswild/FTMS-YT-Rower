@@ -81,6 +81,10 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   - **Power (Watts):** Concept2 non-linear formula: $\text{Watts} = 2.80 / (P_{500}/500)^3$.
   - **Heart Rate (BPM):** BLE Heart Rate monitor integration with color-coded training zones.
   - **Distance & Time:** Distance rowed, elapsed time, and total stroke count.
+  - **Live Resistance / Damper Level Badge (`RES Lvl X`):** Real-time dial and magnetic resistance level extracted from FTMS Bit 7 telemetry.
+  - **Auto-Reset on Workout Start:** Starting a workout automatically establishes a baseline offset, zeroing out Distance (`0m`) and Elapsed Time (`00:00`) for the new session.
+  - **Interactive Click-to-Zero Metrics:** Click or tap the Distance or Elapsed Time cells in the Cockpit HUD at any time to zero the counter on demand, protected with a confirmation dialog.
+- **Screen Wake Lock API (Display Keep-Awake):** Automatically keeps phone, tablet, and desktop displays awake without dimming or sleeping during active workouts or scenic video playback (`navigator.wakeLock`), re-acquiring on app focus return and cleanly releasing upon completion.
 - **Auto-Hide:** Automatically fades out controls after 4 seconds of inactivity for a cinematic fullscreen view.
 - **Multiple Visual Themes:** Switch themes on the fly from the Settings modal:
   - **Modern Slate (Default):** High-contrast dark charcoal glass cockpit with clean sky-blue telemetry accents.
@@ -275,6 +279,7 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 
 2. **Wi-Fi WebSocket Relay Bridge:**
    - Your host server, PC, or Mac pairs to the rowing machine via Bluetooth using `bleak` (`scripts/bluetooth_relay.py` or `run_relay_windows.bat`), and broadcasts real-time telemetry over your local network via WebSocket.
+   - **Real-Time Live Console HUD:** Features an in-place single-line terminal status dashboard (no scrolling log waterfalls!) showing live metrics (`SPM`, `Power`, `Split`, `Dist`, `Res`, `Time`), sleep/wake detection, and last connected timestamps. Run with `-v` / `--verbose` if raw logs are needed.
    - **Zero browser restrictions:** Any device on your Wi-Fi (standard Safari, Firefox, iPhone, iPad, Smart TVs) opens the web page over plain HTTP and instantly receives live telemetry without needing Web Bluetooth or special browser flags.
    - **Auto-Start Setup:** See the [Bluetooth Relay Bridge Setup & Auto-Start Guide](docs/BLUETOOTH_RELAY.md) for Windows auto-start (`shell:startup`), macOS `launchd`, and Linux `systemd` instructions.
 
@@ -282,12 +287,7 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 
 ## Known Issues & Bug Tracker
 
-- [ ] **Scenic Video Freeze on Initial Workout Launch (iOS Safari / WebKit):** When launching the application and starting a workout for the first time on iOS (Safari or PWA), the scenic video can occasionally remain frozen on its initial frame while live telemetry metrics, HUD numbers, and soundtrack audio function normally. Tapping or toggling does not unfreeze the video; resolving it requires completely closing and re-opening the web app / browser tab.
-  - *Suspected Root Cause:* In iOS WebKit, the underlying AVFoundation `AVPlayerItem` pipeline can permanently deadlock if `video.playbackRate` is mutated or if `video.play()` is triggered while `video.readyState < 2` (`HAVE_CURRENT_DATA` / `HAVE_FUTURE_DATA`) before the initial keyframes are fully decoded. Once stalled, the native player element stops presenting frames even though JavaScript reports `paused == false`.
-  - *Proposed Fix:* 
-    1. Guard `video.playbackRate` assignment in `RateController`: defer non-1.0 rate changes until `video.readyState >= 2` (or upon `canplay`).
-    2. Add a `pendingRate` queue that applies automatically once the video buffer has signaled ready.
-    3. Implement an internal watchdog: if `video.paused === false` but `video.currentTime` fails to advance after ~1.5s of live workout telemetry, trigger an internal soft element re-attach rather than stranding the user.
+- [x] **Scenic Video Freeze on Initial Workout Launch (iOS Safari / WebKit):** *Resolved.* In iOS WebKit, mutating `video.playbackRate` while `video.readyState < 2` (`HAVE_CURRENT_DATA`) before initial keyframes decode can cause AVFoundation's `AVPlayerItem` pipeline to deadlock. Resolved by guarding rate changes in `RateController`: non-1.0 rate assignments are held in a `pendingRate` queue and applied cleanly once `canplay` / `loadeddata` signals ready.
 
 ---
 
@@ -297,6 +297,8 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 - [ ] **Live GitHub Pages Demo:** Deploy a static client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and workout simulator directly in the browser (will include bundled lightweight demo video and ambient audio assets).
 
 ### Completed
+- [x] **Bluetooth Relay Real-Time Console HUD:** Replaced scrolling terminal waterfalls in `bluetooth_relay.py` and `run_relay_windows.bat` with an in-place single-line live HUD that displays live metrics (`SPM`, `Watts`, `Split`, `Distance`, `Resistance`, `Time`), connection lifecycle milestones, idle sleep detection with last connection timestamps, and an optional `--verbose` flag for raw debug logs.
+- [x] **iOS WebKit Video Playback Freeze Guard:** Eliminated initial workout video freeze on iOS Safari / WebKit by guarding `RateController` against mutating `video.playbackRate` before initial keyframes decode (`readyState < 2`), applying rate changes via an internal `pendingRate` buffer once playback is ready.
 - [x] **Auto-Reset on Workout Start & Click-to-Zero Metrics:** Starting a workout automatically establishes a baseline offset, zeroing out displayed Distance and Elapsed Time so every session begins cleanly at `0m` and `00:00`. Users can also click or tap the Distance or Elapsed Time cells directly in the Cockpit HUD at any time to zero the counter on demand, protected with a confirmation dialog.
 - [x] **Live Damper / Resistance Level Reporting:** Added extraction of Bluetooth FTMS Bit 7 (Resistance Level) across the Bluetooth relay bridge and Web Bluetooth client, with a live in-cockpit tag (`RES Lvl X`) that reflects your machine dial setting in real time.
 - [x] **Screen Wake Lock API (Keep Display Awake):** Integrated the native Screen Wake Lock API (`navigator.wakeLock`) across mobile (iOS Safari 16.4+, Chrome, Edge, Android) and desktop. Automatically keeps the display awake without dimming or sleeping whenever a workout is live or scenic video is actively playing in the cockpit, automatically re-acquires upon app focus return, and cleanly releases when the session finishes so the device can sleep normally.
