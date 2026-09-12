@@ -424,7 +424,51 @@ async def run_relay(args):
 
                 disconnect_time = datetime.datetime.now().strftime("%I:%M:%S %p")
                 if idle_disconnected:
-                    hud.log(f"[Idle] Disconnected at {disconnect_time}. Console will sleep shortly. Pull handle to wake.")
+                    hud.log(f"[Idle] Disconnected at {disconnect_time} to save battery.")
+                    hud.log("       Allowing rower console to power off (~2 min). Press any key to force reconnect.")
+
+                    cooldown_start = time.time()
+                    max_cooldown_sec = 210  # 3.5 minutes max
+
+                    while True:
+                        # Check keyboard interrupt on Windows/cmd
+                        interrupted = False
+                        try:
+                            import msvcrt
+                            if msvcrt.kbhit():
+                                msvcrt.getch()
+                                interrupted = True
+                        except (ImportError, Exception):
+                            pass
+
+                        if interrupted:
+                            hud.log("[Input] Manual reconnect requested by user.")
+                            break
+
+                        elapsed = int(time.time() - cooldown_start)
+                        if elapsed >= max_cooldown_sec:
+                            hud.log("[Notice] Idle cooldown finished. Resuming scanner.")
+                            break
+
+                        # Passive scan to check if the rower is still broadcasting
+                        try:
+                            check_devices = await BleakScanner.discover(timeout=4.0)
+                            still_advertising = any(
+                                (target_device.address and d.address == target_device.address) or
+                                (target_device.name and d.name == target_device.name)
+                                for d in check_devices
+                            )
+                        except Exception:
+                            still_advertising = True
+
+                        if not still_advertising:
+                            hud.log(f"[OK] Rower console has powered off into sleep mode at {datetime.datetime.now().strftime('%I:%M:%S %p')}.")
+                            hud.log("     Battery conserved! Pull handle or press dial to wake.")
+                            break
+
+                        remaining = max(0, max_cooldown_sec - elapsed)
+                        hud.update(f"[Sleeping] Waiting for rower to power down ({remaining}s remaining)... Press any key to resume")
+                        await asyncio.sleep(2.0)
                 else:
                     hud.log(f"! Rower disconnected at {disconnect_time} (inactive/asleep). Resuming search...")
 
