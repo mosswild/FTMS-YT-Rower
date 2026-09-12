@@ -24,8 +24,10 @@ Usage:
 
 import argparse
 import asyncio
+import datetime
 import json
 import logging
+import shutil
 import sys
 import time
 import urllib.request
@@ -39,6 +41,91 @@ HR_MEASUREMENT_CHAR_UUID = "00002a37-0000-1000-8000-00805f9b34fb"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("BLE-Relay")
+
+
+class ConsoleHUD:
+    """Renders a single-line real-time status display without flooding the terminal with scrolling logs."""
+    def __init__(self, verbose: bool = False):
+        self.verbose = verbose
+
+    def update(self, text: str):
+        """Updates the single status line in-place using carriage return and width padding."""
+        if self.verbose:
+            logger.info(text)
+            return
+        try:
+            cols = max(40, shutil.get_terminal_size((80, 24)).columns - 1)
+        except Exception:
+            cols = 79
+        # Truncate if exceeds column width to prevent unintended terminal wrapping
+        display_text = text[:cols]
+        # Pad with spaces to clear any leftover characters from previous longer lines
+        padded = display_text.ljust(cols)
+        sys.stdout.write(f"\r{padded}")
+        sys.stdout.flush()
+
+    def log(self, text: str):
+        """Prints a persistent event message on a fresh line, clearing the in-place status line first."""
+        if not self.verbose:
+            try:
+                cols = max(40, shutil.get_terminal_size((80, 24)).columns - 1)
+            except Exception:
+                cols = 79
+            sys.stdout.write("\r" + " " * cols + "\r")
+        print(text)
+        sys.stdout.flush()
+
+    def clear(self):
+        """Clears the live status line."""
+        if not self.verbose:
+            try:
+                cols = max(40, shutil.get_terminal_size((80, 24)).columns - 1)
+            except Exception:
+                cols = 79
+            sys.stdout.write("\r" + " " * cols + "\r")
+            sys.stdout.flush()
+
+
+def format_telemetry_summary(device_name: str, parsed: dict) -> str:
+    """Formats live rowing telemetry into a concise single-line HUD string."""
+    parts = []
+    if "stroke_rate" in parsed and parsed["stroke_rate"] is not None:
+        parts.append(f"SPM: {parsed['stroke_rate']}")
+    if "watts" in parsed and parsed["watts"] is not None:
+        parts.append(f"Power: {parsed['watts']}W")
+    if "split_seconds" in parsed and parsed["split_seconds"] is not None:
+        s = parsed["split_seconds"]
+        if 0 < s < 3600:
+            parts.append(f"Split: {s // 60}:{s % 60:02d}/500m")
+        else:
+            parts.append("Split: --/500m")
+    if "distance" in parsed and parsed["distance"] is not None:
+        parts.append(f"Dist: {parsed['distance']:,}m")
+    if "resistance" in parsed and parsed["resistance"] is not None:
+        parts.append(f"Res: Lvl {parsed['resistance']}")
+    if "hr" in parsed and parsed["hr"] is not None:
+        parts.append(f"HR: {parsed['hr']} bpm")
+    if "elapsed_seconds" in parsed and parsed["elapsed_seconds"] is not None:
+        el = parsed["elapsed_seconds"]
+        parts.append(f"Time: {el // 60:02d}:{el % 60:02d}")
+
+    body = " | ".join(parts) if parts else "Receiving packets..."
+    return f"[Connected: {device_name}] {body}"
+
+
+def format_scan_status(last_connected_dt, nearby_count: int = 0) -> str:
+    """Formats the real-time scanning status line."""
+    status = "[Scanning] Searching for FTMS rower..."
+    extra = []
+    if nearby_count > 0:
+        extra.append(f"{nearby_count} BLE device(s) seen")
+    if last_connected_dt:
+        t_str = last_connected_dt.strftime("%I:%M:%S %p")
+        extra.append(f"Last connected: {t_str} - Pull handle to wake")
+    else:
+        extra.append("Pull handle or press dial to wake")
+
+    return f"{status} ({' | '.join(extra)})"
 
 
 def parse_ftms_rower_data(data: bytearray) -> dict:
@@ -208,42 +295,54 @@ async def run_scanner():
             tag += " [Heart Rate]"
             found_any = True
 
-        print(f"  • {name:<28} Address: {d.address} {tag}")
+        print(f"  * {name:<28} Address: {d.address} {tag}")
 
     if not found_any:
         print("  (No devices advertising FTMS or HR service were detected.)")
         print("  Tips:")
         print("   1. Pull the rower handle or tap the console to wake it up.")
         print("   2. Disconnect/close the Merach app on your phone (BLE only connects to 1 device at a time).")
-        print("   3. Ensure Windows Bluetooth is turned ON.")
+        print("   3. Ensure Bluetooth is turned ON.")
     print("-----------------------------------\n")
 
 
 async def run_relay(args):
-    """Connects to rower via Bleak and streams packets to server."""
+    """Connects to rower via Bleak and streams packets to server with a single-line real-time HUD."""
     try:
         from bleak import BleakClient, BleakScanner
     except ImportError:
-        logger.error("Please install bleak: pip install bleak")
+        print("[ERROR] Please install bleak: pip install bleak")
         sys.exit(1)
 
     publisher = RelayPublisher(args.server)
+    hud = ConsoleHUD(verbose=args.verbose)
+
+    dev_name = "FTMS Rower"
+    last_connected_dt = None
 
     def notification_handler(sender, data: bytearray):
+        nonlocal last_connected_dt
         parsed = parse_ftms_rower_data(data)
-        if parsed.get("stroke_rate") is not None or parsed.get("watts") is not None:
-            spm = parsed.get("stroke_rate", "--")
-            watts = parsed.get("watts", "--")
-            split = parsed.get("split_seconds", "--")
-            res = parsed.get("resistance")
-            res_str = f" | Res: Lvl {res}" if res is not None else ""
-            logger.info(f"Live Metric -> SPM: {spm:<3} | Watts: {watts:<4} | 500m Split: {split}s{res_str}")
+        if any(k in parsed for k in ("stroke_rate", "watts", "distance", "split_seconds", "resistance", "hr")):
             publisher.publish(parsed)
+            if args.verbose:
+                spm = parsed.get("stroke_rate", "--")
+                watts = parsed.get("watts", "--")
+                split = parsed.get("split_seconds", "--")
+                res = parsed.get("resistance")
+                res_str = f" | Res: Lvl {res}" if res is not None else ""
+                logger.info(f"Live Metric -> SPM: {spm:<3} | Watts: {watts:<4} | 500m Split: {split}s{res_str}")
+            else:
+                hud.update(format_telemetry_summary(dev_name, parsed))
 
     print("\n=======================================================")
     print(" FTMS-Rower Bluetooth Relay Bridge Active")
     print(f" Target Server: {publisher.endpoint}")
-    print(" Listening for your rowing machine. Press Ctrl+C to exit.")
+    if args.verbose:
+        print(" Mode: Verbose Multi-line Scrolling Logs")
+    else:
+        print(" Mode: Real-time Live Console HUD (single-line updates)")
+    print(" Press Ctrl+C to stop.")
     print("=======================================================\n")
 
     while True:
@@ -251,21 +350,21 @@ async def run_relay(args):
         nearby_seen = []
         try:
             if args.address:
-                logger.info(f"Scanning for device by address: {args.address}...")
-                target_device = await BleakScanner.find_device_by_address(args.address, timeout=6.0)
+                hud.update(f"[Scanning] Searching for device by address: {args.address}...")
+                target_device = await BleakScanner.find_device_by_address(args.address, timeout=5.0)
             else:
-                logger.info("Scanning for FTMS Rower (Merach Q1, PM5, FTMS 0x1826)...")
+                hud.update(format_scan_status(last_connected_dt, len(nearby_seen)))
                 try:
-                    devices_dict = await BleakScanner.discover(timeout=5.0, return_adv=True)
+                    devices_dict = await BleakScanner.discover(timeout=4.0, return_adv=True)
                     items = list(devices_dict.values())
                 except TypeError:
-                    devices = await BleakScanner.discover(timeout=5.0)
+                    devices = await BleakScanner.discover(timeout=4.0)
                     items = [(d, None) for d in devices]
 
                 for d, adv in items:
                     name, uuids = extract_device_info(d, adv)
                     display_name = name or "Unknown"
-                    nearby_seen.append(f"'{display_name}' ({d.address})")
+                    nearby_seen.append(display_name)
 
                     name_lower = name.lower()
                     if args.name and args.name.lower() in name_lower:
@@ -278,35 +377,39 @@ async def run_relay(args):
                         break
 
             if not target_device:
-                if nearby_seen:
-                    preview = ", ".join(nearby_seen[:4])
-                    if len(nearby_seen) > 4:
-                        preview += f", ... (+{len(nearby_seen) - 4} more)"
-                    logger.info(f"No FTMS rower matched yet. Nearby BLE devices seen: [{preview}]. Retrying in 5s...")
-                else:
-                    logger.info("No active BLE devices detected in range. Ensure rower console is awake and not paired to your phone. Retrying in 5s...")
-                await asyncio.sleep(5.0)
+                hud.update(format_scan_status(last_connected_dt, len(nearby_seen)))
+                if args.verbose and nearby_seen:
+                    logger.info(f"Nearby BLE devices seen: {nearby_seen[:5]}")
+                await asyncio.sleep(2.5)
                 continue
 
             dev_name = target_device.name or "FTMS Rower"
-            logger.info(f"Found {dev_name} ({target_device.address})! Connecting...")
+            hud.log(f"-> Discovered {dev_name} ({target_device.address})! Connecting...")
 
             async with BleakClient(target_device) as client:
-                logger.info(f"Connected to {dev_name}! Subscribing to telemetry notifications...")
+                last_connected_dt = datetime.datetime.now()
+                t_str = last_connected_dt.strftime("%I:%M:%S %p")
+                hud.log(f"[OK] Connected to {dev_name} at {t_str}! Streaming telemetry to {publisher.endpoint}")
+
                 await client.start_notify(ROWER_DATA_CHAR_UUID, notification_handler)
 
-                logger.info("Relay streaming active. Open Safari on iPhone/iPad to view live HUD.")
+                if not args.verbose:
+                    hud.update(f"[Connected: {dev_name}] Waiting for first stroke...")
 
                 while client.is_connected:
-                    await asyncio.sleep(1.0)
+                    await asyncio.sleep(0.5)
 
-                logger.warning("Rower disconnected or went to sleep. Resuming scan in 3 seconds...")
+                disconnect_time = datetime.datetime.now().strftime("%I:%M:%S %p")
+                hud.log(f"! Rower disconnected at {disconnect_time} (inactive/asleep). Resuming search...")
 
         except asyncio.CancelledError:
             break
         except Exception as err:
-            logger.warning(f"Connection notice: {err}. Retrying in 5 seconds...")
-            await asyncio.sleep(5.0)
+            if args.verbose:
+                logger.warning(f"Connection notice: {err}. Retrying in 4 seconds...")
+            else:
+                hud.log(f"! Connection notice: {err}. Retrying in 4 seconds...")
+            await asyncio.sleep(4.0)
 
 
 def main():
@@ -315,16 +418,27 @@ def main():
     parser.add_argument("--scan", action="store_true", help="Scan and list nearby fitness Bluetooth devices")
     parser.add_argument("--name", help="Device name filter (e.g. Merach, Concept2, PM5)")
     parser.add_argument("--address", help="Exact Bluetooth MAC address / UUID to connect to")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose multi-line scrolling logs instead of single-line HUD")
 
     args = parser.parse_args()
+
+    # Configure logging level based on verbosity
+    if not args.verbose:
+        logging.basicConfig(level=logging.WARNING, format="%(asctime)s [%(levelname)s] %(message)s")
+        logging.getLogger("bleak").setLevel(logging.WARNING)
+    else:
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+        logging.getLogger("bleak").setLevel(logging.INFO)
 
     if args.scan:
         asyncio.run(run_scanner())
     else:
+        hud = ConsoleHUD(verbose=args.verbose)
         try:
             asyncio.run(run_relay(args))
         except KeyboardInterrupt:
-            print("\nRelay stopped.")
+            hud.clear()
+            print("\nRelay stopped by user.")
 
 
 if __name__ == "__main__":
