@@ -25,11 +25,11 @@ The relay script ([scripts/bluetooth_relay.py](../scripts/bluetooth_relay.py)) i
    ```text
    [Scanning] Searching for FTMS rower... (Last connected: 09:12:15 PM - Pull handle to wake)
    ```
-2. **Workout Starts:** The moment you pull the handle or tap the monitor, the script detects it within seconds, establishes a BLE connection, and streams telemetry:
+2. **Workout Starts:** The moment you pull the handle or tap the monitor, the script detects it within seconds, establishes a BLE connection, merges alternating FTMS packets into a unified composite state, and streams telemetry with a live timestamp:
    ```text
-   [Connected: MRK-CRYDN-2CEE] SPM: 24 | Power: 145W | Split: 2:12/500m | Dist: 1,240m | Res: Lvl 6
+   [09:35:14 PM] [MRK-CRYDN-2CEE] 24 SPM | 145W | 2:12/500m | 1,240m | 05:42
    ```
-3. **Workout Ends:** When the monitor powers off from inactivity, the script logs the disconnection time and seamlessly returns to scanning mode for your next session.
+3. **Inactivity & Battery Conservation Sleep:** If you step away for 5 minutes (`--idle-timeout 300`), the relay automatically disconnects and enters an 8-minute radio silence window (`--silence-window 480`). During this window, active BLE scanning is completely silenced so the rower's internal hardware timer (physically verified at 5–6 minutes on Merach Q1 hardware) can shut down the console and LCD screen without interference. Once the rower powers down, the relay quietly returns to passive scanning for your next session.
 
 ---
 
