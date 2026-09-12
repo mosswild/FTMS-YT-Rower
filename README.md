@@ -21,113 +21,125 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
 
 <p align="center">
   <img src="docs/screenshots/cockpit-nordic-minimalist.png" alt="FTMS-Rower Cockpit HUD (Nordic Minimalist Theme)" width="100%">
-  <em>Scenic Cockpit in Nordic Minimalist theme (translucent frosted white/glass) with real-time PM5 telemetry HUD, Lake Louise route, decoupled audio, and transport controls.</em>
+  <em>Scenic Cockpit in Nordic Minimalist theme (translucent frosted glass) with real-time PM5 telemetry HUD, Lake Louise route, decoupled audio, and transport controls.</em>
 </p>
 
 ---
 
-## Key Features
+## 📑 Table of Contents
 
-### 1. Decoupled Audio Pipeline & Cadence-Proportional Volume
-- **Muted Scenic Video:** The scenic video element is strictly muted so its playback rate can fluctuate freely ($0.3\times \dots 2.5\times$) without audio pitch distortion, chipmunking, or WebKit Phase Vocoder DSP overhead.
-- **Fixed-Rate Soundtrack at 1.0×:** A decoupled HTML5 `<audio>` element streams soundtracks at natural $1.0\times$ playback speed with crystal-clear fidelity.
-- **Dynamic Cadence-Proportional Audio Volume:** Ambient soundtrack volume subtly tracks your rowing cadence—lowering to **0.55×** during rests, glides, or pauses, and swelling up to **1.20×** during high-cadence sprints (up to your master volume ceiling). This eliminates confusing disconnects where high-energy rowing audio (or music) blares while the athlete is paused or resting.
-  - **On by Default for Cadence Tracks:** Enabled automatically on cadence-locked tracks and seamlessly bypassed on Fixed 1.0× Ambient tracks.
-  - **Adjustable Modulation Rate ($0.25\times \dots 2.50\times$):** Fine-tune the rate of volume change based on stroke cadence in Settings—choose from subtle modulation ($0.5\times$), standard balanced dynamics ($1.0\times$), or intense swells and deep rest dips ($1.5\times$–$2.5\times$).
-  - **Smooth Exponential Ramping:** An internal 100ms exponential low-pass filter (`diff * rateFactor`) transitions volume smoothly over ~1.2s, completely eliminating clicks or abrupt volume jumps.
-  - **In-HUD & Settings Toggles:** Toggle cadence volume on or off on the fly from the HUD Audio dropdown or Settings modal.
-- **Dynamic Auto-Pause:** When rowing halts or pauses on cadence-synced tracks, the video pauses while the audio soundtrack continues smoothly (or pauses if configured in Settings).
-- **Autoplay Handling:** Includes one-click un-mute prompt complying with modern browser autoplay policies.
+- [Key Features](#-key-features)
+- [Installation & Quick Start](#-installation--quick-start)
+  - [Option 1: Docker Container (Recommended)](#option-1-docker-container-recommended)
+  - [Option 2: Local Python Setup](#option-2-local-python-setup)
+- [Network Access & Client Setup](#-network-access--client-setup)
+  - [Step 1: Identify Server IP](#step-1-identify-server-ip)
+  - [Step 2: Connect from Client Devices](#step-2-connect-from-client-devices)
+  - [Step 3: Bluetooth on Client Devices](#step-3-bluetooth-on-client-devices)
+- [Device & Browser Compatibility](#-device--browser-compatibility)
+- [Running Automated Tests](#-running-automated-tests)
+- [Known Issues & Troubleshooting](#-known-issues--troubleshooting)
+- [Development Roadmap](#-development-roadmap)
+- [Upstream Base & License](#-upstream-base--license)
 
-### 2. Zero-Stutter Cadence Zones & Cockpit Speed Modes
-- **Hardware Stutter Elimination for iOS / iPadOS / Safari:** Eliminates AVPlayer clock re-sync stalls on WebKit mobile devices during continuous cadence variations by quantizing playback into 4 discrete, stable cadence tiers:
+---
+
+## ✨ Key Features
+
+### 1. 🎧 Decoupled Audio Pipeline & Cadence-Proportional Volume
+- **Muted Scenic Video:** The video element is strictly muted so its playback rate can fluctuate dynamically ($0.3\times \dots 2.5\times$) without pitch distortion, chipmunking, or WebKit Phase Vocoder DSP overhead.
+- **Fixed-Rate Soundtrack at 1.0×:** A decoupled HTML5 `<audio>` pipeline streams soundtracks at natural $1.0\times$ speed with pristine acoustic clarity.
+- **Dynamic Cadence Volume Modulation:** Ambient soundtrack volume smoothly mirrors stroke cadence—lowering to **0.55×** during rests or glides, and swelling up to **1.20×** during high-cadence sprints.
+  - *Automatic Activation:* Active by default on cadence-locked tracks; bypassed on Fixed 1.0× Ambient tracks.
+  - *Adjustable Dynamics ($0.25\times \dots 2.50\times$):* Tune modulation intensity from subtle ($0.5\times$) to high-contrast swells ($2.0\times$) in Settings.
+  - *Smooth Exponential Ramping:* 100ms low-pass filter transitions volume over ~1.2s to eliminate sudden jumps.
+  - *Quick Toggles:* Toggle on/off instantly via the Cockpit Audio dropdown or Settings modal.
+- **Dynamic Auto-Pause:** Pauses video playback when rowing halts while audio continues seamlessly (or auto-pauses based on user preference).
+- **Autoplay Compliance:** Single-tap un-mute prompts satisfy modern browser media autoplay restrictions.
+
+### 2. ⚡ Zero-Stutter Cadence Zones & Speed Modes
+- **Hardware Stutter Elimination (iOS / iPadOS / Safari):** Quantizes playback into 4 discrete cadence tiers to prevent AVPlayer clock re-sync stalls during continuous cadence shifts:
   - **Recovery / Glide** (< 18 SPM): **0.85×**
-  - **Base / Steady-State** (18 – 23 SPM): **1.00×** *(Native video speed — rock-solid, zero stutters for 90%+ of workout)*
+  - **Base / Steady-State** (18 – 23 SPM): **1.00×** *(Native video speed — zero stutters for 90%+ of workout)*
   - **Tempo / Power** (24 – 27 SPM): **1.25×**
   - **Sprint / Max Effort** (28+ SPM): **1.50×**
-- **3.0-Second Hysteresis Dwell Time:** Video playback rate only transitions after sustaining a new cadence zone for 3 continuous seconds, preventing single-stroke cadence flutter from resetting the video presentation clock.
-- **In-Cockpit Speed Mode Dropdown:** Click the HUD speed badge to switch on the fly between:
-  - **Cadence Zones (Smooth):** Zero-stutter zone-based playback with 3s hysteresis (default).
-  - **Ambient (Fixed 1.0×):** Steady native speed scenery that never accelerates, decelerates, or auto-pauses.
-  - **Continuous Dynamic:** Proportional real-time rate scaling with 1.5s smoothing.
+- **3.0s Hysteresis Dwell Time:** Transitions require sustaining a new cadence zone for 3 seconds, preventing single-stroke flutter from resetting the presentation clock.
+- **Cockpit Speed Mode Switcher:** Switch on the fly between:
+  - **Cadence Zones (Smooth):** Zero-stutter zone playback with 3s hysteresis (default).
+  - **Ambient (Fixed 1.0×):** Steady native speed that never accelerates, decelerates, or auto-pauses.
+  - **Continuous Dynamic:** Proportional real-time rate scaling with 1.5s smoothing filter.
 
-### 3. Dual Ingestion Engine (YouTube & Local Device Upload)
-- **YouTube Ingestion:** Ingests 1080p/4K H.264 video and extracts separate high-quality M4A audio tracks via FastAPI, `yt-dlp`, and `ffmpeg`.
-- **Direct Device Media Upload:** Drag-and-drop or browse videos (`.mp4`, `.mov`, `.webm`, `.mkv`) and soundtrack audio (`.mp3`, `.m4a`, `.wav`, `.flac`) directly from your computer with live chunked streaming upload progress and automatic poster thumbnail extraction.
-- **In-Library Trimming & Previews:** Preview any video or soundtrack in the Media Center, adjust trim start/end points with interactive scrubbers, and rename media assets.
-- **RFC 7233 Range Streaming:** Supports HTTP 206 partial content streaming for instant, smooth video scrubbing and track looping.
+### 3. 📥 Dual Ingestion Engine (YouTube & Local Uploads)
+- **YouTube Ingestion:** Downloads 1080p/4K H.264 video and extracts separate high-bitrate M4A audio via FastAPI, `yt-dlp`, and `ffmpeg`.
+- **Direct File Upload:** Drag-and-drop or browse video (`.mp4`, `.mov`, `.webm`, `.mkv`) and audio (`.mp3`, `.m4a`, `.wav`, `.flac`) files with live chunked streaming upload progress and automatic thumbnail extraction.
+- **Library Trimming & Scrubbing:** Preview media directly in the Media Center, adjust trim start/end timestamps with interactive scrubbers, and rename assets.
+- **RFC 7233 Range Streaming:** Native HTTP 206 partial content streaming ensures instant scrubbing and seamless track looping.
 
 <p align="center">
   <img src="docs/screenshots/media-center-tracks.png" alt="Media Ingestion & Configured Scenic Tracks" width="100%">
-  <em>Media Center: YouTube ingestion, direct device file upload, and configured scenic tracks with cadence-synced and ambient modes.</em>
+  <em>Media Center: YouTube ingestion, direct file upload, and track management with ambient and cadence modes.</em>
 </p>
 
-### 4. Scenic "Tracks" Feature & Cockpit Transport
-- **Custom Track Segments:** Define and save segments within videos with specified `start_time` and `end_time` (e.g., a pristine 5K river loop).
-- **Ambient vs. Cadence Modes:** Configure tracks to dynamically sync video speed and audio volume with your rowing cadence, or lock to a steady **Fixed 1.0× Ambient** speed for relaxing scenery that never speeds up, slows down, or auto-pauses during intervals.
-- **Loop Boundary Enforcement:** Videos loop smoothly within the track's configured start and end timestamps.
-- **Audio Association & Live Preview Player:** Assign default audio soundtracks and curate allowed playlists with an in-modal audio preview player and timeline scrubber to audition tracks before saving.
-- **Edit Existing Tracks & Video Thumbnails:** Edit any existing track at any time with live video thumbnail previews displaying duration and file sizes.
+### 4. 🚣 Scenic "Tracks" & Cockpit Transport
+- **Custom Track Segments:** Save curated segments within long videos with custom `start_time` and `end_time` (e.g., a 5K river loop).
+- **Ambient vs. Cadence Modes:** Configure tracks to dynamically respond to cadence or lock at a steady 1.0× pace for relaxing scenery.
+- **Curated Playlists & In-Modal Previews:** Associate default soundtracks and allowed playlists with an audition scrubber before saving.
 - **Cockpit Transport Bar:**
-  - **Restart Track (`⏮`):** Immediately jumps back to the track's start position.
-  - **Pan Back 10s (`⏪ 10s`):** Steps backward within the track bounds.
-  - **Pan Forward 10s (`⏩ 10s`):** Steps forward within the track bounds.
-  - **Track Scrubber:** Responsive timeline slider bounded specifically to the active track duration.
+  - **Restart (`⏮`):** Instantly jump to track start.
+  - **Pan 10s (`⏪ 10s` / `⏩ 10s`):** Step backward or forward within track boundaries.
+  - **Track Scrubber:** Responsive timeline slider bounded to active track limits.
 
-### 5. Concept2 PM5-Style Telemetry HUD & Visual Themes
-- **Real-time Glassmorphism Cockpit:**
-  - **Pace / 500m:** Instantaneous pace computed from power/stroke rate.
-  - **Cadence (SPM):** Stroke rate with boat glide deceleration and 3.5s inactivity auto-pause watchdog.
-  - **Power (Watts):** Concept2 non-linear formula: $\text{Watts} = 2.80 / (P_{500}/500)^3$.
+### 5. 📊 PM5 Telemetry HUD & Visual Themes
+- **Real-Time Glassmorphism Cockpit:**
+  - **Pace / 500m:** Instantaneous split computed from power and stroke rate.
+  - **Cadence (SPM):** Stroke rate with boat glide decay and 3.5s inactivity watchdog.
+  - **Power (Watts):** Non-linear physics formula: $\text{Watts} = 2.80 / (P_{500}/500)^3$.
   - **Heart Rate (BPM):** BLE Heart Rate monitor integration with color-coded training zones.
   - **Distance & Time:** Distance rowed, elapsed time, and total stroke count.
-  - **Live Resistance / Damper Level Badge (`RES Lvl X`):** Displays real-time resistance level extracted from FTMS Bit 7 telemetry. *(Note: Requires a rower with electronic/motorized resistance sensors that report Bit 7 over Bluetooth. Rowers with purely manual mechanical dials—such as the manual Merach Q1—do not have electronic dial sensors and cannot broadcast resistance over BLE. This feature is coded to the Bluetooth FTMS specification but is not yet validated on physical hardware with electronic resistance reporting.)*
-  - **Auto-Reset on Workout Start:** Starting a workout automatically establishes a baseline offset, zeroing out Distance (`0m`) and Elapsed Time (`00:00`) for the new session.
-  - **Interactive Click-to-Zero Metrics:** Click or tap the Distance or Elapsed Time cells in the Cockpit HUD at any time to zero the counter on demand, protected with a confirmation dialog.
-- **Screen Wake Lock API (Display Keep-Awake):** Automatically keeps phone, tablet, and desktop displays awake without dimming or sleeping during active workouts or scenic video playback (`navigator.wakeLock`), re-acquiring on app focus return and cleanly releasing upon completion.
-- **Auto-Hide:** Automatically fades out controls after 4 seconds of inactivity for a cinematic fullscreen view.
-- **Multiple Visual Themes:** Switch themes on the fly from the Settings modal:
-  - **Modern Slate (Default):** High-contrast dark charcoal glass cockpit with clean sky-blue telemetry accents.
-  - **Nordic Minimalist:** Elegant translucent frosted white/glass aesthetic with soft sunrise gold and ice tones.
-  - **Neon Cyberpunk:** OLED dark glass with laser cyan and magenta synthwave glow for high-energy sessions.
-  - **Concept2 PM5 LCD:** Authentic matte bezel with phosphorescent green digital LCD monitor styling.
+  - **Resistance / Damper Badge (`RES Lvl X`):** Real-time resistance level from FTMS Bit 7 telemetry. *(Requires a rower with electronic resistance sensors; purely mechanical dials like Merach Q1 do not broadcast resistance).*
+  - **Auto-Reset on Workout Start:** Starting a workout automatically establishes a baseline offset, zeroing Distance (`0m`) and Elapsed Time (`00:00`).
+  - **Click-to-Zero Metrics:** Click or tap Distance or Elapsed Time at any time to reset counters with confirmation.
+- **Screen Wake Lock API:** Automatically keeps mobile and desktop displays awake (`navigator.wakeLock`) during active workouts.
+- **Auto-Hide UI:** Cockpit controls smoothly fade out after 4 seconds of inactivity for a cinematic fullscreen view.
+- **Multiple Visual Themes:**
+  - **Modern Slate (Default):** High-contrast dark charcoal glass cockpit with sky-blue accents.
+  - **Nordic Minimalist:** Elegant translucent frosted white/glass aesthetic with soft gold and ice tones.
+  - **Neon Cyberpunk:** OLED dark glass with laser cyan and magenta synthwave glow.
+  - **Concept2 PM5 LCD:** Matte bezel with authentic phosphorescent green LCD styling.
 
 <p align="center">
   <img src="docs/screenshots/cockpit-neon-cyberpunk.png" alt="Neon Cyberpunk HUD Theme" width="49%">
   <img src="docs/screenshots/cockpit-modern-slate.png" alt="Modern Slate HUD Theme" width="49%">
 </p>
 <p align="center">
-  <em>Left: Neon Cyberpunk theme on ambient underwater coral route. Right: Modern Slate (default dark theme) during a high-cadence lake sprint.</em>
+  <em>Left: Neon Cyberpunk theme on ambient route. Right: Modern Slate (default dark theme) during a high-cadence sprint.</em>
 </p>
 
-### 6. Dual-Source Telemetry & Virtual Simulator
-- **Web Bluetooth FTMS:** Connects to standard FTMS rowing machines (`0x2AD1`) including Merach Q1S, Concept2 PM5, WaterRower ComModule, and standard BLE Heart Rate monitors (`0x180D`).
-- **Dynamic Workout Simulator:** Built-in rowing simulator with two operating modes:
-  - **Dynamic Program:** Automatically cycles through structured interval training phases:
-    1. *Warmup / Cruise* (22 SPM, 2:05 split)
-    2. *Surge Phase* (29 SPM, 1:48 split)
-    3. *Sprint All-Out* (34 SPM, 1:35 split)
-    4. *Paddle Down* (17 SPM, 2:18 split)
-    5. *Rest & Auto-Pause* (0 SPM — tests auto-pause watchdog)
-    6. *Catch & Recover* (25 SPM, 1:58 split)
+### 6. 🔌 Dual-Source Telemetry & Virtual Simulator
+- **Web Bluetooth FTMS:** Direct connection to FTMS rowers (`0x2AD1`) including Merach Q1S, Concept2 PM5, WaterRower ComModule, and standard BLE Heart Rate monitors (`0x180D`).
+- **Dynamic Workout Simulator:** Built-in simulator featuring:
+  - **Dynamic Program:** Automatically cycles through Warmup, Surge, Sprint, Paddle Down, Rest (testing auto-pause), and Recovery.
   - **Manual Slider:** Fine-tune target SPM ($14 \dots 38$) with live split and watt calculations.
-  - **Instant Pause / Resume:** "Pause Pulling" button to immediately halt stroke production and test boat glide and auto-pause.
+  - **Instant Pause / Resume:** Test boat glide decay and auto-pause behavior instantly.
 
-### 7. Session Persistence & Garmin TCX Export
+### 7. 💾 Session History & Garmin TCX Export
 - Workouts and per-second trackpoint telemetry are stored locally in SQLite (`data/sessions.db`).
-- Export complete workout history to standard **Garmin Training Center XML (`.TCX`)** format compatible with Strava, Garmin Connect, and TrainingPeaks.
+- Export workouts individually or in bulk to standard **Garmin Training Center XML (`.TCX`)** format compatible with Strava, Garmin Connect, and TrainingPeaks.
 
 ---
 
-## Installation & Quick Start
+## 🚀 Installation & Quick Start
 
 ### Prerequisites
-- Python 3.10+
-- `ffmpeg` installed on your system (`brew install ffmpeg` on macOS or `sudo apt install ffmpeg` on Ubuntu)
-- Google Chrome, Microsoft Edge, or any Chromium browser supporting Web Bluetooth
+- Python 3.10+ (if running bare-metal)
+- `ffmpeg` installed on your host system (`brew install ffmpeg` on macOS or `sudo apt install ffmpeg` on Ubuntu)
+- Google Chrome, Microsoft Edge, or any Chromium browser supporting Web Bluetooth (or any browser via Relay Bridge)
 
-### Option A: Docker Container Deployment (Recommended)
-Following the standard LinuxServer/self-hosting container pattern, persistent database (`sessions.db`) and downloaded media are mapped to `./config`:
+---
+
+### Option 1: Docker Container (Recommended)
+
+Following the standard LinuxServer container pattern, persistent database files (`sessions.db`) and media are mapped to `./config`:
 
 ```bash
 # 1. Clone the repository
@@ -138,197 +150,185 @@ cd FTMS-YT-Rower
 docker compose up -d
 ```
 
-Open `http://localhost:8000` in Google Chrome or Edge.
+Open `http://localhost:8000` in your browser.
 
 #### Customizing the Port:
-To run on a different port (e.g. `9000`):
 - **Via `.env` file:** Copy `.env.example` to `.env` and set `PORT=9000`.
-- **Or via command line:**
+- **Via command line:**
   ```bash
   PORT=9000 docker compose up -d
   ```
-  The app will immediately bind to `http://localhost:9000`.
 
-#### Container Configuration (`docker-compose.yml`):
-- **Port:** `${PORT:-8000}:${PORT:-8000}`
+#### Container Details (`docker-compose.yml`):
+- **Port Mapping:** `${PORT:-8000}:${PORT:-8000}`
 - **Container Name:** `ftms-rower`
-- **Volume:** `./config:/config` (persists SQLite database under `/config/data` and scenic videos/audio under `/config/media`)
+- **Volume:** `./config:/config` (persists SQLite database under `/config/data` and media under `/config/media`)
 - **User Permissions:** Supports `PUID` and `PGID` environment variables (default: `1000:1000`) for seamless non-root host file ownership.
 
-> 📖 **Setup Guides:**
+> 📖 **Helpful Guides:**
 > - [Synology NAS Docker Setup Guide](docs/DOCKER_SYNOLOGY.md) (step-by-step GUI instructions for Synology Container Manager)
-> - [Bluetooth Relay Bridge & Auto-Start Guide](docs/BLUETOOTH_RELAY.md) (auto-start on Windows boot, macOS launchd, and Linux systemd)
+> - [Bluetooth Relay Bridge Setup Guide](docs/BLUETOOTH_RELAY.md) (auto-start on Windows boot, macOS launchd, and Linux systemd)
 
 ---
 
-## 📱 Accessing Across Your Home Network (NAS / Docker)
+### Option 2: Local Python Setup
 
-Once the server or container is running on your host machine or NAS, you can connect to it from any tablet, phone, or computer on your home Wi-Fi network.
+```bash
+# 1. Clone the repository
+git clone https://github.com/mosswild/FTMS-YT-Rower.git
+cd FTMS-YT-Rower
 
-### Step 1: Find your Server's IP Address
-On your host server, open the terminal and identify its local network IP address:
-* **macOS / Linux:** Run `ifconfig` or `ip a` (look for `inet` under your active Wi-Fi or Ethernet adapter, e.g. `192.168.1.45`).
-* **Windows:** Run `ipconfig` in Command Prompt (look for `IPv4 Address`).
+# 2. Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-### Step 2: Open FTMS-Rower on Client Devices
-Open Google Chrome or Microsoft Edge on your tablet, phone, or computer and navigate to your server's IP address on port `8000`:
+# 3. Install dependencies
+pip install -r requirements.txt
 
-```text
-http://<YOUR-SERVER-IP-ADDRESS>:8000/ftms-rower
+# 4. Start the FastAPI server
+uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
-*(Example: `http://192.168.1.45:8000/ftms-rower`)*
+
+Open `http://localhost:8000` in your browser.
+
+---
+
+## 📱 Network Access & Client Setup
+
+Once FTMS-Rower is running on your host machine or NAS, you can access it from any tablet, phone, laptop, or smart TV on your local network.
+
+### Step 1: Identify Server IP
+Find the local network IP of your host server:
+- **macOS / Linux:** Run `ifconfig` or `ip a` (look for `inet` under your active adapter, e.g. `192.168.1.45`).
+- **Windows:** Run `ipconfig` in Command Prompt (look for `IPv4 Address`).
+
+### Step 2: Connect from Client Devices
+Open Google Chrome, Microsoft Edge, or Safari on your client device and browse to:
+```text
+http://<YOUR-SERVER-IP>:8000
+```
+*(Or `http://<YOUR-SERVER-IP>:8000/ftms-rower`)*
 
 > [!TIP]
-> **Tablet / Mobile Home Screen App:** You can add FTMS-Rower to your tablet or phone's home screen for an app-like, fullscreen cockpit view:
-> * **iOS / iPadOS:** Tap the **Share** button and select **"Add to Home Screen"**.
-> * **Android (Chrome):** Tap the **Menu** (three dots) and select **"Add to Home Screen"** or **"Install App"**.
+> **Install as a Home Screen App (PWA):**
+> - **iOS / iPadOS:** Tap the **Share** button in Safari and select **"Add to Home Screen"**.
+> - **Android (Chrome):** Tap the **Menu** (three dots) and select **"Add to Home Screen"** or **"Install App"**.
+> 
+> This provides an app-like, fullscreen cockpit view with safe-area notch support.
 
-### Step 3: Connecting to Bluetooth on Client Devices (iPhone, Android, Tablets)
-Modern browsers strictly govern Web Bluetooth (`navigator.bluetooth`). Here is how to achieve the best experience on your devices:
+### Step 3: Bluetooth on Client Devices
 
-#### A. iPhone / iPad (iOS):
-Apple disables Web Bluetooth in iOS Safari. The recommended, zero-hassle way to connect your iPhone or iPad is using the **Wi-Fi Bluetooth Relay Bridge**:
+Modern browsers enforce strict security on Web Bluetooth (`navigator.bluetooth`). Choose the setup that matches your devices:
 
-If your server (or any PC/Mac/Raspberry Pi) is located near your rowing machine:
-- **On Windows Host (Running Docker):**
-  Simply double-click `run_relay_windows.bat` in the repository folder! It will check/install `bleak`, connect to your rower using your Windows PC's native Bluetooth, and stream telemetry straight into your Docker container at `http://localhost:8000`.
-- **On Mac / Linux Host:**
+#### A. iPhone & iPad (iOS Safari) — Recommended: Wi-Fi Relay Bridge
+Apple blocks Web Bluetooth in iOS Safari. The zero-hassle way to connect iOS devices is using the **Wi-Fi Bluetooth Relay Bridge**:
+- **On Windows Host (Running Docker or Python):**  
+  Double-click `run_relay_windows.bat` in the repository root. It checks dependencies, connects to your rower using native Bluetooth, and streams telemetry directly to your server.
+- **On macOS / Linux Host:**
   ```bash
   pip install bleak
   python scripts/bluetooth_relay.py --server http://localhost:8000
   ```
-- **Embedded in Docker (Linux with D-Bus):**
-  Set `ENABLE_BLUETOOTH_RELAY=true` with `/var/run/dbus` mounted in [docker-compose.yml](docker-compose.yml).
+- **Inside Docker (Linux with D-Bus):**  
+  Set `ENABLE_BLUETOOTH_RELAY=true` and mount `/var/run/dbus` in [docker-compose.yml](docker-compose.yml).
 
-Once running, simply open **standard iOS Safari** (or a Safari Home Screen bookmark) on your iPhone or iPad at `http://<SERVER-IP>:8000/ftms-rower`. The HUD connects automatically over WebSockets with zero third-party browser apps, full landscape broadcast mode, and AirPlay mirroring!
+Once running, open standard iOS Safari at `http://<SERVER-IP>:8000`. Telemetry connects automatically over WebSockets with zero third-party apps, landscape broadcast support, and AirPlay mirroring!
 
-> 📖 **Zero-Click Auto-Start:** To make the relay start automatically in the background when Windows boots (or run as a background service on Linux/macOS), check out the [Bluetooth Relay Bridge Setup & Auto-Start Guide](docs/BLUETOOTH_RELAY.md).
+> 📖 **Zero-Click Auto-Start:** See the [Bluetooth Relay Bridge Setup Guide](docs/BLUETOOTH_RELAY.md) for Windows auto-start (`shell:startup`), macOS `launchd`, and Linux `systemd` service configurations.
 
-#### B. Android Tablets & Phones:
-* Open Google Chrome on your Android device.
-* Navigate to `chrome://flags/#unsafely-treat-insecure-origin-as-secure`.
-* Add `http://<YOUR-SERVER-IP>:8000` (and `http://<YOUR-SERVER-IP>:8000/ftms-rower`), select **Enabled**, and restart Chrome.
-* Tap the three-dot menu and select **"Add to Home screen"** or **"Install app"** for a fullscreen standalone app with native Web Bluetooth!
+#### B. Android Tablets & Phones (Direct Web Bluetooth)
+- Open Google Chrome on your Android device.
+- Navigate to `chrome://flags/#unsafely-treat-insecure-origin-as-secure`.
+- Add `http://<YOUR-SERVER-IP>:8000` (and `http://<YOUR-SERVER-IP>:8000/ftms-rower`), select **Enabled**, and restart Chrome.
+- Tap **"Add to Home screen"** or **"Install app"** for a fullscreen standalone app with native Web Bluetooth!
 
-#### C. Reverse Proxy with HTTPS (Universal):
-* Configure a reverse proxy with a local SSL certificate (e.g. `https://rower.local`) to provide a secure context across all browsers. See the [Synology NAS Docker Setup Guide](docs/DOCKER_SYNOLOGY.md#option-1-synology-reverse-proxy-with-https-recommended).
-
----
-
-### Option B: Local Python Setup
-```bash
-# Clone the repository
-git clone https://github.com/mosswild/FTMS-YT-Rower.git
-cd FTMS-YT-Rower
-
-# Create and activate virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### Running Locally
-Start the FastAPI server:
-```bash
-uvicorn backend.main:app --host 127.0.0.1 --port 8000
-```
-Open your browser to:
-```
-http://127.0.0.1:8000
-```
+#### C. Reverse Proxy with HTTPS (Universal)
+- Place FTMS-Rower behind a reverse proxy with a local SSL certificate (e.g., Nginx, Caddy, Traefik, or Synology Reverse Proxy).
+- Secure HTTPS origins automatically unlock Web Bluetooth across all Chromium browsers without flag toggling. See the [Synology NAS Docker Guide](docs/DOCKER_SYNOLOGY.md#option-1-synology-reverse-proxy-with-https-recommended).
 
 ---
 
-## Running Automated Tests
-Run the backend unit test suite:
-```bash
-PYTHONPATH=. .venv/bin/python tests/test_backend.py
-```
-Tests cover:
-- Concept2 pace-to-watts physics formula
-- SQLite workout session CRUD
-- Garmin TCX XML schema and trackpoint generation
-- HTTP 206 Partial Content range requests
-- FastAPI REST endpoints
-- Scenic Tracks configuration and retrieval
-- Synthetic multipart direct video and audio file uploads
+## 🌐 Device & Browser Compatibility
 
----
+FTMS-Rower supports both **Direct Web Bluetooth** and **Wi-Fi WebSocket Relay** modes, allowing it to run on virtually any modern device.
 
-## Supported Browsers & Device Compatibility
-
-FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSocket Relay** modes, allowing it to run on virtually any modern phone, tablet, laptop, desktop, or smart TV.
-
-| Browser / Platform | Direct Web Bluetooth | Wi-Fi Relay Bridge | Virtual Simulator | Notes |
+| Platform / Browser | Direct Web Bluetooth | Wi-Fi Relay Bridge | Virtual Simulator | Notes |
 |:---|:---:|:---:|:---:|:---|
-| **Google Chrome** (macOS, Windows, Linux, Android) | ✅ Yes | ✅ Yes | ✅ Yes | Full native Web Bluetooth support out-of-the-box. |
-| **Microsoft Edge** (Windows, macOS, Android) | ✅ Yes | ✅ Yes | ✅ Yes | Full native Web Bluetooth support. |
-| **Brave / Opera** (Desktop & Android) | ✅ Yes | ✅ Yes | ✅ Yes | Full native Web Bluetooth support. |
-| **Apple Safari** (iOS, iPadOS, macOS) | ⚠️ Via Relay | ✅ Yes | ✅ Yes | Apple disables Web Bluetooth in Safari; connects seamlessly via Wi-Fi Relay Bridge with PWA and AirPlay mirroring support. |
-| **Mozilla Firefox** (Desktop & Android) | ⚠️ Via Relay | ✅ Yes | ✅ Yes | Connects smoothly via Wi-Fi Relay Bridge. |
-| **Smart TV Browsers & Apple TV** | ⚠️ Via Relay / AirPlay | ✅ Yes | ✅ Yes | Stream metrics over Wi-Fi, or AirPlay mirror in landscape broadcast mode. |
+| **Google Chrome** (macOS, Windows, Linux, Android) | ✅ Yes | ✅ Yes | ✅ Yes | Native Web Bluetooth supported out-of-the-box. |
+| **Microsoft Edge** (Windows, macOS, Android) | ✅ Yes | ✅ Yes | ✅ Yes | Native Web Bluetooth supported out-of-the-box. |
+| **Brave / Opera** (Desktop & Android) | ✅ Yes | ✅ Yes | ✅ Yes | Native Web Bluetooth supported out-of-the-box. |
+| **Apple Safari** (iOS, iPadOS, macOS) | ⚠️ Via Relay | ✅ Yes | ✅ Yes | Apple disables Web Bluetooth; connects via Wi-Fi Relay Bridge with PWA and AirPlay support. |
+| **Mozilla Firefox** (Desktop & Android) | ⚠️ Via Relay | ✅ Yes | ✅ Yes | Connects seamlessly via Wi-Fi Relay Bridge. |
+| **Smart TV Browsers & Apple TV** | ⚠️ Via Relay / AirPlay | ✅ Yes | ✅ Yes | Stream metrics over Wi-Fi, or mirror via AirPlay in landscape broadcast mode. |
 
 ### Bluetooth Connection Modes
 
 1. **Direct Web Bluetooth:**
    - Pairs directly between your browser and rowing machine / HR monitor over Bluetooth Low Energy (`navigator.bluetooth`).
    - Requires a Chromium browser (Chrome, Edge, Opera, Brave).
-   - For Chromium browsers connecting across LAN IP addresses (e.g. `http://192.168.1.45:8000`), enable `chrome://flags/#unsafely-treat-insecure-origin-as-secure` or run behind an HTTPS reverse proxy. `localhost` and `127.0.0.1` work immediately without flags.
+   - Works immediately on `localhost` and `127.0.0.1`. For remote LAN IPs, enable the Chrome insecure-origin flag or use an HTTPS reverse proxy.
 
 2. **Wi-Fi WebSocket Relay Bridge:**
-   - Your host server, PC, or Mac pairs to the rowing machine via Bluetooth using `bleak` (`scripts/bluetooth_relay.py` or `run_relay_windows.bat`), and broadcasts real-time telemetry over your local network via WebSocket.
-   - **Real-Time Live Console HUD:** Features an in-place single-line terminal status dashboard (no scrolling log waterfalls!) showing live composite metrics (`[09:35:14 PM] [MRK-CRYDN-2CEE] 24 SPM | 145W | 2:12/500m | 1,240m | 05:42`) with a second-by-second live updating timestamp and automatic merging of alternating FTMS packets. Run with `-v` / `--verbose` if raw debug logs are needed.
-   - **Battery Conservation Auto-Disconnect & Radio Silence Window:** To prevent battery drain on rowers whose consoles stay illuminated while connected (such as the Merach Q1), the relay automatically disconnects after 5 minutes of idle inactivity (`--idle-timeout 300`) and enters an 8-minute total radio silence window (`--silence-window 480`, customizable). Zero BLE scanning packets are transmitted over the air during this window, allowing the rower's native hardware sleep timer (verified at 5–6 minutes on Merach Q1 hardware) to shut down the console and LCD without interference. Pressing any key resumes scanning immediately, or pulling the handle after the window wakes and reconnects the machine.
-   - **Zero browser restrictions:** Any device on your Wi-Fi (standard Safari, Firefox, iPhone, iPad, Smart TVs) opens the web page over plain HTTP and instantly receives live telemetry without needing Web Bluetooth or special browser flags.
-   - **Auto-Start Setup:** See the [Bluetooth Relay Bridge Setup & Auto-Start Guide](docs/BLUETOOTH_RELAY.md) for Windows auto-start (`shell:startup`), macOS `launchd`, and Linux `systemd` instructions.
+   - Host machine pairs to the rower via `bleak` ([scripts/bluetooth_relay.py](scripts/bluetooth_relay.py) or `run_relay_windows.bat`) and broadcasts telemetry over WebSockets.
+   - **Real-Time Live Console HUD:** Single-line terminal dashboard showing composite metrics (`[09:35:14 PM] [MRK-CRYDN-2CEE] 24 SPM | 145W | 2:12/500m | 1,240m | 05:42`) with automatic packet merging and live timestamps.
+   - **Battery Conservation Sleep:** Automatically disconnects after 5 minutes of inactivity (`--idle-timeout 300`) and enters an 8-minute radio silence window (`--silence-window 480`). Zero scan packets are sent, allowing rower hardware (e.g. Merach Q1) to power down its console and LCD screen.
+   - **Zero Browser Restrictions:** All devices (Safari, Firefox, Smart TVs) connect over plain HTTP without browser flags or certificates.
 
 ---
 
-## Known Issues & Bug Tracker
+## 🧪 Running Automated Tests
 
-- [ ] **Scenic Video Freeze on Initial Workout Launch (iOS Safari / WebKit):** When launching the application and starting a workout for the first time on iOS (Safari or PWA), the scenic video can occasionally remain frozen on its initial frame while live telemetry metrics, HUD numbers, and soundtrack audio function normally. Tapping or toggling does not unfreeze the video; resolving it requires completely closing and re-opening the web app / browser tab.
-  - *Suspected Root Cause:* In iOS WebKit, the underlying AVFoundation `AVPlayerItem` pipeline can permanently deadlock if `video.playbackRate` is mutated or if `video.play()` is triggered while `video.readyState < 2` (`HAVE_CURRENT_DATA` / `HAVE_FUTURE_DATA`) before the initial keyframes are fully decoded. Once stalled, the native player element stops presenting frames even though JavaScript reports `paused == false`.
-  - *Proposed Fix:* 
-    1. Guard `video.playbackRate` assignment in `RateController`: defer non-1.0 rate changes until `video.readyState >= 2` (or upon `canplay`).
-    2. Add a `pendingRate` queue that applies automatically once the video buffer has signaled ready.
-    3. Implement an internal watchdog: if `video.paused === false` but `video.currentTime` fails to advance after ~1.5s of live workout telemetry, trigger an internal soft element re-attach rather than stranding the user.
+Execute the backend test suite to verify physics calculations, session persistence, TCX generation, and streaming:
+
+```bash
+PYTHONPATH=. .venv/bin/python tests/test_backend.py
+```
+
+### Test Coverage:
+- Concept2 pace-to-watts physics formulas
+- SQLite session CRUD and database migrations
+- Garmin TCX XML trackpoint generation and schema compliance
+- RFC 7233 HTTP 206 partial content streaming
+- FastAPI REST endpoints
+- Scenic track configuration, filtering, and retrieval
+- Multipart synthetic video and audio file uploads
 
 ---
 
-## Development Roadmap
+## 🐛 Known Issues & Troubleshooting
+
+- [ ] **Scenic Video Freeze on Initial Workout Launch (iOS Safari / WebKit):** When launching the app and starting a workout for the first time on iOS (Safari or PWA), scenic video can occasionally remain frozen on the initial frame while telemetry metrics, HUD numbers, and soundtrack audio function normally.
+  - *Root Cause:* In iOS WebKit, the underlying AVFoundation `AVPlayerItem` pipeline can stall if `video.playbackRate` is mutated or `video.play()` is triggered while `video.readyState < 2` (`HAVE_CURRENT_DATA` / `HAVE_FUTURE_DATA`) before initial keyframes are fully decoded.
+  - *Mitigations / Roadmap Fix:* 
+    1. Guard `video.playbackRate` assignments in `RateController`: defer non-1.0 rate changes until `video.readyState >= 2`.
+    2. Add a `pendingRate` queue that applies automatically once the video buffer signals ready.
+    3. Implement an internal watchdog to soft re-attach the video element if `video.paused === false` but `video.currentTime` fails to advance after ~1.5s of telemetry.
+
+---
+
+## 🗺️ Development Roadmap
 
 ### Upcoming
-- [ ] **Structured & Built-In Workouts:** Configurable interval workout programs specifying rest periods, baseline rowing periods, and high-intensity sprint segments. Features live Cockpit HUD segment tracking with countdown timers, target SPM or Heart Rate zones, and real-time visual feedback indicating whether the rower is meeting the target requirement for the current interval. Workouts will be exportable and importable in standard JSON and YAML formats for easy community sharing.
-- [ ] **Live GitHub Pages Demo:** Deploy a static client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and workout simulator directly in the browser (will include bundled lightweight demo video and ambient audio assets).
+- [ ] **Structured & Built-In Workouts:** Configurable interval workout programs specifying rest periods, baseline rowing periods, and high-intensity sprint segments. Features live Cockpit HUD segment tracking with countdown timers, target SPM / Heart Rate zones, and visual target feedback. Import/export support for JSON and YAML formats.
+- [ ] **Live GitHub Pages Demo:** Client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and simulator directly in the browser with bundled lightweight sample media.
 
-### Completed
-- [x] **Bluetooth Relay Real-Time Console HUD & Battery Conservation Sleep:** Replaced scrolling terminal waterfalls in `bluetooth_relay.py` and `run_relay_windows.bat` with an in-place single-line live HUD displaying real-time composite metrics (`[HH:MM:SS AM/PM] [DEVICE] 24 SPM | 145W | 2:12/500m | 1,240m | 05:42`) with automatic packet merging and second-by-second timestamps. Added `--idle-timeout` (5 min default) and an 8-minute `--silence-window` of total radio silence (zero active BLE scan requests) allowing rower hardware (physically verified at 5–6 min on Merach Q1) to power down its LCD and BLE chip without waking in an instant reconnection loop.
-- [x] **Auto-Reset on Workout Start & Click-to-Zero Metrics:** Starting a workout automatically establishes a baseline offset, zeroing out displayed Distance and Elapsed Time so every session begins cleanly at `0m` and `00:00`. Users can also click or tap the Distance or Elapsed Time cells directly in the Cockpit HUD at any time to zero the counter on demand, protected with a confirmation dialog.
-- [x] **Live Damper / Resistance Level Reporting (FTMS Bit 7):** Added extraction of Bluetooth FTMS Bit 7 (Resistance Level) across the Bluetooth relay bridge and Web Bluetooth client, with a live in-cockpit tag (`RES Lvl X`). *(Note: Machines with purely manual mechanical dials like the manual Merach Q1 do not possess electronic sensors to report resistance level over Bluetooth; this feature is coded to the FTMS Bit 7 specification and remains unverified on physical hardware with electronic/motorized resistance).*
-- [x] **Screen Wake Lock API (Keep Display Awake):** Integrated the native Screen Wake Lock API (`navigator.wakeLock`) across mobile (iOS Safari 16.4+, Chrome, Edge, Android) and desktop. Automatically keeps the display awake without dimming or sleeping whenever a workout is live or scenic video is actively playing in the cockpit, automatically re-acquires upon app focus return, and cleanly releases when the session finishes so the device can sleep normally.
-- [x] **Dynamic Cadence-Proportional Audio Volume (Enabled by Default for Cadence Tracks):** Added dynamic soundtrack volume modulation that subtly tracks rowing cadence (lowering to ~0.55× on rests/glides, swelling up to ~1.20× on sprints with smooth 100ms exponential ramping). Enabled by default on cadence-locked tracks and bypassed on Fixed 1.0× Ambient tracks, keeping audio at natural 1.0× pitch without pitch/DSP distortion. Features a customizable Modulation Rate slider ($0.25\times \dots 2.50\times$) in Settings to adjust volume rate-of-change per stroke rate, plus quick toggles in both the HUD Audio dropdown and Settings modal.
-- [x] **Cockpit HUD Speed Sync Mode Dropdown & Cadence Zones (Zero-Stutter iOS Playback):** Added an interactive in-cockpit speed selector allowing users to switch on the fly between **Cadence Zones (Smooth)** (0.85× / 1.0× / 1.25× / 1.5× with 3s hysteresis dwell time for zero-stutter iOS playback), **Ambient (Fixed 1.0×)**, and **Continuous Dynamic**.
-- [x] **Mobile Video Playback & Dynamic Rate Synchronization Optimizations (iPhone / iOS WebKit):** Optimized mobile video playback fluidity during dynamic cadence transitions by introducing deadband rate quantization to prevent AVPlayer clock re-sync stalls, disabling pitch preservation on the muted video element to bypass WebKit Phase Vocoder DSP overhead, expanding streaming range chunk sizes from 256 KB to 1 MB, and capping download streams to 1080p.
-- [x] **Mobile & iPhone 11 Responsive Layout & Standalone Web App Polishing:** Full portrait and landscape optimization for iPhone 11 and compact smartphones across Cockpit HUD metrics, fluid audio controls, responsive Workout History cards (no horizontal overflow), modal sizing, and iOS Home Screen standalone web app safe-area insets (`env(safe-area-inset-*)`).
-- [x] **Multi-Workout Bulk Export & Deletion:** Multi-select workouts with row checkboxes and a master toggle, export multiple or all workouts at once as a `.zip` archive of formatted `.tcx` files (or multi-activity TCX), and batch delete sessions.
-- [x] **Queue Management:** Clear ingestion queue with partial download cleanup without deleting library media.
-- [x] **Track Builder Workflows:** Media Center "+ Create Track from Video" and "+ Add to Track" workflows.
-- [x] **Independent Media Trimming:** Video and audio trimming outside tracks with segment inheritance.
-- [x] **Filtered Cockpit Audio:** Cockpit audio selector strictly filtered to track-associated soundtracks.
-- [x] **Filtered Cockpit Routes:** Cockpit route dropdown exclusively lists curated tracks instead of raw video files.
-- [x] **Direct Device Upload:** Upload scenic videos and soundtracks directly from your device with drag-and-drop.
-- [x] **In-Library Media Previews:** Preview video and audio directly in the Media Center before adding to tracks.
-- [x] **Ambient Video Playback:** Fixed 1.0× playback mode for scenic ambience that doesn't modulate with cadence.
-- [x] **iOS & Mobile Landscape HUD:** Single-row broadcast telemetry HUD optimized for short screens and Apple TV screen mirroring.
-- [x] **Cross-Platform Bluetooth Relay:** Standalone WebSocket relay bridge (`scripts/bluetooth_relay.py` & `run_relay_windows.bat`) for server-side Bluetooth and Safari/Firefox support.
-- [x] **Custom PWA & Home Screen App Icons:** Tight-cropped transparent squircle icon suite for iOS Home Screen and standalone PWAs.
-- [x] **Fullscreen Engine:** Cross-device pseudo-fullscreen with notch and Dynamic Island safe-area support.
+### Recent Milestones
+- [x] **Bluetooth Relay Live Terminal HUD & Battery Conservation:** Single-line console dashboard with automatic packet merging and customizable radio silence sleep window (`--silence-window`) to allow rowers to power down.
+- [x] **Auto-Reset & Click-to-Zero Metrics:** Auto-zeroes session distance and elapsed time on workout start, plus on-demand tap-to-zero with confirmation.
+- [x] **Live Damper / Resistance Level (FTMS Bit 7):** Telemetry extraction and cockpit badge display for compatible electronic-resistance rowers.
+- [x] **Screen Wake Lock API:** Keeps mobile and desktop displays awake (`navigator.wakeLock`) during active workouts and videos.
+- [x] **Cadence-Proportional Audio Volume:** Dynamic volume modulation with exponential ramping, adjustable rate factor, and audio dropdown toggles.
+- [x] **Cockpit Speed Modes & Zero-Stutter Zones:** In-cockpit speed selector for Cadence Zones (0.85× / 1.0× / 1.25× / 1.5× with 3s hysteresis), Fixed 1.0× Ambient, and Continuous Dynamic.
+- [x] **WebKit & iOS Playback Optimizations:** Quantized rate deadband, Phase Vocoder bypass, 1 MB streaming chunks, and 1080p resolution caps.
+- [x] **Mobile & Standalone PWA Polishing:** Responsive layout for iPhone and compact devices, landscape broadcast HUD, and custom PWA app icon suite.
+- [x] **Batch Workout Management:** Multi-select session history with batch deletion and bulk export as `.zip` archive of `.tcx` files.
+- [x] **Media Center & Track Builder:** Direct drag-and-drop file upload, custom track segmentation, in-library preview scrubbers, and track-filtered cockpit selectors.
 
 ---
 
-## Upstream Base & License
+## 📄 Upstream Base & License
+
 Original proof-of-concept created by [Manuel Kamp](https://github.com/manuelkamp/FTMS-rower).  
 Modernized and expanded with decoupled audio, YouTube ingestion, PM5 HUD, Scenic Tracks, and session persistence.
-Released under the MIT License.
+
+Released under the [MIT License](LICENSE).
