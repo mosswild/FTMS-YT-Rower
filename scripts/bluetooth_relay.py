@@ -162,16 +162,27 @@ async def run_scanner():
         logger.error("Please install bleak: pip install bleak")
         sys.exit(1)
 
-    logger.info("Scanning for Bluetooth devices (5 seconds)...")
-    devices = await BleakScanner.discover(timeout=5.0)
+    logger.info("Scanning for Bluetooth devices (6 seconds)...")
+    try:
+        devices_dict = await BleakScanner.discover(timeout=6.0, return_adv=True)
+        items = list(devices_dict.values())
+    except TypeError:
+        devices = await BleakScanner.discover(timeout=6.0)
+        items = [(d, None) for d in devices]
+
     found_any = False
 
     print("\n--- Available Bluetooth Devices ---")
-    for d in devices:
-        name = d.name or "Unknown"
-        uuids = d.metadata.get("uuids", [])
-        is_ftms = any("1826" in str(u).lower() for u in uuids) or "rower" in name.lower() or "pm5" in name.lower() or "merach" in name.lower()
-        is_hr = any("180d" in str(u).lower() for u in uuids) or "hr" in name.lower() or "polar" in name.lower() or "garmin" in name.lower()
+    for d, adv in items:
+        name = (adv.local_name if adv and adv.local_name else d.name) or "Unknown"
+        uuids = [str(u).lower() for u in (adv.service_uuids if adv and adv.service_uuids else d.metadata.get("uuids", []))]
+        
+        name_lower = name.lower()
+        is_ftms = (
+            any("1826" in u for u in uuids)
+            or any(k in name_lower for k in ["merach", "mr-", "q1", "rower", "pm5", "concept2", "waterrower", "iconsole", "ftms"])
+        )
+        is_hr = any("180d" in u for u in uuids) or any(k in name_lower for k in ["hr", "polar", "garmin", "wahoo", "heart"])
 
         tag = ""
         if is_ftms:
@@ -181,10 +192,14 @@ async def run_scanner():
             tag += " [Heart Rate]"
             found_any = True
 
-        print(f"  • {name:<25} Address: {d.address} {tag}")
+        print(f"  • {name:<28} Address: {d.address} {tag}")
 
     if not found_any:
-        print("  (No devices advertising FTMS or HR service were detected. Ensure your machine console is on.)")
+        print("  (No devices advertising FTMS or HR service were detected.)")
+        print("  Tips:")
+        print("   1. Pull the rower handle or tap the console to wake it up.")
+        print("   2. Disconnect/close the Merach app on your phone (BLE only connects to 1 device at a time).")
+        print("   3. Ensure Windows Bluetooth is turned ON.")
     print("-----------------------------------\n")
 
 
@@ -215,25 +230,44 @@ async def run_relay(args):
 
     while True:
         target_device = None
+        nearby_seen = []
         try:
             if args.address:
                 logger.info(f"Scanning for device by address: {args.address}...")
                 target_device = await BleakScanner.find_device_by_address(args.address, timeout=6.0)
             else:
-                logger.info("Scanning for FTMS Rower / Concept2 PM5...")
-                devices = await BleakScanner.discover(timeout=5.0)
-                for d in devices:
-                    name = (d.name or "").lower()
-                    uuids = [str(u).lower() for u in d.metadata.get("uuids", [])]
-                    if args.name and args.name.lower() in name:
+                logger.info("Scanning for FTMS Rower (Merach Q1, PM5, FTMS 0x1826)...")
+                try:
+                    devices_dict = await BleakScanner.discover(timeout=5.0, return_adv=True)
+                    items = list(devices_dict.values())
+                except TypeError:
+                    devices = await BleakScanner.discover(timeout=5.0)
+                    items = [(d, None) for d in devices]
+
+                for d, adv in items:
+                    name = (adv.local_name if adv and adv.local_name else d.name) or ""
+                    uuids = [str(u).lower() for u in (adv.service_uuids if adv and adv.service_uuids else d.metadata.get("uuids", []))]
+                    display_name = name or "Unknown"
+                    nearby_seen.append(f"'{display_name}' ({d.address})")
+
+                    name_lower = name.lower()
+                    if args.name and args.name.lower() in name_lower:
                         target_device = d
                         break
-                    if any("1826" in u for u in uuids) or "rower" in name or "merach" in name or "pm5" in name or "concept2" in name:
+
+                    # Match standard FTMS service UUID or common smart rower advertising names
+                    if any("1826" in u for u in uuids) or any(k in name_lower for k in ["merach", "mr-", "q1", "rower", "pm5", "concept2", "waterrower", "iconsole", "ftms"]):
                         target_device = d
                         break
 
             if not target_device:
-                logger.info("No active FTMS rower detected yet. Pull the handle or wake monitor (retrying in 5s)...")
+                if nearby_seen:
+                    preview = ", ".join(nearby_seen[:4])
+                    if len(nearby_seen) > 4:
+                        preview += f", ... (+{len(nearby_seen) - 4} more)"
+                    logger.info(f"No FTMS rower matched yet. Nearby BLE devices seen: [{preview}]. Retrying in 5s...")
+                else:
+                    logger.info("No active BLE devices detected in range. Ensure rower console is awake and not paired to your phone. Retrying in 5s...")
                 await asyncio.sleep(5.0)
                 continue
 
