@@ -154,6 +154,17 @@ class RelayPublisher:
             logger.debug(f"Publish failed: {e}")
 
 
+def extract_device_info(d, adv=None):
+    """Safely extracts device name and service UUIDs across all Bleak versions without touching removed attributes."""
+    name = (adv.local_name if (adv and getattr(adv, "local_name", None)) else getattr(d, "name", None)) or "Unknown"
+    uuids = []
+    if adv and hasattr(adv, "service_uuids") and adv.service_uuids:
+        uuids = [str(u).lower() for u in adv.service_uuids]
+    elif hasattr(d, "metadata") and isinstance(getattr(d, "metadata", None), dict):
+        uuids = [str(u).lower() for u in d.metadata.get("uuids", [])]
+    return name, uuids
+
+
 async def run_scanner():
     """Scans and displays available Bluetooth fitness devices."""
     try:
@@ -174,13 +185,12 @@ async def run_scanner():
 
     print("\n--- Available Bluetooth Devices ---")
     for d, adv in items:
-        name = (adv.local_name if adv and adv.local_name else d.name) or "Unknown"
-        uuids = [str(u).lower() for u in (adv.service_uuids if adv and adv.service_uuids else d.metadata.get("uuids", []))]
+        name, uuids = extract_device_info(d, adv)
         
         name_lower = name.lower()
         is_ftms = (
             any("1826" in u for u in uuids)
-            or any(k in name_lower for k in ["merach", "mr-", "q1", "rower", "pm5", "concept2", "waterrower", "iconsole", "ftms"])
+            or any(k in name_lower for k in ["merach", "mr-", "mrk", "q1", "rower", "pm5", "concept2", "waterrower", "iconsole", "ftms"])
         )
         is_hr = any("180d" in u for u in uuids) or any(k in name_lower for k in ["hr", "polar", "garmin", "wahoo", "heart"])
 
@@ -245,8 +255,7 @@ async def run_relay(args):
                     items = [(d, None) for d in devices]
 
                 for d, adv in items:
-                    name = (adv.local_name if adv and adv.local_name else d.name) or ""
-                    uuids = [str(u).lower() for u in (adv.service_uuids if adv and adv.service_uuids else d.metadata.get("uuids", []))]
+                    name, uuids = extract_device_info(d, adv)
                     display_name = name or "Unknown"
                     nearby_seen.append(f"'{display_name}' ({d.address})")
 
@@ -256,7 +265,7 @@ async def run_relay(args):
                         break
 
                     # Match standard FTMS service UUID or common smart rower advertising names
-                    if any("1826" in u for u in uuids) or any(k in name_lower for k in ["merach", "mr-", "q1", "rower", "pm5", "concept2", "waterrower", "iconsole", "ftms"]):
+                    if any("1826" in u for u in uuids) or any(k in name_lower for k in ["merach", "mr-", "mrk", "q1", "rower", "pm5", "concept2", "waterrower", "iconsole", "ftms"]):
                         target_device = d
                         break
 
