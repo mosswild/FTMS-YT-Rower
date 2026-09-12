@@ -31,7 +31,7 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
 ### 1. Decoupled Audio Pipeline & Cadence-Proportional Volume
 - **Muted Scenic Video:** The scenic video element is strictly muted so its playback rate can fluctuate freely ($0.3\times \dots 2.5\times$) without audio pitch distortion, chipmunking, or WebKit Phase Vocoder DSP overhead.
 - **Fixed-Rate Soundtrack at 1.0×:** A decoupled HTML5 `<audio>` element streams soundtracks at natural $1.0\times$ playback speed with crystal-clear fidelity.
-- **Dynamic Cadence-Proportional Audio Volume:** Ambient soundtrack volume subtly tracks your rowing cadence—lowering to **0.55×** during rests, glides, or pauses, and swelling up to **1.20×** during high-cadence sprints (up to your master volume ceiling). This eliminates confusing disconnects where high-energy music blares while the athlete is paused or resting.
+- **Dynamic Cadence-Proportional Audio Volume:** Ambient soundtrack volume subtly tracks your rowing cadence—lowering to **0.55×** during rests, glides, or pauses, and swelling up to **1.20×** during high-cadence sprints (up to your master volume ceiling). This eliminates confusing disconnects where high-energy rowing audio (or music) blares while the athlete is paused or resting.
   - **On by Default for Cadence Tracks:** Enabled automatically on cadence-locked tracks and seamlessly bypassed on Fixed 1.0× Ambient tracks.
   - **Adjustable Modulation Rate ($0.25\times \dots 2.50\times$):** Fine-tune the rate of volume change based on stroke cadence in Settings—choose from subtle modulation ($0.5\times$), standard balanced dynamics ($1.0\times$), or intense swells and deep rest dips ($1.5\times$–$2.5\times$).
   - **Smooth Exponential Ramping:** An internal 100ms exponential low-pass filter (`diff * rateFactor`) transitions volume smoothly over ~1.2s, completely eliminating clicks or abrupt volume jumps.
@@ -300,6 +300,7 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 ## Development Roadmap
 
 ### Upcoming
+- [ ] **Structured & Built-In Workouts:** Configurable interval workout programs specifying rest periods, baseline rowing periods, and high-intensity sprint segments. Features live Cockpit HUD segment tracking with countdown timers, target SPM or Heart Rate zones, and real-time visual feedback indicating whether the rower is meeting the target requirement for the current interval. Workouts will be exportable and importable in standard JSON and YAML formats for easy community sharing.
 - [ ] **Live GitHub Pages Demo:** Deploy a static client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and workout simulator directly in the browser (will include bundled lightweight demo video and ambient audio assets).
 
 ### Completed
