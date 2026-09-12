@@ -285,6 +285,8 @@ body.in-fullscreen .app-header {
   background: rgba(245, 158, 11, 0.2);
   color: #fbbf24;
   border-color: rgba(245, 158, 11, 0.4);
+}
+
 .resistance-badge {
   font-family: var(--font-mono);
   font-size: 0.85rem;
