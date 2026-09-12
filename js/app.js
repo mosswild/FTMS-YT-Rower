@@ -25,7 +25,6 @@ const simModeBtn = document.getElementById("btn-toggle-sim-mode");
 const simPhaseBadge = document.getElementById("sim-phase-badge");
 const simRowToggleBtn = document.getElementById("btn-sim-pause-rowing");
 const btnSimEnableHr = document.getElementById("btn-sim-enable-hr");
-const btnSimDisableHr = document.getElementById("btn-sim-disable-hr");
 const simManualControls = document.getElementById("sim-manual-controls");
 const simSpmRange = document.getElementById("sim-spm-range");
 const simSpmVal = document.getElementById("sim-spm-val");
@@ -2805,15 +2804,12 @@ function syncSimHrButtons() {
     if (isEnabled) {
       btnSimEnableHr.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; vertical-align: -1px;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>HR: Active (${simulator.hrDeviceName || "Polar H10"})`;
       btnSimEnableHr.className = "btn btn-success btn-sm btn-connected";
-      btnSimEnableHr.title = "Simulated Heart Rate Monitor is active. Click to disable.";
+      btnSimEnableHr.title = "Simulated Heart Rate Monitor is active. Click to disconnect.";
     } else {
       btnSimEnableHr.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; vertical-align: -1px;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Enable HR Monitor`;
       btnSimEnableHr.className = "btn btn-secondary btn-sm";
       btnSimEnableHr.title = "Enable simulated Polar H10 Heart Rate Monitor";
     }
-  }
-  if (btnSimDisableHr) {
-    btnSimDisableHr.style.display = isEnabled ? "inline-flex" : "none";
   }
 }
 
@@ -2934,16 +2930,6 @@ if (btnSimEnableHr) {
         showHudToast(`Simulated Heart Rate Monitor connected (${simulator.hrDeviceName || "Polar H10"})`);
       }
     }
-  });
-}
-
-if (btnSimDisableHr) {
-  btnSimDisableHr.addEventListener("click", () => {
-    simulator.setHrEnabled(false);
-    handleTelemetryPacket({ heartRate: 0 });
-    updateHrStatus(false, "HR Disconnected");
-    syncSimHrButtons();
-    showHudToast("Simulated Heart Rate Monitor disconnected");
   });
 }
 
