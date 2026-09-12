@@ -24,9 +24,13 @@ const simBtn = document.getElementById("btn-toggle-sim");
 const simModeBtn = document.getElementById("btn-toggle-sim-mode");
 const simPhaseBadge = document.getElementById("sim-phase-badge");
 const simRowToggleBtn = document.getElementById("btn-sim-pause-rowing");
+const btnSimEnableHr = document.getElementById("btn-sim-enable-hr");
+const btnSimDisableHr = document.getElementById("btn-sim-disable-hr");
 const simManualControls = document.getElementById("sim-manual-controls");
 const simSpmRange = document.getElementById("sim-spm-range");
 const simSpmVal = document.getElementById("sim-spm-val");
+const simHrRange = document.getElementById("sim-hr-range");
+const simHrVal = document.getElementById("sim-hr-val");
 
 // Track Transport DOM Elements
 const trackActiveBadge = document.getElementById("track-active-badge");
@@ -353,6 +357,7 @@ const hrBle = new HeartRateBLE(
 );
 
 const btnConnectRower = document.getElementById("btn-connect-rower");
+const btnConnectHr = document.getElementById("btn-connect-hr");
 
 // UI Status Helpers
 function updateRowerStatus(connected, text, mode = null, deviceName = null) {
@@ -387,11 +392,36 @@ function updateRowerStatus(connected, text, mode = null, deviceName = null) {
   }
 }
 
-function updateHrStatus(connected, text) {
+function updateHrStatus(connected, text, mode = null, deviceName = null) {
   const pill = document.getElementById("status-hr");
   if (pill) {
     pill.className = connected ? "status-pill connected" : "status-pill";
     pill.querySelector(".status-text").textContent = text || (connected ? "HR Connected" : "HR Disconnected");
+  }
+
+  if (btnConnectHr) {
+    if (connected) {
+      if (mode === "sim") {
+        const devLabel = deviceName ? `: ${deviceName}` : " (Sim)";
+        btnConnectHr.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 5px; vertical-align: -2px;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Connected${devLabel}`;
+        btnConnectHr.className = "btn btn-success btn-connected";
+        btnConnectHr.title = "Simulated Heart Rate Monitor is active. Click to disconnect.";
+      } else if (mode === "relay") {
+        const devLabel = deviceName ? ` (${deviceName})` : "";
+        btnConnectHr.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 5px; vertical-align: -2px;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Connected (Relay${devLabel})`;
+        btnConnectHr.className = "btn btn-success btn-connected";
+        btnConnectHr.title = `Heart Rate is actively received via the Bluetooth Relay bridge (${deviceName || "Relay"}).`;
+      } else {
+        const devLabel = deviceName ? `: ${deviceName}` : "";
+        btnConnectHr.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 5px; vertical-align: -2px;"><polyline points="20 6 9 17 4 12"/></svg>Connected${devLabel}`;
+        btnConnectHr.className = "btn btn-success btn-connected";
+        btnConnectHr.title = "Connected to Heart Rate monitor via Web Bluetooth. Click to disconnect.";
+      }
+    } else {
+      btnConnectHr.innerHTML = "Connect HR Strap";
+      btnConnectHr.className = "btn btn-secondary";
+      btnConnectHr.title = "Connect BLE Heart Rate monitor";
+    }
   }
 }
 
@@ -434,7 +464,7 @@ const wsTelemetry = new WebSocketTelemetry(
         updateRowerStatus(true, `${relayDeviceName} (Relay)`, "relay", relayDeviceName);
       }
       if (data.heartRate !== undefined && !hrBle.isConnected) {
-        updateHrStatus(true, "HR (Relay)");
+        updateHrStatus(true, "HR (Relay)", "relay", "Relay");
       }
       if (relayTimeout) clearTimeout(relayTimeout);
       relayTimeout = setTimeout(() => {
@@ -2727,26 +2757,62 @@ if (btnConnectRower) {
         alert("Could not connect to FTMS rower: " + err.message);
       }
     }
+if (btnConnectHr) {
+  btnConnectHr.addEventListener("click", async () => {
+    if (simulator.isRunning && simulator.isHrEnabled) {
+      simulator.setHrEnabled(false);
+      handleTelemetryPacket({ heartRate: 0 });
+      updateHrStatus(false, "HR Disconnected");
+      syncSimHrButtons();
+      showHudToast("Simulated Heart Rate Monitor disconnected");
+      return;
+    }
+
+    if (hrBle.isConnected) {
+      hrBle.disconnect();
+      updateHrStatus(false, "Disconnected");
+      showHudToast("Heart Rate strap disconnected");
+      return;
+    }
+
+    try {
+      updateHrStatus(false, "Connecting...");
+      const name = await hrBle.connect();
+      updateHrStatus(true, name, "ble", name);
+      showHudToast(`Connected to ${name}`);
+    } catch (err) {
+      console.error("[BLE HR Error]", err);
+      updateHrStatus(false, "Connection Failed");
+      if (err.name !== "NotFoundError") {
+        alert("Could not connect to BLE Heart Rate monitor: " + err.message);
+      }
+    }
   });
 }
-
-document.getElementById("btn-connect-hr").addEventListener("click", async () => {
-  try {
-    updateHrStatus(false, "Connecting...");
-    const name = await hrBle.connect();
-    updateHrStatus(true, name);
-  } catch (err) {
-    console.error("[BLE HR Error]", err);
-    updateHrStatus(false, "Connection Failed");
-    alert("Could not connect to BLE Heart Rate monitor: " + err.message);
-  }
-});
 
 // ----------------- Virtual Rower Simulator Controls -----------------
 const btnOpenSimPanel = document.getElementById("btn-open-sim-panel");
 const simControlsBar = document.getElementById("sim-controls-bar");
 const btnCloseSimPanel = document.getElementById("btn-close-sim-panel");
 const selectSimMimic = document.getElementById("select-sim-mimic");
+
+function syncSimHrButtons() {
+  const isEnabled = simulator.isHrEnabled && simulator.isRunning;
+  if (btnSimEnableHr) {
+    if (isEnabled) {
+      btnSimEnableHr.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; vertical-align: -1px;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>HR: Active (${simulator.hrDeviceName || "Polar H10"})`;
+      btnSimEnableHr.className = "btn btn-success btn-sm btn-connected";
+      btnSimEnableHr.title = "Simulated Heart Rate Monitor is active. Click to disable.";
+    } else {
+      btnSimEnableHr.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; vertical-align: -1px;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Enable HR Monitor`;
+      btnSimEnableHr.className = "btn btn-secondary btn-sm";
+      btnSimEnableHr.title = "Enable simulated Polar H10 Heart Rate Monitor";
+    }
+  }
+  if (btnSimDisableHr) {
+    btnSimDisableHr.style.display = isEnabled ? "inline-flex" : "none";
+  }
+}
 
 function applySimulatorConnectionStatus() {
   if (!simulator.isRunning) return;
@@ -2759,6 +2825,10 @@ function applySimulatorConnectionStatus() {
     relayDeviceName = null;
     const devName = simulator.deviceName || "Concept2 PM5 (Sim)";
     updateRowerStatus(true, devName, "ble", devName);
+  }
+
+  if (simulator.isHrEnabled) {
+    updateHrStatus(true, simulator.hrDeviceName || "Polar H10 (Sim)", "sim", simulator.hrDeviceName || "Polar H10 (Sim)");
   }
 }
 
@@ -2801,6 +2871,12 @@ if (simBtn) {
         relayDeviceName = null;
       }
       updateRowerStatus(false, "Simulator Stopped");
+      if (simulator.isHrEnabled) {
+        handleTelemetryPacket({ heartRate: 0 });
+        updateHrStatus(false, "Simulator Stopped");
+      }
+      syncSimHrButtons();
+
       if (sessionTracker.state === "active") {
         sessionTracker.finish();
       }
@@ -2817,6 +2893,7 @@ if (simBtn) {
         btnOpenSimPanel.innerHTML = '<span class="status-dot online" style="margin-right: 6px;"></span>Sim Running';
       }
       applySimulatorConnectionStatus();
+      syncSimHrButtons();
 
       if (sessionTracker.state !== "active") {
         sessionTracker.start();
@@ -2833,6 +2910,37 @@ if (simBtn) {
         audioEngine.play();
       }
     }
+  });
+}
+
+if (btnSimEnableHr) {
+  btnSimEnableHr.addEventListener("click", () => {
+    if (simulator.isHrEnabled && simulator.isRunning) {
+      simulator.setHrEnabled(false);
+      handleTelemetryPacket({ heartRate: 0 });
+      updateHrStatus(false, "HR Disconnected");
+      syncSimHrButtons();
+      showHudToast("Simulated Heart Rate Monitor disconnected");
+    } else {
+      simulator.setHrEnabled(true);
+      if (!simulator.isRunning) {
+        if (simBtn) simBtn.click();
+      } else {
+        updateHrStatus(true, simulator.hrDeviceName || "Polar H10 (Sim)", "sim", simulator.hrDeviceName || "Polar H10 (Sim)");
+        syncSimHrButtons();
+        showHudToast(`Simulated Heart Rate Monitor connected (${simulator.hrDeviceName || "Polar H10"})`);
+      }
+    }
+  });
+}
+
+if (btnSimDisableHr) {
+  btnSimDisableHr.addEventListener("click", () => {
+    simulator.setHrEnabled(false);
+    handleTelemetryPacket({ heartRate: 0 });
+    updateHrStatus(false, "HR Disconnected");
+    syncSimHrButtons();
+    showHudToast("Simulated Heart Rate Monitor disconnected");
   });
 }
 
@@ -2872,6 +2980,44 @@ if (simSpmRange) {
     simulator.setSpm(spm);
   });
 }
+
+if (simHrRange) {
+  simHrRange.addEventListener("input", (e) => {
+    const bpm = parseInt(e.target.value, 10);
+    if (simHrVal) simHrVal.textContent = bpm;
+    simulator.setManualHr(bpm);
+    if (!simulator.isHrEnabled) {
+      simulator.setHrEnabled(true);
+      if (simulator.isRunning) {
+        updateHrStatus(true, simulator.hrDeviceName || "Polar H10 (Sim)", "sim", simulator.hrDeviceName || "Polar H10 (Sim)");
+        syncSimHrButtons();
+      }
+    }
+    if (simulator.isRunning) {
+      handleTelemetryPacket({ heartRate: bpm });
+    }
+  });
+}
+
+document.querySelectorAll(".btn-sim-hr-preset").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const bpm = parseInt(btn.getAttribute("data-hr"), 10);
+    if (simHrRange) simHrRange.value = bpm;
+    if (simHrVal) simHrVal.textContent = bpm;
+    simulator.setManualHr(bpm);
+    if (!simulator.isHrEnabled) {
+      simulator.setHrEnabled(true);
+      if (simulator.isRunning) {
+        updateHrStatus(true, simulator.hrDeviceName || "Polar H10 (Sim)", "sim", simulator.hrDeviceName || "Polar H10 (Sim)");
+        syncSimHrButtons();
+      }
+    }
+    if (simulator.isRunning) {
+      handleTelemetryPacket({ heartRate: bpm });
+      showHudToast(`Simulated HR set to ${bpm} bpm`);
+    }
+  });
+});
 
 // ----------------- Audio & Workout Session Controls -----------------
 if (audioToggleBtn) {

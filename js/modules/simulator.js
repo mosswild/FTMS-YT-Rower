@@ -19,6 +19,11 @@ export class VirtualRowerSimulator {
     this.mimicType = options.mimicType || "relay";
     this.deviceName = options.deviceName || (this.mimicType === "relay" ? "Sim Rower" : "Concept2 PM5 (Sim)");
 
+    // Heart Rate Monitor Simulation
+    this.isHrEnabled = options.isHrEnabled || false;
+    this.hrDeviceName = options.hrDeviceName || "Polar H10 (Sim)";
+    this.manualHr = 135;
+
     this.spm = 20;
     this.targetSpm = 22;
     this.splitSeconds = 125;
@@ -116,6 +121,23 @@ export class VirtualRowerSimulator {
     }
   }
 
+  setHrEnabled(enabled) {
+    this.isHrEnabled = !!enabled;
+    if (this.isHrEnabled && (!this.heartRate || this.heartRate < 50)) {
+      this.heartRate = this.manualHr || 135;
+    }
+    return this.isHrEnabled;
+  }
+
+  toggleHr() {
+    return this.setHrEnabled(!this.isHrEnabled);
+  }
+
+  setManualHr(targetBpm) {
+    this.manualHr = Math.max(50, Math.min(220, targetBpm));
+    this.heartRate = this.manualHr;
+  }
+
   tick() {
     const now = Date.now();
     const dtSeconds = (now - this.lastTickTime) / 1000;
@@ -134,6 +156,11 @@ export class VirtualRowerSimulator {
 
     if (!this.isRowing || this.targetSpm <= 0) {
       // User stopped pulling: emit 0 SPM to test auto-pause watchdog
+      if (this.isHrEnabled) {
+        this.heartRate = Math.max(70, Math.round(this.heartRate - 0.5));
+      }
+      const hrPayload = this.isHrEnabled ? Math.round(this.heartRate) : 0;
+
       if (this.onData) {
         this.onData({
           timestamp: now,
@@ -143,12 +170,14 @@ export class VirtualRowerSimulator {
           resistance: 8,
           distance: Math.round(this.distance),
           strokeCount: Math.round(this.strokeCount),
-          heartRate: Math.max(90, Math.round(this.heartRate - 1)),
+          heartRate: hrPayload,
           elapsedSeconds: Math.round(this.elapsedSeconds),
           isSimulated: true,
+          isHrSimulated: this.isHrEnabled,
           phaseName: this.mode === "dynamic" ? this.dynamicPhases[this.currentPhaseIndex].name : "Paused",
           source: this.mimicType === "relay" ? "ble-relay" : "ble-direct",
-          deviceName: this.deviceName
+          deviceName: this.deviceName,
+          hrDeviceName: this.isHrEnabled ? this.hrDeviceName : null
         });
       }
       return;
@@ -178,8 +207,13 @@ export class VirtualRowerSimulator {
     this.strokeCount += (currentSpm / 60) * dtSeconds;
 
     // Dynamic heart rate drift
-    const targetHr = 100 + (currentSpm * 1.8);
-    this.heartRate += (targetHr - this.heartRate) * 0.08;
+    if (this.isHrEnabled) {
+      const targetHr = (this.mode === "manual" && this.manualHr) 
+        ? this.manualHr 
+        : 100 + (currentSpm * 1.8);
+      this.heartRate += (targetHr - this.heartRate) * 0.08;
+    }
+    const currentHr = this.isHrEnabled ? Math.round(this.heartRate) : 0;
 
     const packet = {
       timestamp: now,
@@ -189,12 +223,14 @@ export class VirtualRowerSimulator {
       resistance: 8,
       distance: Math.round(this.distance),
       strokeCount: Math.round(this.strokeCount),
-      heartRate: Math.round(this.heartRate),
+      heartRate: currentHr,
       elapsedSeconds: Math.round(this.elapsedSeconds),
       isSimulated: true,
+      isHrSimulated: this.isHrEnabled,
       phaseName: this.mode === "dynamic" ? this.dynamicPhases[this.currentPhaseIndex].name : "Manual",
       source: this.mimicType === "relay" ? "ble-relay" : "ble-direct",
-      deviceName: this.deviceName
+      deviceName: this.deviceName,
+      hrDeviceName: this.isHrEnabled ? this.hrDeviceName : null
     };
 
     if (this.onData) {
@@ -206,7 +242,7 @@ export class VirtualRowerSimulator {
     this.distance = 0;
     this.strokeCount = 0;
     this.elapsedSeconds = 0;
-    this.heartRate = 130;
+    this.heartRate = 135;
     this.phaseElapsed = 0;
     this.currentPhaseIndex = 0;
   }

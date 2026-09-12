@@ -325,10 +325,30 @@
       </select>
       <span id="sim-phase-badge" class="sim-phase-badge">Phase: Cruise (22 SPM)</span>
       <button id="btn-sim-pause-rowing" class="btn btn-secondary btn-sm" title="Test Auto-Pause watchdog">Pause Pulling</button>
+      <div class="sim-hr-btn-group" style="display: inline-flex; align-items: center; gap: 5px;">
+        <button id="btn-sim-enable-hr" class="btn btn-secondary btn-sm" title="Enable simulated Polar H10 Heart Rate Monitor">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; vertical-align: -1px;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          Enable HR Monitor
+        </button>
+        <button id="btn-sim-disable-hr" class="btn btn-secondary btn-sm" title="Disconnect simulated Heart Rate Monitor" style="display: none;">
+          Disconnect HR
+        </button>
+      </div>
       <div id="sim-manual-controls" style="display: none; align-items: center; gap: 0.75rem; flex: 1;">
         <span style="color: var(--text-dim);">Manual SPM:</span>
-        <input type="range" id="sim-spm-range" min="14" max="38" value="22" style="flex:1; accent-color: var(--accent-blue);">
+        <input type="range" id="sim-spm-range" min="14" max="38" value="22" style="max-width: 100px; accent-color: var(--accent-blue);">
         <span style="font-family: var(--font-mono); color: var(--accent-blue);"><strong id="sim-spm-val">22</strong> SPM</span>
+        <div style="display: flex; align-items: center; gap: 0.4rem; margin-left: 0.4rem; border-left: 1px solid var(--surface-border); padding-left: 0.6rem;">
+          <span style="color: var(--text-dim);">HR:</span>
+          <input type="range" id="sim-hr-range" min="60" max="200" value="135" style="width: 75px; accent-color: #ef4444;" title="Adjust simulated heart rate">
+          <span style="font-family: var(--font-mono); color: #ef4444;"><strong id="sim-hr-val">135</strong> bpm</span>
+          <div style="display: flex; gap: 3px; margin-left: 4px;">
+            <button type="button" class="btn btn-secondary btn-sim-hr-preset" data-hr="115" style="padding: 2px 6px; font-size: 0.72rem;" title="Warmup (115 bpm)">115</button>
+            <button type="button" class="btn btn-secondary btn-sim-hr-preset" data-hr="140" style="padding: 2px 6px; font-size: 0.72rem;" title="Aerobic (140 bpm)">140</button>
+            <button type="button" class="btn btn-secondary btn-sim-hr-preset" data-hr="165" style="padding: 2px 6px; font-size: 0.72rem;" title="Threshold (165 bpm)">165</button>
+            <button type="button" class="btn btn-secondary btn-sim-hr-preset" data-hr="185" style="padding: 2px 6px; font-size: 0.72rem;" title="Max Effort (185 bpm)">185</button>
+          </div>
+        </div>
       </div>
       <button id="btn-close-sim-panel" class="hud-icon-btn" style="width: 28px; height: 28px; margin-left: auto; border-radius: 4px;" title="Hide Simulator Controls">&times;</button>
     </div>
