@@ -280,6 +280,12 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 
 ---
 
+## Known Issues & Bug Tracker
+
+- [ ] **Scenic Video Freeze on Initial Workout Launch:** When launching the application and starting a workout for the first time, the scenic video can occasionally remain frozen on its initial frame while live telemetry metrics, HUD numbers, and soundtrack audio function normally. *(Workaround: Toggle pause/resume on the workout or re-select the track in the cockpit to kickstart video playback).*
+
+---
+
 ## Development Roadmap
 
 ### Upcoming
