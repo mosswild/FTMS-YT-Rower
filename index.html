@@ -319,6 +319,10 @@
     <div id="sim-controls-bar" class="sim-controls-bar" style="display: none;">
       <button id="btn-toggle-sim" class="btn btn-primary btn-sm">Start Simulator</button>
       <button id="btn-toggle-sim-mode" class="btn btn-secondary btn-sm">Mode: Dynamic Program</button>
+      <select id="select-sim-mimic" class="select-dropdown" style="padding: 0.2rem 0.6rem; font-size: 0.78rem; height: 30px; background: var(--surface-card); border-color: var(--surface-border); border-radius: 6px; cursor: pointer;" title="Choose connection type to simulate">
+        <option value="relay">Mimic: Bluetooth Relay</option>
+        <option value="direct">Mimic: Direct Web Bluetooth</option>
+      </select>
       <span id="sim-phase-badge" class="sim-phase-badge">Phase: Cruise (22 SPM)</span>
       <button id="btn-sim-pause-rowing" class="btn btn-secondary btn-sm" title="Test Auto-Pause watchdog">Pause Pulling</button>
       <div id="sim-manual-controls" style="display: none; align-items: center; gap: 0.75rem; flex: 1;">

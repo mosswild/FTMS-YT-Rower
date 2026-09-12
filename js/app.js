@@ -2663,24 +2663,44 @@ async function loadHistoryUI() {
 // ----------------- Bluetooth Hardware Pairing -----------------
 if (btnConnectRower) {
   btnConnectRower.addEventListener("click", async () => {
-    // 1. Prevent connecting through browser if already connected through Bluetooth Relay
+    // 1. Prevent connecting through browser if already connected through Bluetooth Relay (real or simulated)
     if (relayActive) {
       showHudToast(`Rower is already connected and streaming via Bluetooth Relay (${relayDeviceName || "Bridge"}).`);
       return;
     }
 
-    // 2. If already connected via direct Web Bluetooth, prompt to disconnect
-    if (rowerBle.isConnected) {
+    // 2. If already connected via direct Web Bluetooth (or simulated direct BLE), prompt to disconnect
+    if (rowerBle.isConnected || (simulator.isRunning && simulator.mimicType === "direct")) {
+      const isSim = simulator.isRunning && simulator.mimicType === "direct";
       const confirmed = await showConfirmDialog({
-        title: "Disconnect Rower",
-        message: "Are you sure you want to disconnect from your FTMS rowing machine?",
+        title: isSim ? "Disconnect Simulated Rower" : "Disconnect Rower",
+        message: isSim 
+          ? "Are you sure you want to disconnect from the simulated rowing machine?"
+          : "Are you sure you want to disconnect from your FTMS rowing machine?",
         confirmBtnText: "Disconnect",
         isDanger: false
       });
       if (confirmed) {
-        rowerBle.disconnect();
-        updateRowerStatus(false, "Disconnected");
-        showHudToast("Rower disconnected");
+        if (isSim) {
+          simulator.stop();
+          simBtn.textContent = "Start Simulator";
+          simBtn.className = "btn btn-primary btn-sm";
+          if (btnOpenSimPanel) {
+            btnOpenSimPanel.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Simulator';
+          }
+          updateRowerStatus(false, "Disconnected");
+          if (sessionTracker.state === "active") {
+            sessionTracker.finish();
+          }
+          rateController.setWorkoutLive(false);
+          if (videoEl) videoEl.pause();
+          audioEngine.pause();
+          showHudToast("Simulated rower disconnected");
+        } else {
+          rowerBle.disconnect();
+          updateRowerStatus(false, "Disconnected");
+          showHudToast("Rower disconnected");
+        }
       }
       return;
     }
@@ -2726,6 +2746,31 @@ document.getElementById("btn-connect-hr").addEventListener("click", async () => 
 const btnOpenSimPanel = document.getElementById("btn-open-sim-panel");
 const simControlsBar = document.getElementById("sim-controls-bar");
 const btnCloseSimPanel = document.getElementById("btn-close-sim-panel");
+const selectSimMimic = document.getElementById("select-sim-mimic");
+
+function applySimulatorConnectionStatus() {
+  if (!simulator.isRunning) return;
+  if (simulator.mimicType === "relay") {
+    relayActive = true;
+    relayDeviceName = simulator.deviceName || "Sim Rower";
+    updateRowerStatus(true, `${relayDeviceName} (Relay)`, "relay", relayDeviceName);
+  } else {
+    relayActive = false;
+    relayDeviceName = null;
+    const devName = simulator.deviceName || "Concept2 PM5 (Sim)";
+    updateRowerStatus(true, devName, "ble", devName);
+  }
+}
+
+if (selectSimMimic) {
+  selectSimMimic.addEventListener("change", (e) => {
+    simulator.setMimicType(e.target.value);
+    if (simulator.isRunning) {
+      applySimulatorConnectionStatus();
+      showHudToast(`Simulator mimicking: ${simulator.mimicType === "relay" ? "Bluetooth Relay" : "Direct Web Bluetooth"}`);
+    }
+  });
+}
 
 if (btnOpenSimPanel && simControlsBar) {
   btnOpenSimPanel.addEventListener("click", () => {
@@ -2751,6 +2796,10 @@ if (simBtn) {
       if (btnOpenSimPanel) {
         btnOpenSimPanel.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Simulator';
       }
+      if (simulator.mimicType === "relay") {
+        relayActive = false;
+        relayDeviceName = null;
+      }
       updateRowerStatus(false, "Simulator Stopped");
       if (sessionTracker.state === "active") {
         sessionTracker.finish();
@@ -2759,13 +2808,15 @@ if (simBtn) {
       if (videoEl) videoEl.pause();
       audioEngine.pause();
     } else {
+      const mimicVal = selectSimMimic ? selectSimMimic.value : "relay";
+      simulator.setMimicType(mimicVal);
       simulator.start();
       simBtn.textContent = "Stop Simulator";
       simBtn.className = "btn btn-secondary btn-sm";
       if (btnOpenSimPanel) {
         btnOpenSimPanel.innerHTML = '<span class="status-dot online" style="margin-right: 6px;"></span>Sim Running';
       }
-      updateRowerStatus(true, `Sim: ${simulator.mode === "dynamic" ? "Dynamic Program" : "Manual"}`, "sim");
+      applySimulatorConnectionStatus();
 
       if (sessionTracker.state !== "active") {
         sessionTracker.start();
@@ -2791,12 +2842,10 @@ if (simModeBtn) {
       simulator.setMode("manual");
       simModeBtn.textContent = "Mode: Manual Slider";
       if (simManualControls) simManualControls.style.display = "flex";
-      updateRowerStatus(true, "Sim: Manual", "sim");
     } else {
       simulator.setMode("dynamic");
       simModeBtn.textContent = "Mode: Dynamic Program";
       if (simManualControls) simManualControls.style.display = "none";
-      updateRowerStatus(true, "Sim: Dynamic Program", "sim");
     }
   });
 }

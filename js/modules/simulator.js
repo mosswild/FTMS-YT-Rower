@@ -15,6 +15,10 @@ export class VirtualRowerSimulator {
     // Simulation modes: "dynamic" (auto-varying workout program) or "manual"
     this.mode = "dynamic"; 
 
+    // Mimic connection type: "relay" (Wi-Fi Relay Bridge) or "direct" (Web Bluetooth)
+    this.mimicType = options.mimicType || "relay";
+    this.deviceName = options.deviceName || (this.mimicType === "relay" ? "Sim Rower" : "Concept2 PM5 (Sim)");
+
     this.spm = 20;
     this.targetSpm = 22;
     this.splitSeconds = 125;
@@ -51,6 +55,15 @@ export class VirtualRowerSimulator {
       this.currentPhaseIndex = 0;
       this.phaseElapsed = 0;
       this.applyCurrentPhase();
+    }
+  }
+
+  setMimicType(type, customName = null) {
+    this.mimicType = type === "direct" ? "direct" : "relay";
+    if (customName) {
+      this.deviceName = customName;
+    } else {
+      this.deviceName = this.mimicType === "relay" ? "Sim Rower" : "Concept2 PM5 (Sim)";
     }
   }
 
@@ -133,7 +146,9 @@ export class VirtualRowerSimulator {
           heartRate: Math.max(90, Math.round(this.heartRate - 1)),
           elapsedSeconds: Math.round(this.elapsedSeconds),
           isSimulated: true,
-          phaseName: this.mode === "dynamic" ? this.dynamicPhases[this.currentPhaseIndex].name : "Paused"
+          phaseName: this.mode === "dynamic" ? this.dynamicPhases[this.currentPhaseIndex].name : "Paused",
+          source: this.mimicType === "relay" ? "ble-relay" : "ble-direct",
+          deviceName: this.deviceName
         });
       }
       return;
@@ -177,7 +192,9 @@ export class VirtualRowerSimulator {
       heartRate: Math.round(this.heartRate),
       elapsedSeconds: Math.round(this.elapsedSeconds),
       isSimulated: true,
-      phaseName: this.mode === "dynamic" ? this.dynamicPhases[this.currentPhaseIndex].name : "Manual"
+      phaseName: this.mode === "dynamic" ? this.dynamicPhases[this.currentPhaseIndex].name : "Manual",
+      source: this.mimicType === "relay" ? "ble-relay" : "ble-direct",
+      deviceName: this.deviceName
     };
 
     if (this.onData) {
