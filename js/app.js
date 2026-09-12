@@ -952,6 +952,8 @@ const formCreateTrack = document.getElementById("form-create-track");
 const selectTrackVideo = document.getElementById("select-track-video");
 const selectTrackDefaultAudio = document.getElementById("select-track-default-audio");
 const containerTrackAllowedAudios = document.getElementById("container-track-allowed-audios");
+const btnTrackAudiosAll = document.getElementById("btn-track-audios-all");
+const btnTrackAudiosNone = document.getElementById("btn-track-audios-none");
 
 function parseTimeSeconds(val) {
   if (!val) return 0;
@@ -965,7 +967,7 @@ function parseTimeSeconds(val) {
   return isNaN(num) ? 0 : Math.max(0, num);
 }
 
-function populateTrackModalDropdowns() {
+function populateTrackModalDropdowns(selectedAudioIds = []) {
   if (selectTrackVideo) {
     selectTrackVideo.innerHTML = (cachedLibrary.videos || []).map(v => {
       const isTrimmed = (v.start_time > 0) || (v.end_time > 0 && v.end_time < (v.duration || 999999));
@@ -991,13 +993,15 @@ function populateTrackModalDropdowns() {
     if (!cachedLibrary.audio || cachedLibrary.audio.length === 0) {
       containerTrackAllowedAudios.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-dim);">No standalone soundtracks downloaded yet.</span>`;
     } else {
+      const selectedSet = new Set(Array.isArray(selectedAudioIds) ? selectedAudioIds : []);
       containerTrackAllowedAudios.innerHTML = cachedLibrary.audio.map(a => {
         const isTrimmed = (a.start_time > 0) || (a.end_time > 0 && a.end_time < (a.duration || 999999));
         const trimTag = isTrimmed ? ` <span style="color: var(--accent-emerald); font-size: 0.74rem;">[${pm5Hud.formatTime(a.start_time)} → ${a.end_time > 0 ? pm5Hud.formatTime(a.end_time) : 'End'}]</span>` : "";
+        const isChecked = selectedSet.has(a.id);
         return `
         <label style="display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; color: var(--text-main); cursor: pointer; padding: 0.25rem 0.4rem; border-radius: 4px; background: rgba(255,255,255,0.03);">
           <span style="display: flex; align-items: center; gap: 0.5rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            <input type="checkbox" name="allowed_audio" value="${a.id}" checked style="accent-color: var(--accent-blue);">
+            <input type="checkbox" name="allowed_audio" value="${a.id}" ${isChecked ? 'checked' : ''} style="accent-color: var(--accent-blue);">
             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${a.title}${trimTag}</span>
           </span>
           <button type="button" class="btn btn-secondary btn-sm btn-sample-audio" data-id="${a.id}" style="padding: 0.15rem 0.5rem; font-size: 0.72rem; line-height: 1.2; flex-shrink: 0; margin-left: 0.5rem;">▶ Sample</button>
@@ -1017,6 +1021,28 @@ function populateTrackModalDropdowns() {
       });
     }
   }
+}
+
+if (btnTrackAudiosAll) {
+  btnTrackAudiosAll.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (containerTrackAllowedAudios) {
+      containerTrackAllowedAudios.querySelectorAll('input[name="allowed_audio"]').forEach(cb => {
+        cb.checked = true;
+      });
+    }
+  });
+}
+
+if (btnTrackAudiosNone) {
+  btnTrackAudiosNone.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (containerTrackAllowedAudios) {
+      containerTrackAllowedAudios.querySelectorAll('input[name="allowed_audio"]').forEach(cb => {
+        cb.checked = false;
+      });
+    }
+  });
 }
 
 // ----------------- Modal Audio Preview Player -----------------
@@ -1316,7 +1342,7 @@ function openTrackModal() {
   const cbFixedSpeed = document.getElementById("input-track-fixed-speed");
   if (cbFixedSpeed) cbFixedSpeed.checked = false;
 
-  populateTrackModalDropdowns();
+  populateTrackModalDropdowns([]);
   updateTrackVideoPreview(selectTrackVideo ? selectTrackVideo.value : null);
   updateModalAudioSource(false);
 
@@ -1346,7 +1372,7 @@ function openEditTrackModal(track) {
   const submitBtn = modalCreateTrack.querySelector('button[type="submit"]');
   if (submitBtn) submitBtn.textContent = "Save Changes";
 
-  populateTrackModalDropdowns();
+  populateTrackModalDropdowns(track.allowed_audios || []);
 
   const idInput = document.getElementById("input-track-id");
   if (idInput) idInput.value = track.id || "";

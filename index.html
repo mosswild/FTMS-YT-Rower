@@ -698,7 +698,13 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Alternative Allowed Soundtracks</label>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+            <label class="form-label" style="margin-bottom: 0;">Alternative Allowed Soundtracks</label>
+            <div style="display: flex; gap: 0.4rem;">
+              <button type="button" id="btn-track-audios-all" class="btn btn-secondary btn-sm" style="padding: 0.15rem 0.5rem; font-size: 0.72rem; line-height: 1.2;">Select All</button>
+              <button type="button" id="btn-track-audios-none" class="btn btn-secondary btn-sm" style="padding: 0.15rem 0.5rem; font-size: 0.72rem; line-height: 1.2;">Deselect All</button>
+            </div>
+          </div>
           <div id="container-track-allowed-audios" style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 6px; border: 1px solid var(--surface-border);">
             <!-- Checkboxes injected via JS -->
           </div>
