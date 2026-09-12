@@ -280,6 +280,7 @@ FTMS-Rower supports both **Direct Client-Side Web Bluetooth** and **Wi-Fi WebSoc
 2. **Wi-Fi WebSocket Relay Bridge:**
    - Your host server, PC, or Mac pairs to the rowing machine via Bluetooth using `bleak` (`scripts/bluetooth_relay.py` or `run_relay_windows.bat`), and broadcasts real-time telemetry over your local network via WebSocket.
    - **Real-Time Live Console HUD:** Features an in-place single-line terminal status dashboard (no scrolling log waterfalls!) showing live metrics (`SPM`, `Power`, `Split`, `Dist`, `Res`, `Time`), sleep/wake detection, and last connected timestamps. Run with `-v` / `--verbose` if raw logs are needed.
+   - **Battery Conservation Auto-Disconnect:** To prevent battery drain on rowers whose consoles stay illuminated while connected (such as the Merach Q1), the relay automatically disconnects after 5 minutes of idle inactivity (`--idle-timeout 300`, customizable), allowing the rower's native hardware sleep timer to power off the LCD. Pulling the handle immediately wakes the machine and prompts automatic reconnection.
    - **Zero browser restrictions:** Any device on your Wi-Fi (standard Safari, Firefox, iPhone, iPad, Smart TVs) opens the web page over plain HTTP and instantly receives live telemetry without needing Web Bluetooth or special browser flags.
    - **Auto-Start Setup:** See the [Bluetooth Relay Bridge Setup & Auto-Start Guide](docs/BLUETOOTH_RELAY.md) for Windows auto-start (`shell:startup`), macOS `launchd`, and Linux `systemd` instructions.
 

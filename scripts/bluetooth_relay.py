@@ -319,11 +319,16 @@ async def run_relay(args):
 
     dev_name = "FTMS Rower"
     last_connected_dt = None
+    last_active_time = time.time()
 
     def notification_handler(sender, data: bytearray):
-        nonlocal last_connected_dt
+        nonlocal last_connected_dt, last_active_time
         parsed = parse_ftms_rower_data(data)
         if any(k in parsed for k in ("stroke_rate", "watts", "distance", "split_seconds", "resistance", "hr")):
+            # Update active timestamp when athlete is pulling/producing power
+            if (parsed.get("stroke_rate") or 0) > 0 or (parsed.get("watts") or 0) > 0:
+                last_active_time = time.time()
+
             publisher.publish(parsed)
             if args.verbose:
                 spm = parsed.get("stroke_rate", "--")
@@ -342,6 +347,10 @@ async def run_relay(args):
         print(" Mode: Verbose Multi-line Scrolling Logs")
     else:
         print(" Mode: Real-time Live Console HUD (single-line updates)")
+    if args.idle_timeout > 0:
+        idle_m = round(args.idle_timeout / 60, 1)
+        m_str = f"{int(idle_m)}" if idle_m.is_integer() else f"{idle_m}"
+        print(f" Battery Guard: Auto-disconnects after {m_str}m of idle inactivity")
     print(" Press Ctrl+C to stop.")
     print("=======================================================\n")
 
@@ -388,6 +397,7 @@ async def run_relay(args):
 
             async with BleakClient(target_device) as client:
                 last_connected_dt = datetime.datetime.now()
+                last_active_time = time.time()
                 t_str = last_connected_dt.strftime("%I:%M:%S %p")
                 hud.log(f"[OK] Connected to {dev_name} at {t_str}! Streaming telemetry to {publisher.endpoint}")
 
@@ -396,11 +406,27 @@ async def run_relay(args):
                 if not args.verbose:
                     hud.update(f"[Connected: {dev_name}] Waiting for first stroke...")
 
+                idle_disconnected = False
                 while client.is_connected:
                     await asyncio.sleep(0.5)
+                    if args.idle_timeout > 0:
+                        idle_elapsed = time.time() - last_active_time
+                        if idle_elapsed >= args.idle_timeout:
+                            idle_m = round(args.idle_timeout / 60, 1)
+                            m_str = f"{int(idle_m)}" if idle_m.is_integer() else f"{idle_m}"
+                            hud.log(f"! Idle timeout ({m_str}m without strokes). Disconnecting to conserve rower battery...")
+                            idle_disconnected = True
+                            try:
+                                await client.disconnect()
+                            except Exception:
+                                pass
+                            break
 
                 disconnect_time = datetime.datetime.now().strftime("%I:%M:%S %p")
-                hud.log(f"! Rower disconnected at {disconnect_time} (inactive/asleep). Resuming search...")
+                if idle_disconnected:
+                    hud.log(f"[Idle] Disconnected at {disconnect_time}. Console will sleep shortly. Pull handle to wake.")
+                else:
+                    hud.log(f"! Rower disconnected at {disconnect_time} (inactive/asleep). Resuming search...")
 
         except asyncio.CancelledError:
             break
@@ -419,6 +445,7 @@ def main():
     parser.add_argument("--name", help="Device name filter (e.g. Merach, Concept2, PM5)")
     parser.add_argument("--address", help="Exact Bluetooth MAC address / UUID to connect to")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose multi-line scrolling logs instead of single-line HUD")
+    parser.add_argument("--idle-timeout", type=int, default=300, help="Inactivity timeout in seconds before disconnecting to save rower battery (default: 300 / 5 min; 0 to disable)")
 
     args = parser.parse_args()
 
