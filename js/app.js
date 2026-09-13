@@ -8,7 +8,7 @@ import { VirtualRowerSimulator } from "./modules/simulator.js?v=workout-sim-v24"
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-engine-v1";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-nav-v25";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -3831,16 +3831,39 @@ const btnWorkoutSkip = document.getElementById("btn-workout-skip");
 const btnWorkoutStop = document.getElementById("btn-workout-stop");
 const btnWorkoutToggle = document.getElementById("btn-workout-toggle");
 
-if (btnWorkoutPrev) btnWorkoutPrev.addEventListener("click", () => workoutEngine.prevStep());
-if (btnWorkoutSkip) btnWorkoutSkip.addEventListener("click", () => workoutEngine.nextStep());
-if (btnWorkoutStop) btnWorkoutStop.addEventListener("click", () => {
-  workoutEngine.stop();
-  workoutEngine.workout = null;
-  pm5Hud.setWorkoutMode(null);
-  pm5Hud.showWorkoutBar(false);
-  pm5Hud.clearWorkoutCompliance();
-  pm5Hud.showNotice("Workout stopped — Free Row active");
-});
+function getActiveWorkoutTelemetrySnapshot() {
+  return {
+    distanceMeters: pm5Hud.rawDistance || 0,
+    elapsedSeconds: pm5Hud.rawElapsedSeconds || 0,
+    totalStrokes: sessionTracker ? sessionTracker.totalStrokes : 0
+  };
+}
+
+if (btnWorkoutPrev) {
+  btnWorkoutPrev.addEventListener("click", (e) => {
+    e.stopPropagation();
+    workoutEngine.prevStep(getActiveWorkoutTelemetrySnapshot());
+  });
+}
+
+if (btnWorkoutSkip) {
+  btnWorkoutSkip.addEventListener("click", (e) => {
+    e.stopPropagation();
+    workoutEngine.nextStep(getActiveWorkoutTelemetrySnapshot());
+  });
+}
+
+if (btnWorkoutStop) {
+  btnWorkoutStop.addEventListener("click", (e) => {
+    e.stopPropagation();
+    workoutEngine.stop();
+    workoutEngine.workout = null;
+    pm5Hud.setWorkoutMode(null);
+    pm5Hud.showWorkoutBar(false);
+    pm5Hud.clearWorkoutCompliance();
+    pm5Hud.showNotice("Workout stopped — Free Row active");
+  });
+}
 if (btnWorkoutToggle) {
   btnWorkoutToggle.addEventListener("click", (e) => {
     e.stopPropagation();

@@ -241,8 +241,12 @@
               <div class="workout-bar-right">
                 <span id="workout-step-countdown" class="workout-countdown">01:45 left</span>
                 <div class="workout-bar-controls">
-                  <button id="btn-workout-prev" class="workout-ctrl-btn" type="button" title="Restart / Previous Step">⏮</button>
-                  <button id="btn-workout-skip" class="workout-ctrl-btn" type="button" title="Skip to Next Step">⏭</button>
+                  <button id="btn-workout-prev" class="workout-ctrl-btn" type="button" title="Restart / Previous Step">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -1px;"><polygon points="11 19 2 12 11 5 11 19"/><polygon points="22 19 13 12 22 5 22 19"/></svg>
+                  </button>
+                  <button id="btn-workout-skip" class="workout-ctrl-btn" type="button" title="Skip to Next Step">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -1px;"><polygon points="13 19 22 12 13 5 13 19"/><polygon points="2 19 11 12 2 5 2 19"/></svg>
+                  </button>
                   <button id="btn-workout-stop" class="workout-ctrl-btn danger" type="button" title="Stop Workout">⏹</button>
                   <button id="btn-workout-toggle" class="workout-ctrl-btn" type="button" title="Hide Workout Bar (Target Chips Only)">✕</button>
                 </div>
@@ -1076,6 +1080,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=workout-sim-v24"></script>
+  <script type="module" src="js/app.js?v=workout-nav-v25"></script>
 </body>
 </html>

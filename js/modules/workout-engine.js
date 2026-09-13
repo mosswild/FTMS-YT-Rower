@@ -40,6 +40,7 @@ export class WorkoutEngine {
     this.countdownSeconds = 0;
     this.lastBeepSecond = null;
     this.triggeredCues = new Set();
+    this.lastTelemetry = { distanceMeters: 0, elapsedSeconds: 0, totalStrokes: 0 };
 
     // Web Audio Context for beeps
     this.audioCtx = null;
@@ -178,14 +179,14 @@ export class WorkoutEngine {
     this.options.onStatusChange(this.status);
   }
 
-  activateStep(index, telemetry = {}) {
+  activateStep(index, telemetry = null) {
     if (index >= this.steps.length) {
       this.completeWorkout();
       return;
     }
 
-    this.currentStepIndex = index;
-    const step = this.steps[index];
+    this.currentStepIndex = Math.max(0, index);
+    const step = this.steps[this.currentStepIndex];
 
     // Establish baselines
     this.stepStartTime = Date.now();
@@ -195,11 +196,15 @@ export class WorkoutEngine {
     this.lastBeepSecond = null;
     this.triggeredCues.clear();
 
-    this.stepBaselineDistance = telemetry.distanceMeters || 0;
-    this.stepBaselineTime = telemetry.elapsedSeconds || 0;
-    this.stepBaselineStrokes = telemetry.totalStrokes || 0;
+    const telem = (telemetry && (telemetry.distanceMeters !== undefined || telemetry.elapsedSeconds !== undefined))
+      ? telemetry
+      : this.lastTelemetry;
 
-    this.options.onStepChange(step, index, this.steps.length);
+    this.stepBaselineDistance = telem.distanceMeters || 0;
+    this.stepBaselineTime = telem.elapsedSeconds || 0;
+    this.stepBaselineStrokes = telem.totalStrokes || 0;
+
+    this.options.onStepChange(step, this.currentStepIndex, this.steps.length);
 
     // Initial cue
     if (step.cues && step.cues.on_start) {
@@ -210,6 +215,11 @@ export class WorkoutEngine {
   }
 
   onTelemetry(telemetry) {
+    if (telemetry) {
+      if (telemetry.distanceMeters !== undefined) this.lastTelemetry.distanceMeters = telemetry.distanceMeters;
+      if (telemetry.elapsedSeconds !== undefined) this.lastTelemetry.elapsedSeconds = telemetry.elapsedSeconds;
+      if (telemetry.totalStrokes !== undefined) this.lastTelemetry.totalStrokes = telemetry.totalStrokes;
+    }
     if (this.status !== "running") return;
 
     // Update distance
@@ -404,12 +414,21 @@ export class WorkoutEngine {
     });
   }
 
-  advanceStep(telemetry = {}) {
+  nextStep(telemetry = null) {
+    this.advanceStep(telemetry);
+  }
+
+  skipStep(telemetry = null) {
+    this.advanceStep(telemetry);
+  }
+
+  advanceStep(telemetry = null) {
     this.playTransitionChime();
     this.activateStep(this.currentStepIndex + 1, telemetry);
   }
 
-  prevStep(telemetry = {}) {
+  prevStep(telemetry = null) {
+    this.playTransitionChime();
     if (this.currentStepIndex > 0) {
       this.activateStep(this.currentStepIndex - 1, telemetry);
     } else {
@@ -417,7 +436,7 @@ export class WorkoutEngine {
     }
   }
 
-  restartStep(telemetry = {}) {
+  restartStep(telemetry = null) {
     this.activateStep(this.currentStepIndex, telemetry);
   }
 
