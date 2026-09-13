@@ -3868,22 +3868,33 @@ if (btnWorkoutSkip) {
 if (btnWorkoutStop) {
   btnWorkoutStop.addEventListener("click", (e) => {
     e.stopPropagation();
-    workoutEngine.stop();
-    workoutEngine.workout = null;
+    if (workoutEngine) {
+      workoutEngine.stop();
+      workoutEngine.workout = null;
+    }
+    if (typeof rateController !== "undefined" && rateController) {
+      rateController.setWorkoutLive(false);
+    }
     pm5Hud.setWorkoutMode(null);
     pm5Hud.showWorkoutBar(false);
     pm5Hud.clearWorkoutCompliance();
-    pm5Hud.showNotice("Workout stopped — Free Row active");
+    pm5Hud.showNotice("Program ended — Free Row active");
   });
 }
 if (btnWorkoutToggle) {
   btnWorkoutToggle.addEventListener("click", (e) => {
     e.stopPropagation();
-    const bar = document.getElementById("hud-workout-bar");
-    if (bar) {
-      bar.style.display = "none";
-      pm5Hud.showNotice("Workout ribbon hidden. In-cell target chips active.", 2500);
+    if (workoutEngine) {
+      workoutEngine.stop();
+      workoutEngine.workout = null;
     }
+    if (typeof rateController !== "undefined" && rateController) {
+      rateController.setWorkoutLive(false);
+    }
+    pm5Hud.setWorkoutMode(null);
+    pm5Hud.showWorkoutBar(false);
+    pm5Hud.clearWorkoutCompliance();
+    pm5Hud.showNotice("Program ended — Free Row active");
   });
 }
 
