@@ -361,74 +361,124 @@ export class WorkoutEngine {
 
     // SPM Compliance
     if (targets.spm) {
-      const [minSpm, maxSpm] = targets.spm;
+      const minSpm = Array.isArray(targets.spm) ? targets.spm[0] : targets.spm;
+      const maxSpm = Array.isArray(targets.spm) ? (targets.spm[1] !== undefined ? targets.spm[1] : targets.spm[0]) : targets.spm;
+      const targetStr = minSpm === maxSpm ? `${minSpm}` : `${minSpm}-${maxSpm}`;
       const val = curTelem.strokeRate !== undefined ? curTelem.strokeRate : 0;
       if (val === 0) {
         if (isStepRest && minSpm <= 0) {
-          compliance.spm = { status: "in-target", target: `${minSpm}-${maxSpm}` };
+          compliance.spm = { status: "in-target", target: targetStr };
         } else {
-          compliance.spm = { status: "under-target", target: `${minSpm}-${maxSpm}`, diff: minSpm, isPaused: true };
+          compliance.spm = { status: "under-target", target: targetStr, diff: minSpm, isPaused: true };
         }
       } else if (val >= minSpm && val <= maxSpm) {
-        compliance.spm = { status: "in-target", target: `${minSpm}-${maxSpm}` };
+        compliance.spm = { status: "in-target", target: targetStr };
       } else if (val < minSpm) {
-        compliance.spm = { status: "under-target", target: `${minSpm}-${maxSpm}`, diff: minSpm - val };
+        compliance.spm = { status: "under-target", target: targetStr, diff: minSpm - val };
       } else {
-        compliance.spm = { status: "over-target", target: `${minSpm}-${maxSpm}`, diff: val - maxSpm };
+        compliance.spm = { status: "over-target", target: targetStr, diff: val - maxSpm };
       }
     }
 
     // Split Compliance (seconds per 500m)
-    if (targets.split_seconds) {
-      const [minSplit, maxSplit] = targets.split_seconds; // min is fastest (lowest s), max is slowest
+    const hasSplit = Boolean(targets.split_seconds || targets.split || targets.split_formatted);
+    if (hasSplit) {
+      let minSplit = null;
+      let maxSplit = null;
+      if (targets.split_seconds && targets.split_seconds.length >= 2) {
+        minSplit = targets.split_seconds[0];
+        maxSplit = targets.split_seconds[1];
+      } else if (Array.isArray(targets.split)) {
+        const parsed = targets.split.map(s => {
+          if (typeof s === "number") return s;
+          const parts = String(s).split(":");
+          return parts.length === 2 ? parseFloat(parts[0]) * 60 + parseFloat(parts[1]) : parseFloat(s);
+        }).filter(n => !isNaN(n));
+        if (parsed.length >= 2) {
+          minSplit = Math.min(...parsed);
+          maxSplit = Math.max(...parsed);
+        } else if (parsed.length === 1) {
+          minSplit = parsed[0];
+          maxSplit = parsed[0];
+        }
+      }
+
+      let targetStr = "";
+      if (targets.split_formatted && targets.split_formatted.length >= 2) {
+        targetStr = `${targets.split_formatted[0]} - ${targets.split_formatted[1]}`;
+      } else if (Array.isArray(targets.split)) {
+        targetStr = targets.split.join(" - ");
+      } else if (minSplit !== null && maxSplit !== null) {
+        const m1 = Math.floor(minSplit / 60);
+        const s1 = String(Math.round(minSplit % 60)).padStart(2, "0");
+        const m2 = Math.floor(maxSplit / 60);
+        const s2 = String(Math.round(maxSplit % 60)).padStart(2, "0");
+        targetStr = `${m1}:${s1} - ${m2}:${s2}`;
+      }
+
       const val = curTelem.splitSeconds !== undefined ? curTelem.splitSeconds : 0;
-      const targetStr = targets.split_formatted ? `${targets.split_formatted[0]} - ${targets.split_formatted[1]}` : "";
       if (val === 0) {
         if (isStepRest) {
           compliance.split = { status: "in-target", target: targetStr };
         } else {
           compliance.split = { status: "under-target", target: targetStr, isPaused: true };
         }
-      } else if (val >= minSplit && val <= maxSplit) {
-        compliance.split = { status: "in-target", target: targetStr };
-      } else if (val > maxSplit) {
-        // Slower split than target
-        compliance.split = { status: "under-target", target: targetStr };
-      } else {
-        // Faster split than target
-        compliance.split = { status: "over-target", target: targetStr };
+      } else if (minSplit !== null && maxSplit !== null) {
+        if (val >= minSplit && val <= maxSplit) {
+          compliance.split = { status: "in-target", target: targetStr };
+        } else if (val > maxSplit) {
+          // Slower split than target
+          compliance.split = { status: "under-target", target: targetStr };
+        } else {
+          // Faster split than target
+          compliance.split = { status: "over-target", target: targetStr };
+        }
       }
     }
 
     // Watts Compliance
     if (targets.watts) {
-      const [minW, maxW] = targets.watts;
+      const minW = Array.isArray(targets.watts) ? targets.watts[0] : targets.watts;
+      const maxW = Array.isArray(targets.watts) ? (targets.watts[1] !== undefined ? targets.watts[1] : targets.watts[0]) : targets.watts;
+      const targetStr = minW === maxW ? `${minW}W` : `${minW}-${maxW}W`;
       const val = curTelem.powerWatts !== undefined ? curTelem.powerWatts : 0;
       if (val === 0) {
         if (isStepRest && minW <= 0) {
-          compliance.watts = { status: "in-target", target: `${minW}-${maxW}W` };
+          compliance.watts = { status: "in-target", target: targetStr };
         } else {
-          compliance.watts = { status: "under-target", target: `${minW}-${maxW}W`, diff: minW, isPaused: true };
+          compliance.watts = { status: "under-target", target: targetStr, diff: minW, isPaused: true };
         }
       } else if (val >= minW && val <= maxW) {
-        compliance.watts = { status: "in-target", target: `${minW}-${maxW}W` };
+        compliance.watts = { status: "in-target", target: targetStr };
       } else if (val < minW) {
-        compliance.watts = { status: "under-target", target: `${minW}-${maxW}W`, diff: minW - val };
+        compliance.watts = { status: "under-target", target: targetStr, diff: minW - val };
       } else {
-        compliance.watts = { status: "over-target", target: `${minW}-${maxW}W`, diff: val - maxW };
+        compliance.watts = { status: "over-target", target: targetStr, diff: val - maxW };
       }
     }
 
     // Heart Rate Compliance
-    if (targets.hr && curTelem.heartRate !== undefined && curTelem.heartRate > 0) {
-      const [minHr, maxHr] = targets.hr;
-      const val = curTelem.heartRate;
-      if (val >= minHr && val <= maxHr) {
-        compliance.hr = { status: "in-target", target: `${minHr}-${maxHr}` };
-      } else if (val < minHr) {
-        compliance.hr = { status: "under-target", target: `${minHr}-${maxHr}`, diff: minHr - val };
+    if (targets.hr || targets.hr_zone) {
+      const minHr = targets.hr ? (Array.isArray(targets.hr) ? targets.hr[0] : targets.hr) : null;
+      const maxHr = targets.hr ? (Array.isArray(targets.hr) ? (targets.hr[1] !== undefined ? targets.hr[1] : targets.hr[0]) : targets.hr) : null;
+      const targetStr = minHr !== null ? (minHr === maxHr ? `${minHr}` : `${minHr}-${maxHr}`) : `Zone ${Array.isArray(targets.hr_zone) ? targets.hr_zone[0] : targets.hr_zone}`;
+      const val = curTelem.heartRate !== undefined ? curTelem.heartRate : 0;
+      if (val === 0) {
+        if (isStepRest && (!minHr || minHr <= 0)) {
+          compliance.hr = { status: "in-target", target: targetStr };
+        } else {
+          compliance.hr = { status: "under-target", target: targetStr, diff: minHr || 0, isPaused: true };
+        }
+      } else if (minHr !== null && maxHr !== null) {
+        if (val >= minHr && val <= maxHr) {
+          compliance.hr = { status: "in-target", target: targetStr };
+        } else if (val < minHr) {
+          compliance.hr = { status: "under-target", target: targetStr, diff: minHr - val };
+        } else {
+          compliance.hr = { status: "over-target", target: targetStr, diff: val - maxHr };
+        }
       } else {
-        compliance.hr = { status: "over-target", target: `${minHr}-${maxHr}`, diff: val - maxHr };
+        compliance.hr = { status: "in-target", target: targetStr };
       }
     }
 

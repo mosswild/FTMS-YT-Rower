@@ -391,9 +391,31 @@ export class PM5Hud {
     if (this.elements.workoutTargetSummary) {
       const parts = [];
       if (step.targets) {
-        if (step.targets.spm) parts.push(`${step.targets.spm[0]}-${step.targets.spm[1]} SPM`);
-        if (step.targets.split_formatted) parts.push(`${step.targets.split_formatted[0]}-${step.targets.split_formatted[1]}`);
-        if (step.targets.watts) parts.push(`${step.targets.watts[0]}-${step.targets.watts[1]}W`);
+        if (step.targets.spm) {
+          const sMin = Array.isArray(step.targets.spm) ? step.targets.spm[0] : step.targets.spm;
+          const sMax = Array.isArray(step.targets.spm) ? (step.targets.spm[1] !== undefined ? step.targets.spm[1] : sMin) : sMin;
+          parts.push(sMin === sMax ? `${sMin} SPM` : `${sMin}-${sMax} SPM`);
+        }
+        if (step.targets.split_formatted) {
+          parts.push(`${step.targets.split_formatted[0]}-${step.targets.split_formatted[1]}`);
+        } else if (Array.isArray(step.targets.split)) {
+          parts.push(step.targets.split.join(" - "));
+        }
+        if (step.targets.watts) {
+          const wMin = Array.isArray(step.targets.watts) ? step.targets.watts[0] : step.targets.watts;
+          const wMax = Array.isArray(step.targets.watts) ? (step.targets.watts[1] !== undefined ? step.targets.watts[1] : wMin) : wMin;
+          parts.push(wMin === wMax ? `${wMin}W` : `${wMin}-${wMax}W`);
+        }
+        if (step.targets.hr) {
+          const hrMin = Array.isArray(step.targets.hr) ? step.targets.hr[0] : step.targets.hr;
+          const hrMax = Array.isArray(step.targets.hr) ? (step.targets.hr[1] !== undefined ? step.targets.hr[1] : hrMin) : hrMin;
+          const zoneVal = step.targets.hr_zone ? (Array.isArray(step.targets.hr_zone) ? step.targets.hr_zone[0] : step.targets.hr_zone) : null;
+          const zoneStr = zoneVal ? ` (Zone ${zoneVal})` : "";
+          parts.push(hrMin === hrMax ? `${hrMin} BPM${zoneStr}` : `${hrMin}-${hrMax} BPM${zoneStr}`);
+        } else if (step.targets.hr_zone) {
+          const zoneVal = Array.isArray(step.targets.hr_zone) ? step.targets.hr_zone[0] : step.targets.hr_zone;
+          parts.push(`HR Zone ${zoneVal}`);
+        }
       }
       if (parts.length > 0) {
         this.elements.workoutTargetSummary.textContent = `Target: ${parts.join(" • ")}`;
