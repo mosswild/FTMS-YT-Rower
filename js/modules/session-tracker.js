@@ -87,8 +87,11 @@ export class SessionTracker {
     if (telemetry.strokeCount !== undefined) this.currentMetrics.strokes = telemetry.strokeCount;
     if (telemetry.heartRate !== undefined) this.currentMetrics.hr = telemetry.heartRate;
 
-    // Auto-start workout on first meaningful pull if idle
+    // Auto-start workout on first meaningful pull if idle (unless a program is explicitly paused)
     if (this.state === "idle" && (this.currentMetrics.spm > 0 || this.currentMetrics.watts > 0)) {
+      if (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.status === "paused") {
+        return;
+      }
       this.start();
     }
   }

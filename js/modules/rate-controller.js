@@ -33,6 +33,7 @@ export class RateController {
 
     this.isFixedSpeed = false;
     this.isWorkoutLive = false;
+    this.isProgramPaused = false;
     this.smoothedRate = 1.0;
     this.targetRate = 1.0;
     this.lastStrokeTime = 0;
@@ -109,6 +110,13 @@ export class RateController {
         this.resumeVideo();
       }
     } else {
+      this.pauseVideo(true);
+    }
+  }
+
+  setProgramPaused(isPaused) {
+    this.isProgramPaused = !!isPaused;
+    if (this.isProgramPaused) {
       this.pauseVideo(true);
     }
   }
@@ -207,6 +215,9 @@ export class RateController {
 
   updateCadence(currentSpm) {
     this.lastSpm = currentSpm;
+    if (this.isProgramPaused) {
+      return;
+    }
     if (this.isFixedSpeed || this.speedMode === "ambient") {
       this.lastStrokeTime = Date.now();
       this.applyHardwareRate(1.0, false);
@@ -274,6 +285,7 @@ export class RateController {
   }
 
   resumeVideo() {
+    if (this.isProgramPaused) return;
     this.isAutoPaused = false;
     if (this.video && this.video.paused) {
       this.video.play().catch(e => console.warn("[RateController] Autoplay error:", e));

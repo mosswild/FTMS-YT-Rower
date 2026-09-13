@@ -1,14 +1,14 @@
 import { RowerBLE } from "./modules/ble-rower.js?v=res-and-metric-reset-v19";
 import { HeartRateBLE } from "./modules/ble-heartrate.js?v=res-and-metric-reset-v19";
-import { RateController } from "./modules/rate-controller.js?v=res-and-metric-reset-v19";
+import { RateController } from "./modules/rate-controller.js?v=workout-pause-fix-v33";
 import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
-import { PM5Hud } from "./modules/hud.js?v=workout-unpaused-targets-v31";
-import { SessionTracker } from "./modules/session-tracker.js?v=res-and-metric-reset-v19";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=workout-sim-mode-decouple-v28";
+import { PM5Hud } from "./modules/hud.js?v=workout-pause-fix-v33";
+import { SessionTracker } from "./modules/session-tracker.js?v=workout-pause-fix-v33";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=workout-pause-fix-v33";
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-unpaused-targets-v31";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-pause-fix-v33";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -133,6 +133,10 @@ const rateController = new RateController(videoEl, {
         workoutEngine.onRowerPaused();
       }
     } else {
+      // Guard: If the workout program is explicitly paused, do NOT auto-resume session or unfreeze HUD!
+      if (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.status === "paused") {
+        return;
+      }
       sessionTracker.resume();
       if (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.isRunning) {
         workoutEngine.onRowerResumed();
@@ -333,12 +337,17 @@ if (cellTime) {
 function syncWorkoutPauseButton() {
   const btn = document.getElementById("btn-workout-pause") || document.getElementById("btn-workout-stop");
   if (!btn) return;
-  if (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.status === "paused") {
-    btn.textContent = "▶";
-    btn.title = "Resume Program";
-  } else {
-    btn.textContent = "⏸";
-    btn.title = "Pause Program";
+  if (typeof workoutEngine !== "undefined" && workoutEngine) {
+    if (workoutEngine.status === "paused") {
+      btn.textContent = "▶";
+      btn.title = "Resume Program";
+    } else if (workoutEngine.status === "ready") {
+      btn.textContent = "▶";
+      btn.title = "Start Program";
+    } else {
+      btn.textContent = "⏸";
+      btn.title = "Pause Program";
+    }
   }
 }
 
@@ -408,6 +417,14 @@ function handleTelemetryPacket(data) {
     rateController.updateCadence(data.strokeRate);
     audioEngine.updateCadence(data.strokeRate);
   }
+
+  // Auto-start staged program on first meaningful pull if in ready state
+  if (workoutEngine && workoutEngine.workout && workoutEngine.status === "ready") {
+    if ((data.strokeRate && data.strokeRate > 0) || (data.watts && data.watts > 0)) {
+      startActiveWorkout();
+    }
+  }
+
   sessionTracker.updateTelemetry(data);
 
   if (workoutEngine && workoutEngine.isRunning) {
@@ -3916,12 +3933,18 @@ if (btnWorkoutPause) {
   btnWorkoutPause.addEventListener("click", (e) => {
     e.stopPropagation();
     if (!workoutEngine) return;
-    if (workoutEngine.status === "running") {
+    if (workoutEngine.status === "ready") {
+      startActiveWorkout();
+      return;
+    }
+    if (workoutEngine.status === "running" || workoutEngine.status === "countdown") {
       workoutEngine.pause();
       if (sessionTracker && sessionTracker.state === "active") {
         sessionTracker.pause();
-      } else {
-        pm5Hud.pauseSession();
+      }
+      pm5Hud.pauseSession();
+      if (typeof rateController !== "undefined" && rateController) {
+        rateController.setProgramPaused(true);
       }
       if (typeof simulator !== "undefined" && simulator && simulator.isRunning) {
         simulator.onWorkoutStatusChange("paused");
@@ -3933,12 +3956,14 @@ if (btnWorkoutPause) {
       syncWorkoutPauseButton();
       pm5Hud.showNotice("Program Paused", 2500);
     } else if (workoutEngine.status === "paused") {
+      if (typeof rateController !== "undefined" && rateController) {
+        rateController.setProgramPaused(false);
+      }
       workoutEngine.resume();
       if (sessionTracker && sessionTracker.state === "paused") {
         sessionTracker.resume();
-      } else {
-        pm5Hud.resumeSession();
       }
+      pm5Hud.resumeSession();
       if (typeof simulator !== "undefined" && simulator && simulator.isRunning) {
         simulator.onWorkoutStatusChange("running");
       }
@@ -3953,6 +3978,9 @@ if (btnWorkoutPause) {
 }
 
 function endWorkoutAndReset() {
+  if (typeof rateController !== "undefined" && rateController) {
+    rateController.setProgramPaused(false);
+  }
   if (workoutEngine) {
     workoutEngine.stop();
     workoutEngine.workout = null;
@@ -4363,6 +4391,9 @@ function startActiveWorkout() {
     totalStrokes: sessionTracker ? sessionTracker.totalStrokes : 0
   };
   workoutEngine.start(curTelemetry);
+  if (sessionTracker && sessionTracker.state !== "active") {
+    sessionTracker.start();
+  }
 }
 
 // Start Workout in Cockpit (explicit start from card or preview modal)
