@@ -132,10 +132,8 @@ export class VirtualRowerSimulator {
         this.onPhaseChange("Workout Complete! 🎉", 0);
       }
     } else if (status === "paused") {
-      this.isRowing = false;
-      this.targetSpm = 0;
       if (this.onPhaseChange) {
-        this.onPhaseChange("Workout Paused", 0);
+        this.onPhaseChange("[PAUSED] Program Paused", Math.round(this.targetSpm || 20));
       }
     } else if (status === "idle") {
       this.isRowing = false;

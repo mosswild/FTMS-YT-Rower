@@ -317,9 +317,14 @@ PYTHONPATH=. .venv/bin/python tests/test_backend.py
   - [x] **Cyberpunk Theme Fix:** Standardized Cyberpunk metric cell padding, font line-height, and ECG waveform height so metric cell dimensions match the other three themes.
   - [x] **Workout Bar Theme:** Increased workout bar transparency on Modern Slate, Cyberpunk, and Retro Concept2 PM5 themes so scenic video remains visible behind the interval ribbon.
   - [x] **Target Indicators for Workout:** Positioned target compliance chips at a consistent bottom offset across all metric cells for a unified horizontal baseline.
+  - [x] **Program Session Tracking & Paused Metrics:** When a program is paused, live pulling metrics (SPM, Watts, Split, HR) continue to stream and update in real time while Elapsed Time and Distance hold frozen with an amber `PAUSED` indicator badge.
 - [x] **Simulator Fixes:**
   - [x] Hitting "Stop Simulator" now immediately zeroes out live metric displays (SPM, Split, Watts).
   - [x] Decoupled simulated Polar H10 Heart Rate monitor from the virtual rowing machine with an independent simulation loop so both can be enabled or disabled on their own.
+- [x] **Theme Fixes for Small Resolutions:** 
+  - [x] Fixed Nordic Minimalist and Cyberpunk cell transparency so all 6 metric cards remain uniformly translucent on mobile and small screens.
+  - [x] Responsive navigation bar padding and font scaling across all themes prevents the header from overflowing or running past the screen edge on narrow viewports.
+  - [x] Scaled target compliance chips and badges in the 2x3 mobile grid to guarantee they fit within metric cells without obscuring numeric readouts.
 - [ ] **Live GitHub Pages Demo:** Client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and simulator directly in the browser with bundled lightweight sample media.
 
 ### Recent Milestones

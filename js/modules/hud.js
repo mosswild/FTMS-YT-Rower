@@ -39,7 +39,11 @@ export class PM5Hud {
       targetSplit: document.getElementById("hud-target-split"),
       targetWatts: document.getElementById("hud-target-watts"),
       targetHr: document.getElementById("hud-target-hr"),
-      workoutBadge: document.getElementById("hud-workout-badge")
+      workoutBadge: document.getElementById("hud-workout-badge"),
+      frozenDist: document.getElementById("hud-frozen-dist"),
+      frozenTime: document.getElementById("hud-frozen-time"),
+      cellDistance: document.getElementById("hud-cell-distance"),
+      cellTime: document.getElementById("hud-cell-time")
     };
 
     this.distanceOffset = 0;
@@ -61,6 +65,10 @@ export class PM5Hud {
     this.isSessionPaused = true;
     this.pausedAtRawSeconds = this.rawElapsedSeconds;
     this.pausedAtRawDistance = this.rawDistance;
+    if (this.elements.frozenDist) this.elements.frozenDist.style.display = "inline-flex";
+    if (this.elements.frozenTime) this.elements.frozenTime.style.display = "inline-flex";
+    if (this.elements.cellDistance) this.elements.cellDistance.classList.add("cell-frozen");
+    if (this.elements.cellTime) this.elements.cellTime.classList.add("cell-frozen");
   }
 
   resumeSession() {
@@ -74,6 +82,10 @@ export class PM5Hud {
       }
       this.pausedAtRawSeconds = null;
       this.pausedAtRawDistance = null;
+      if (this.elements.frozenDist) this.elements.frozenDist.style.display = "none";
+      if (this.elements.frozenTime) this.elements.frozenTime.style.display = "none";
+      if (this.elements.cellDistance) this.elements.cellDistance.classList.remove("cell-frozen");
+      if (this.elements.cellTime) this.elements.cellTime.classList.remove("cell-frozen");
     }
   }
 
@@ -81,6 +93,10 @@ export class PM5Hud {
     this.isSessionPaused = false;
     this.pausedAtRawSeconds = null;
     this.pausedAtRawDistance = null;
+    if (this.elements.frozenDist) this.elements.frozenDist.style.display = "none";
+    if (this.elements.frozenTime) this.elements.frozenTime.style.display = "none";
+    if (this.elements.cellDistance) this.elements.cellDistance.classList.remove("cell-frozen");
+    if (this.elements.cellTime) this.elements.cellTime.classList.remove("cell-frozen");
     this.distanceOffset = dist !== undefined ? dist : this.rawDistance;
     this.timeOffset = time !== undefined ? time : this.rawElapsedSeconds;
     if (this.elements.distance) this.elements.distance.textContent = "0";
