@@ -2,13 +2,13 @@ import { RowerBLE } from "./modules/ble-rower.js?v=res-and-metric-reset-v19";
 import { HeartRateBLE } from "./modules/ble-heartrate.js?v=res-and-metric-reset-v19";
 import { RateController } from "./modules/rate-controller.js?v=res-and-metric-reset-v19";
 import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
-import { PM5Hud } from "./modules/hud.js?v=workout-all-targets-v30";
+import { PM5Hud } from "./modules/hud.js?v=workout-unpaused-targets-v31";
 import { SessionTracker } from "./modules/session-tracker.js?v=res-and-metric-reset-v19";
 import { VirtualRowerSimulator } from "./modules/simulator.js?v=workout-sim-mode-decouple-v28";
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-all-targets-v30";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-unpaused-targets-v31";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");

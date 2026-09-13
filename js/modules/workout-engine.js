@@ -242,14 +242,28 @@ export class WorkoutEngine {
 
   onTelemetry(telemetry) {
     if (telemetry) {
-      if (telemetry.distanceMeters !== undefined) this.lastTelemetry.distanceMeters = telemetry.distanceMeters;
-      if (telemetry.elapsedSeconds !== undefined) this.lastTelemetry.elapsedSeconds = telemetry.elapsedSeconds;
-      if (telemetry.totalStrokes !== undefined) this.lastTelemetry.totalStrokes = telemetry.totalStrokes;
-      if (telemetry.strokeRate !== undefined) this.lastTelemetry.strokeRate = telemetry.strokeRate;
-      if (telemetry.splitSeconds !== undefined) this.lastTelemetry.splitSeconds = telemetry.splitSeconds;
-      if (telemetry.powerWatts !== undefined) this.lastTelemetry.powerWatts = telemetry.powerWatts;
-      if (telemetry.heartRate !== undefined) this.lastTelemetry.heartRate = telemetry.heartRate;
-      if (telemetry.strokeRate !== undefined && telemetry.strokeRate > 0) {
+      const dist = telemetry.distanceMeters !== undefined ? telemetry.distanceMeters : telemetry.distance;
+      if (dist !== undefined) this.lastTelemetry.distanceMeters = dist;
+
+      const elapsed = telemetry.elapsedSeconds !== undefined ? telemetry.elapsedSeconds : telemetry.elapsed;
+      if (elapsed !== undefined) this.lastTelemetry.elapsedSeconds = elapsed;
+
+      const strokes = telemetry.totalStrokes !== undefined ? telemetry.totalStrokes : (telemetry.strokeCount !== undefined ? telemetry.strokeCount : telemetry.strokes);
+      if (strokes !== undefined) this.lastTelemetry.totalStrokes = strokes;
+
+      const spm = telemetry.strokeRate !== undefined ? telemetry.strokeRate : telemetry.spm;
+      if (spm !== undefined) this.lastTelemetry.strokeRate = spm;
+
+      const pace = telemetry.splitSeconds !== undefined ? telemetry.splitSeconds : (telemetry.instantaneousPace !== undefined ? telemetry.instantaneousPace : telemetry.split_seconds);
+      if (pace !== undefined) this.lastTelemetry.splitSeconds = pace;
+
+      const watts = telemetry.powerWatts !== undefined ? telemetry.powerWatts : (telemetry.watts !== undefined ? telemetry.watts : telemetry.power);
+      if (watts !== undefined) this.lastTelemetry.powerWatts = watts;
+
+      const hr = telemetry.heartRate !== undefined ? telemetry.heartRate : telemetry.hr;
+      if (hr !== undefined) this.lastTelemetry.heartRate = hr;
+
+      if ((spm !== undefined && spm > 0) || (watts !== undefined && watts > 0) || (pace !== undefined && pace > 0)) {
         this.isRowerPaused = false;
       }
     }
@@ -261,14 +275,16 @@ export class WorkoutEngine {
     }
 
     // Update distance
-    if (telemetry.distanceMeters !== undefined) {
-      const delta = Math.max(0, telemetry.distanceMeters - this.stepBaselineDistance);
+    const curDist = telemetry.distanceMeters !== undefined ? telemetry.distanceMeters : telemetry.distance;
+    if (curDist !== undefined) {
+      const delta = Math.max(0, curDist - this.stepBaselineDistance);
       this.stepDistanceMeters = delta;
     }
 
     // Update strokes
-    if (telemetry.totalStrokes !== undefined) {
-      this.stepStrokes = Math.max(0, telemetry.totalStrokes - this.stepBaselineStrokes);
+    const curStrokes = telemetry.totalStrokes !== undefined ? telemetry.totalStrokes : (telemetry.strokeCount !== undefined ? telemetry.strokeCount : telemetry.strokes);
+    if (curStrokes !== undefined) {
+      this.stepStrokes = Math.max(0, curStrokes - this.stepBaselineStrokes);
     }
 
     // Check distance triggers
@@ -288,7 +304,7 @@ export class WorkoutEngine {
       }
 
       if (this.stepDistanceMeters >= step.exit.distance) {
-        this.advanceStep(telemetry);
+        this.advanceStep(this.lastTelemetry);
         return;
       }
     }
@@ -296,13 +312,13 @@ export class WorkoutEngine {
     // Check stroke triggers
     if (step && step.exit && step.exit.strokes) {
       if (this.stepStrokes >= step.exit.strokes) {
-        this.advanceStep(telemetry);
+        this.advanceStep(this.lastTelemetry);
         return;
       }
     }
 
-    // Evaluate compliance
-    this.evaluateCompliance(telemetry);
+    // Evaluate compliance using accumulated comprehensive telemetry
+    this.evaluateCompliance(this.lastTelemetry);
     this.updateProgress();
   }
 
@@ -356,8 +372,8 @@ export class WorkoutEngine {
     const compliance = {};
     const targets = step.targets;
     const isStepRest = step.type === "rest";
-    const curTelem = telemetry || this.lastTelemetry || {};
-    const isPaused = this.isRowerPaused || this.status === "paused" || curTelem.strokeRate === 0;
+    const curTelem = this.lastTelemetry;
+    const isPaused = this.isRowerPaused || this.status === "paused" || (curTelem.strokeRate === 0 && (curTelem.powerWatts === 0 || curTelem.splitSeconds === 0));
 
     // SPM Compliance
     if (targets.spm) {
@@ -365,7 +381,7 @@ export class WorkoutEngine {
       const maxSpm = Array.isArray(targets.spm) ? (targets.spm[1] !== undefined ? targets.spm[1] : targets.spm[0]) : targets.spm;
       const targetStr = minSpm === maxSpm ? `${minSpm}` : `${minSpm}-${maxSpm}`;
       const val = curTelem.strokeRate !== undefined ? curTelem.strokeRate : 0;
-      if (val === 0) {
+      if (val === 0 || isPaused) {
         if (isStepRest && minSpm <= 0) {
           compliance.spm = { status: "in-target", target: targetStr };
         } else {
@@ -417,7 +433,7 @@ export class WorkoutEngine {
       }
 
       const val = curTelem.splitSeconds !== undefined ? curTelem.splitSeconds : 0;
-      if (val === 0) {
+      if (val === 0 || isPaused) {
         if (isStepRest) {
           compliance.split = { status: "in-target", target: targetStr };
         } else {
@@ -442,7 +458,7 @@ export class WorkoutEngine {
       const maxW = Array.isArray(targets.watts) ? (targets.watts[1] !== undefined ? targets.watts[1] : targets.watts[0]) : targets.watts;
       const targetStr = minW === maxW ? `${minW}W` : `${minW}-${maxW}W`;
       const val = curTelem.powerWatts !== undefined ? curTelem.powerWatts : 0;
-      if (val === 0) {
+      if (val === 0 || isPaused) {
         if (isStepRest && minW <= 0) {
           compliance.watts = { status: "in-target", target: targetStr };
         } else {
