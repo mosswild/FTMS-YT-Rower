@@ -122,13 +122,29 @@ export class WorkoutEngine {
   }
 
   loadWorkout(workoutData) {
-    this.stop();
+    clearInterval(this.tickInterval);
     this.workout = workoutData;
     this.steps = workoutData.expanded_steps || [];
     this.soundAlerts = workoutData.settings ? workoutData.settings.sound_alerts !== false : true;
-    this.currentStepIndex = -1;
-    this.status = "idle";
-    this.options.onStatusChange(this.status);
+    this.currentStepIndex = 0;
+    this.status = "ready";
+    this.stepElapsedSeconds = 0;
+    this.stepDistanceMeters = 0;
+    this.stepStrokes = 0;
+    this.options.onStatusChange(this.status, { workout: workoutData });
+    if (this.steps.length > 0) {
+      this.options.onStepChange(this.steps[0], 0, this.steps.length);
+      this.options.onTick({
+        stepIndex: 0,
+        totalSteps: this.steps.length,
+        step: this.steps[0],
+        percent: 0,
+        remainingText: "Ready — Press Start Workout",
+        stepElapsedSeconds: 0,
+        stepDistanceMeters: 0,
+        stepStrokes: 0,
+      });
+    }
   }
 
   start(telemetry = {}) {

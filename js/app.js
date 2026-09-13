@@ -4,11 +4,11 @@ import { RateController } from "./modules/rate-controller.js?v=res-and-metric-re
 import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
 import { PM5Hud } from "./modules/hud.js?v=res-and-metric-reset-v19";
 import { SessionTracker } from "./modules/session-tracker.js?v=res-and-metric-reset-v19";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=workout-sim-v24";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=workout-manual-start-v26";
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-nav-v25";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-manual-start-v26";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -313,7 +313,12 @@ const workoutEngine = new WorkoutEngine({
     if (typeof simulator !== "undefined" && simulator) {
       simulator.onWorkoutStatusChange(status, meta);
     }
-    if (status === "countdown") {
+    if (status === "ready") {
+      const title = meta && meta.workout ? meta.workout.title : (workoutEngine.workout ? workoutEngine.workout.title : "Workout");
+      pm5Hud.setWorkoutMode(title);
+      pm5Hud.showNotice(`Loaded: ${title}. Press 'Start Workout' or 'Start Simulator'.`, 4000);
+      pm5Hud.showWorkoutBar(true);
+    } else if (status === "countdown") {
       pm5Hud.showNotice(`Workout starting in ${meta ? meta.countdown : ''}...`, 1000);
       pm5Hud.showWorkoutBar(true);
     } else if (status === "running") {
@@ -2929,6 +2934,9 @@ if (simBtn) {
       if (sessionTracker.state === "active") {
         sessionTracker.finish();
       }
+      if (workoutEngine && workoutEngine.isRunning) {
+        workoutEngine.stop();
+      }
       rateController.setWorkoutLive(false);
       if (videoEl) videoEl.pause();
       audioEngine.pause();
@@ -2936,10 +2944,12 @@ if (simBtn) {
       const mimicVal = selectSimMimic ? selectSimMimic.value : "relay";
       simulator.setMimicType(mimicVal);
       if (simulator.mode === "workout") {
-        if (!workoutEngine.isRunning || !workoutEngine.workout) {
+        if (workoutEngine.workout && !workoutEngine.isRunning) {
+          startActiveWorkout();
+        } else if (!workoutEngine.workout) {
           const workoutId = selectSimWorkout ? selectSimWorkout.value : (cachedWorkouts[0] && cachedWorkouts[0].id);
           if (workoutId) {
-            startWorkoutInCockpit(workoutId);
+            loadWorkoutInCockpit(workoutId).then(() => startActiveWorkout());
           }
         }
       }
@@ -3034,16 +3044,19 @@ if (simModeBtn) {
         selectSimWorkout.style.display = "inline-block";
         await populateSimWorkoutDropdown();
       }
-      if (!workoutEngine.isRunning || !workoutEngine.workout) {
+      if (!workoutEngine.workout) {
         const workoutId = selectSimWorkout ? selectSimWorkout.value : (cachedWorkouts[0] && cachedWorkouts[0].id);
         if (workoutId) {
-          await startWorkoutInCockpit(workoutId);
+          await loadWorkoutInCockpit(workoutId);
         }
       } else {
         if (selectSimWorkout && workoutEngine.workout) {
           selectSimWorkout.value = workoutEngine.workout.id;
         }
         simulator.applyWorkoutStepTarget();
+      }
+      if (simulator.isRunning && !workoutEngine.isRunning && workoutEngine.workout) {
+        startActiveWorkout();
       }
     } else if (simulator.mode === "workout") {
       // 2. Follow Workout -> Manual Slider
@@ -3065,9 +3078,9 @@ if (selectSimWorkout) {
   selectSimWorkout.addEventListener("change", async () => {
     const workoutId = selectSimWorkout.value;
     if (!workoutId) return;
-    await startWorkoutInCockpit(workoutId);
-    if (!simulator.isRunning) {
-      if (simBtn) simBtn.click();
+    await loadWorkoutInCockpit(workoutId);
+    if (simulator.isRunning) {
+      startActiveWorkout();
     }
   });
 }
@@ -3177,11 +3190,17 @@ if (toggleWorkoutBtn) {
   toggleWorkoutBtn.addEventListener("click", async () => {
     if (sessionTracker.state === "active" || sessionTracker.state === "paused") {
       const id = await sessionTracker.finish();
+      if (workoutEngine && workoutEngine.isRunning) {
+        workoutEngine.stop();
+      }
       if (id) {
         alert("Workout saved successfully! View in History.");
       }
     } else {
       sessionTracker.start();
+      if (workoutEngine && workoutEngine.workout && !workoutEngine.isRunning) {
+        startActiveWorkout();
+      }
       if (videoEl && videoEl.src && videoEl.paused) {
         videoEl.play().catch(e => console.warn(e));
         audioEngine.play();
@@ -3966,7 +3985,7 @@ async function renderHudWorkoutDropdown() {
     `;
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      await startWorkoutInCockpit(w.id);
+      await loadWorkoutInCockpit(w.id);
       closeHudDropdowns();
     });
     container.appendChild(btn);
@@ -4120,8 +4139,8 @@ document.querySelectorAll(".workout-filter-btn").forEach(btn => {
   });
 });
 
-// Start Workout in Cockpit
-async function startWorkoutInCockpit(workoutId) {
+// Load Workout in Cockpit (stages workout without auto-starting)
+async function loadWorkoutInCockpit(workoutId) {
   try {
     const res = await fetch(`/api/workouts/${workoutId}`);
     if (!res.ok) throw new Error("Failed to fetch workout details");
@@ -4144,18 +4163,35 @@ async function startWorkoutInCockpit(workoutId) {
 
     // Switch view to Cockpit
     switchView("cockpit");
-
-    // Establish telemetry baselines and start
-    const curTelemetry = {
-      distanceMeters: pm5Hud.rawDistance || 0,
-      elapsedSeconds: pm5Hud.rawElapsedSeconds || 0,
-      totalStrokes: sessionTracker ? sessionTracker.totalStrokes : 0
-    };
-    workoutEngine.start(curTelemetry);
-
+    return workoutData;
   } catch (err) {
-    console.error("[Workout Start Error]", err);
-    alert(`Could not start workout: ${err.message}`);
+    console.error("[Workout Load Error]", err);
+    alert(`Could not load workout: ${err.message}`);
+    return null;
+  }
+}
+
+// Start active loaded workout
+function startActiveWorkout() {
+  if (!workoutEngine.workout) return;
+  if (workoutEngine.isRunning) return;
+
+  const curTelemetry = {
+    distanceMeters: pm5Hud.rawDistance || 0,
+    elapsedSeconds: pm5Hud.rawElapsedSeconds || 0,
+    totalStrokes: sessionTracker ? sessionTracker.totalStrokes : 0
+  };
+  workoutEngine.start(curTelemetry);
+}
+
+// Start Workout in Cockpit (explicit start from card or preview modal)
+async function startWorkoutInCockpit(workoutId) {
+  const workoutData = await loadWorkoutInCockpit(workoutId);
+  if (workoutData) {
+    startActiveWorkout();
+    if (sessionTracker.state !== "active") {
+      sessionTracker.start();
+    }
   }
 }
 

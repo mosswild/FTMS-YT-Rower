@@ -105,7 +105,13 @@ export class VirtualRowerSimulator {
 
   onWorkoutStatusChange(status, meta) {
     if (this.mode !== "workout") return;
-    if (status === "completed") {
+    if (status === "ready") {
+      this.isRowing = false;
+      this.targetSpm = 0;
+      if (this.onPhaseChange) {
+        this.onPhaseChange(`Ready: ${meta && meta.workout ? meta.workout.title : 'Workout'}`, 0);
+      }
+    } else if (status === "completed") {
       this.isRowing = false;
       this.targetSpm = 0;
       if (this.onPhaseChange) {
