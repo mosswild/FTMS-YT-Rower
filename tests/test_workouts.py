@@ -30,13 +30,25 @@ class TestWorkoutFramework(unittest.TestCase):
 
     def test_list_builtin_workouts(self):
         workouts = workout_mgr.list_workouts()
-        self.assertGreaterEqual(len(workouts), 5)
+        self.assertGreaterEqual(len(workouts), 6)
         ids = [w["id"] for w in workouts]
         self.assertIn("5x500m-power-intervals", ids)
         self.assertIn("4x1000m-aerobic-threshold", ids)
         self.assertIn("distance-pyramid-sprint", ids)
         self.assertIn("5k-rate-ladder", ids)
         self.assertIn("tabata-sprints", ids)
+        self.assertIn("30m-zone2-aerobic-base", ids)
+
+    def test_zone2_heart_rate_workout(self):
+        w = workout_mgr.get_workout("30m-zone2-aerobic-base")
+        self.assertIsNotNone(w)
+        self.assertEqual(w["title"], "30-Minute Zone 2 Aerobic Base")
+        self.assertEqual(len(w["expanded_steps"]), 3)
+        work_step = w["expanded_steps"][1]
+        self.assertEqual(work_step["type"], "work")
+        self.assertIn("hr", work_step["targets"])
+        self.assertEqual(work_step["targets"]["hr"], [130.0, 145.0])
+        self.assertEqual(work_step["targets"]["hr_zone"], [2, 2])
 
     def test_get_workout_details(self):
         w = workout_mgr.get_workout("5x500m-power-intervals")

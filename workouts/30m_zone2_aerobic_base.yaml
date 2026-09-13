@@ -1,0 +1,53 @@
+schema: "1.0"
+id: "30m-zone2-aerobic-base"
+title: "30-Minute Zone 2 Aerobic Base"
+description: "Foundational steady-state aerobic conditioning holding strictly within Heart Rate Zone 2 (60-70% HRmax, 130-145 BPM) with progressive warm-up and cool-down."
+author: "FTMS Rower Coaching"
+category: "endurance"
+difficulty: "beginner"
+tags: ["endurance", "heart_rate", "zone2", "aerobic", "steady_state"]
+
+settings:
+  default_speed_mode: "cadence_zones"
+  audio_modulation: true
+  sound_alerts: true
+  countdown_seconds: 5
+
+segments:
+  - type: "warmup"
+    title: "Progressive Warmup"
+    exit:
+      duration: "5m"
+    targets:
+      spm: [18, 20]
+      hr: [110, 125]
+      hr_zone: 1
+    cues:
+      on_start: "Easy strokes to warm up. Let your heart rate rise naturally into Zone 1."
+      at_midpoint: "Gradually lengthen your stroke. Prepare to settle into Zone 2 pace."
+
+  - type: "work"
+    title: "Zone 2 Steady State"
+    exit:
+      duration: "20m"
+    targets:
+      spm: [18, 22]
+      hr: [130, 145]
+      hr_zone: 2
+      split: ["2:05", "2:15"]
+      watts: [150, 190]
+    cues:
+      on_start: "Lock into Heart Rate Zone 2 (130-145 BPM). Conversational pace—you should be able to speak in full sentences."
+      at_midpoint: "10 minutes down! Relax your grip on the handle and breathe rhythmically."
+
+  - type: "cooldown"
+    title: "Flush Cooldown"
+    exit:
+      duration: "5m"
+    targets:
+      spm: [16, 18]
+      hr: [100, 120]
+      hr_zone: 1
+    cues:
+      on_start: "Begin cool-down. Light paddle strokes to bring heart rate safely back below 120 BPM."
+      at_midpoint: "Deep breaths. Great aerobic base work today!"
