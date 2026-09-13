@@ -236,18 +236,103 @@ body.in-fullscreen .app-header {
   pointer-events: auto;
 }
 
-/* HUD Top Bar */
+/* HUD Top Bar (2-Row Architecture) */
 .hud-top-bar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
   transition: opacity 0.3s ease;
+  z-index: 20;
 }
 
-.hud-left-tags {
+.hud-top-row {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.hud-top-row-media {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.hud-top-row-media #hud-track-dropdown-wrapper,
+.hud-top-row-media #hud-audio-dropdown-wrapper {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 280px;
+}
+
+.hud-top-row-media #hud-track-dropdown-wrapper .hud-picker-btn,
+.hud-top-row-media #hud-audio-dropdown-wrapper .hud-picker-btn {
+  width: 100%;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.6rem;
+  box-sizing: border-box;
+}
+
+.hud-top-row-media #hud-track-dropdown-wrapper .hud-picker-text,
+.hud-top-row-media #hud-audio-dropdown-wrapper .hud-picker-text {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  text-align: left;
+}
+
+.hud-top-row-media .hud-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.hud-top-row-workout {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.hud-top-row-workout #hud-speed-dropdown-wrapper {
+  flex-shrink: 0;
+}
+
+.hud-top-row-workout #hud-workout-dropdown-wrapper {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 280px;
+}
+
+.hud-top-row-workout #hud-workout-dropdown-wrapper .hud-picker-btn {
+  max-width: 100%;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.6rem;
+}
+
+.hud-top-row-workout #hud-workout-dropdown-wrapper .hud-picker-text {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.hud-top-row-workout #hud-resistance-badge {
+  flex-shrink: 0;
 }
 
 .speed-badge {
@@ -694,6 +779,9 @@ body.in-fullscreen .app-header {
 
 /* ----------------- Immersive Mode (HUD Hidden) ----------------- */
 .scenic-viewport-container.hud-hidden .pm5-metrics-panel,
+.scenic-viewport-container.hud-hidden .hud-top-row-workout,
+.scenic-viewport-container.hud-hidden .hud-top-row-media #hud-track-dropdown-wrapper,
+.scenic-viewport-container.hud-hidden .hud-top-row-media #hud-audio-dropdown-wrapper,
 .scenic-viewport-container.hud-hidden .hud-left-tags,
 .scenic-viewport-container.hud-hidden #hud-autopause-badge,
 .scenic-viewport-container.hud-hidden #audio-unmute-banner {
@@ -2059,11 +2147,22 @@ body.in-fullscreen .app-header {
 
   /* Compact HUD Top Bar */
   .hud-top-bar {
-    gap: 0.4rem;
+    gap: 0.3rem;
   }
 
-  .hud-left-tags {
+  .hud-top-row {
     gap: 0.35rem;
+  }
+
+  .hud-top-row-media #hud-track-dropdown-wrapper,
+  .hud-top-row-media #hud-audio-dropdown-wrapper {
+    max-width: 220px;
+  }
+
+  .hud-top-row-media .hud-picker-text {
+    max-width: none;
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .speed-badge {
@@ -2082,10 +2181,6 @@ body.in-fullscreen .app-header {
   .hud-picker-icon {
     width: 12px;
     height: 12px;
-  }
-
-  .hud-picker-text {
-    max-width: 100px;
   }
 
   .hud-right-actions {
@@ -2240,103 +2335,134 @@ body.in-fullscreen .app-header {
     padding: 0.45rem;
   }
 
-  /* 2-tier Grid for Top Bar to prevent audio picker and action icons from overlapping */
+  /* 2-tier Dedicated Rows for Top Bar */
   .hud-top-bar {
-    display: grid !important;
-    grid-template-columns: 1fr auto !important;
-    grid-template-rows: auto auto !important;
-    row-gap: 0.35rem !important;
-    column-gap: 0.4rem !important;
-    align-items: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.25rem !important;
     width: 100% !important;
   }
 
-  .hud-left-tags {
-    display: contents !important;
+  .hud-top-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.3rem !important;
+    width: 100% !important;
   }
 
-  #hud-track-dropdown-wrapper {
-    grid-column: 1 / 2 !important;
-    grid-row: 1 / 2 !important;
-    min-width: 0 !important;
-    justify-self: start !important;
-    max-width: 100% !important;
+  .hud-top-row-media {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.3rem !important;
+    width: 100% !important;
   }
 
-  #hud-track-dropdown-wrapper .hud-picker-btn {
-    max-width: 100% !important;
+  .hud-top-row-media #hud-track-dropdown-wrapper,
+  .hud-top-row-media #hud-audio-dropdown-wrapper {
+    flex: 1 1 0 !important;
     min-width: 0 !important;
-    padding: 0.22rem 0.5rem !important;
-    font-size: 0.70rem !important;
+    max-width: none !important;
+  }
+
+  .hud-top-row-media .hud-picker-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 0.2rem 0.42rem !important;
+    font-size: 0.68rem !important;
     border-radius: 5px !important;
+    gap: 0.25rem !important;
   }
 
-  #hud-track-dropdown-wrapper .hud-picker-text {
-    max-width: calc(100vw - 150px) !important;
+  .hud-top-row-media .hud-picker-text {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
-    display: inline-block !important;
+    display: block !important;
+    text-align: left !important;
   }
 
-  .hud-right-actions {
-    grid-column: 2 / 3 !important;
-    grid-row: 1 / 2 !important;
+  .hud-top-row-media .hud-picker-icon {
+    width: 11px !important;
+    height: 11px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .hud-top-row-media .hud-caret {
+    width: 8px !important;
+    height: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .hud-top-row-media .hud-right-actions {
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-end !important;
+    gap: 0.22rem !important;
+    margin-left: auto !important;
+    flex-shrink: 0 !important;
+  }
+
+  .hud-top-row-media .hud-icon-btn {
+    width: 25px !important;
+    height: 25px !important;
+    flex-shrink: 0 !important;
+    padding: 0 !important;
+  }
+
+  .hud-top-row-media .hud-icon-btn svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  .hud-top-row-workout {
+    display: flex !important;
+    align-items: center !important;
     gap: 0.3rem !important;
+    width: 100% !important;
+  }
+
+  .hud-top-row-workout #hud-speed-dropdown-wrapper {
     flex-shrink: 0 !important;
-  }
-
-  .hud-icon-btn {
-    width: 28px !important;
-    height: 28px !important;
-    flex-shrink: 0 !important;
-  }
-
-  .hud-icon-btn svg {
-    width: 14px !important;
-    height: 14px !important;
-  }
-
-  #hud-speed-dropdown-wrapper {
-    grid-column: 1 / 2 !important;
-    grid-row: 2 / 3 !important;
-    justify-self: start !important;
-    min-width: 0 !important;
   }
 
   .speed-badge {
     font-size: 0.68rem !important;
-    padding: 0.22rem 0.5rem !important;
+    padding: 0.2rem 0.45rem !important;
     white-space: nowrap !important;
     border-radius: 5px !important;
     flex-shrink: 0 !important;
+    gap: 0.25rem !important;
   }
 
-  #hud-audio-dropdown-wrapper {
-    grid-column: 2 / 3 !important;
-    grid-row: 2 / 3 !important;
-    justify-self: end !important;
-    max-width: 100% !important;
+  .hud-top-row-workout #hud-workout-dropdown-wrapper {
+    flex-shrink: 1 !important;
     min-width: 0 !important;
+    max-width: calc(100vw - 180px) !important;
   }
 
-  #hud-audio-dropdown-wrapper .hud-picker-btn {
+  .hud-top-row-workout #hud-workout-dropdown-wrapper .hud-picker-btn {
     max-width: 100% !important;
     min-width: 0 !important;
-    padding: 0.22rem 0.5rem !important;
+    padding: 0.2rem 0.45rem !important;
     font-size: 0.68rem !important;
     border-radius: 5px !important;
+    gap: 0.25rem !important;
   }
 
-  #hud-audio-dropdown-wrapper .hud-picker-text {
-    max-width: calc(100vw - 170px) !important;
+  .hud-top-row-workout #hud-workout-dropdown-wrapper .hud-picker-text {
+    max-width: calc(100vw - 220px) !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
     display: inline-block !important;
+  }
+
+  .resistance-badge {
+    font-size: 0.68rem !important;
+    padding: 0.2rem 0.45rem !important;
+    border-radius: 5px !important;
+    flex-shrink: 0 !important;
   }
 
   .hud-dropdown-menu {
@@ -2345,12 +2471,14 @@ body.in-fullscreen .app-header {
   }
 
   #hud-audio-dropdown-menu {
-    right: 0 !important;
+    right: -85px !important;
     left: auto !important;
+    max-width: calc(100vw - 20px) !important;
   }
 
   #hud-speed-dropdown-menu,
-  #hud-track-dropdown-menu {
+  #hud-track-dropdown-menu,
+  #hud-workout-dropdown-menu {
     left: 0 !important;
     right: auto !important;
   }

@@ -88,34 +88,8 @@
       <div class="pm5-hud-overlay">
         <!-- Top Bar -->
         <div class="hud-top-bar">
-          <div class="hud-left-tags">
-            <!-- Speed Multiplier Badge & Mode Selector Dropdown -->
-            <div class="hud-dropdown-wrapper" id="hud-speed-dropdown-wrapper">
-              <button id="hud-speed-badge" class="speed-badge normal hud-picker-btn" type="button" title="Select Speed Mode" aria-haspopup="true" aria-expanded="false">
-                <span id="hud-speed-badge-text">1.00× [Base]</span>
-                <svg class="hud-caret" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <div id="hud-speed-dropdown-menu" class="hud-dropdown-menu" style="display: none;">
-                <div class="hud-dropdown-header">
-                  <span>Speed Mode</span>
-                </div>
-                <div id="hud-speed-list-container" class="hud-dropdown-list">
-                  <button type="button" class="hud-dropdown-item active" data-speed-mode="zones">
-                    <div class="item-title">Cadence Zones (Smooth)</div>
-                    <div class="item-meta">0.85× / 1.0× / 1.25× / 1.5× • Zero stutter</div>
-                  </button>
-                  <button type="button" class="hud-dropdown-item" data-speed-mode="ambient">
-                    <div class="item-title">Ambient (Fixed 1.0×)</div>
-                    <div class="item-meta">Constant native speed scenery</div>
-                  </button>
-                  <button type="button" class="hud-dropdown-item" data-speed-mode="continuous">
-                    <div class="item-title">Continuous Dynamic</div>
-                    <div class="item-meta">Proportional rate scaling</div>
-                  </button>
-                </div>
-              </div>
-            </div>
-
+          <!-- Row 1: Scenic Track, Audio Soundtrack, and 3 Mini Action Controls -->
+          <div class="hud-top-row hud-top-row-media">
             <!-- Scenic Track Selector Dropdown -->
             <div class="hud-dropdown-wrapper" id="hud-track-dropdown-wrapper">
               <button id="btn-hud-track-picker" class="hud-info-badge hud-title-badge hud-picker-btn" type="button" title="Select Scenic Track" aria-haspopup="true" aria-expanded="false">
@@ -159,6 +133,59 @@
               </div>
             </div>
 
+            <!-- 3 Mini Action Buttons: Theme, Visibility, Fullscreen -->
+            <div class="hud-right-actions">
+              <button id="hud-cycle-theme-btn" class="hud-icon-btn" title="Cycle Theme (T)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/>
+                  <path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"/>
+                </svg>
+              </button>
+              <button id="hud-toggle-visibility-btn" class="hud-icon-btn" title="Hide HUD for Immersive View (H)">
+                <svg id="hud-eye-icon-visible" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <svg id="hud-eye-icon-hidden" style="display:none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </button>
+              <button id="hud-fullscreen-btn" class="hud-icon-btn" title="Toggle Fullscreen (F)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 2: Speed Multiplier, Training Program, Resistance Level -->
+          <div class="hud-top-row hud-top-row-workout">
+            <!-- Speed Multiplier Badge & Mode Selector Dropdown -->
+            <div class="hud-dropdown-wrapper" id="hud-speed-dropdown-wrapper">
+              <button id="hud-speed-badge" class="speed-badge normal hud-picker-btn" type="button" title="Select Speed Mode" aria-haspopup="true" aria-expanded="false">
+                <span id="hud-speed-badge-text">1.00× [Base]</span>
+                <svg class="hud-caret" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div id="hud-speed-dropdown-menu" class="hud-dropdown-menu" style="display: none;">
+                <div class="hud-dropdown-header">
+                  <span>Speed Mode</span>
+                </div>
+                <div id="hud-speed-list-container" class="hud-dropdown-list">
+                  <button type="button" class="hud-dropdown-item active" data-speed-mode="zones">
+                    <div class="item-title">Cadence Zones (Smooth)</div>
+                    <div class="item-meta">0.85× / 1.0× / 1.25× / 1.5× • Zero stutter</div>
+                  </button>
+                  <button type="button" class="hud-dropdown-item" data-speed-mode="ambient">
+                    <div class="item-title">Ambient (Fixed 1.0×)</div>
+                    <div class="item-meta">Constant native speed scenery</div>
+                  </button>
+                  <button type="button" class="hud-dropdown-item" data-speed-mode="continuous">
+                    <div class="item-title">Continuous Dynamic</div>
+                    <div class="item-meta">Proportional rate scaling</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <!-- Structured Training Program Selector Dropdown -->
             <div class="hud-dropdown-wrapper" id="hud-workout-dropdown-wrapper">
               <button id="btn-hud-workout-picker" class="hud-info-badge hud-picker-btn" type="button" title="Select Training Program" aria-haspopup="true" aria-expanded="false">
@@ -179,28 +206,6 @@
               <span class="badge-label" style="font-size: 0.68rem; opacity: 0.75; font-weight: 800; letter-spacing: 0.05em;">RES</span>
               <span id="hud-resistance-val" style="font-family: var(--font-mono); font-weight: 700;">--</span>
             </div>
-          </div>
-
-          <div class="hud-right-actions">
-            <button id="hud-cycle-theme-btn" class="hud-icon-btn" title="Cycle Theme (T)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/>
-                <path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"/>
-              </svg>
-            </button>
-            <button id="hud-toggle-visibility-btn" class="hud-icon-btn" title="Hide HUD for Immersive View (H)">
-              <svg id="hud-eye-icon-visible" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-              <svg id="hud-eye-icon-hidden" style="display:none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
-            </button>
-            <button id="hud-fullscreen-btn" class="hud-icon-btn" title="Toggle Fullscreen (F)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-            </button>
           </div>
         </div>
 
