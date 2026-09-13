@@ -4,11 +4,11 @@ import { RateController } from "./modules/rate-controller.js?v=paused-bottom-rig
 import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
 import { PM5Hud } from "./modules/hud.js?v=paused-bottom-right-v34";
 import { SessionTracker } from "./modules/session-tracker.js?v=paused-bottom-right-v34";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=live-pull-compliance-restored-v36";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=decoupled-sim-program-v37";
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=live-pull-compliance-restored-v36";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=decoupled-sim-program-v37";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -3007,13 +3007,11 @@ if (simBtn) {
       const mimicVal = selectSimMimic ? selectSimMimic.value : "relay";
       simulator.setMimicType(mimicVal);
       if (workoutEngine.workout && !workoutEngine.isRunning) {
-        simulator.setMode("workout");
         startActiveWorkout();
       } else if (simulator.mode === "workout" && !workoutEngine.workout) {
         const workoutId = selectSimWorkout ? selectSimWorkout.value : (cachedWorkouts[0] && cachedWorkouts[0].id);
         if (workoutId) {
           loadWorkoutInCockpit(workoutId).then(() => {
-            simulator.setMode("workout");
             startActiveWorkout();
           });
         }
@@ -4389,11 +4387,6 @@ async function loadWorkoutInCockpit(workoutId) {
 function startActiveWorkout() {
   if (!workoutEngine.workout) return;
   if (workoutEngine.isRunning) return;
-
-  if (typeof simulator !== "undefined" && simulator) {
-    simulator.setMode("workout");
-    updateSimModeUi("workout");
-  }
 
   const curTelemetry = {
     distanceMeters: pm5Hud.rawDistance || 0,

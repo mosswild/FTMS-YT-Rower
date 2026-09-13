@@ -56,7 +56,6 @@ export class VirtualRowerSimulator {
 
     this.currentPhaseIndex = 0;
     this.phaseElapsed = 0;
-    this.isWorkoutPaused = false;
   }
 
   setMode(mode) {
@@ -100,9 +99,6 @@ export class VirtualRowerSimulator {
     this.currentWorkoutStep = step;
     this.workoutStepIndex = index;
     this.workoutStepTotal = total;
-    if (typeof workoutEngine !== "undefined" && workoutEngine && (workoutEngine.workout || workoutEngine.isRunning)) {
-      this.mode = "workout";
-    }
     if (this.mode === "workout") {
       this.applyWorkoutStepTarget();
     }
@@ -115,55 +111,9 @@ export class VirtualRowerSimulator {
       this.currentWorkoutStep = workoutEngine.currentStep;
     }
 
-    // If a structured workout is active or changing state, ensure mode is aligned
-    if (this.mode !== "workout" && typeof workoutEngine !== "undefined" && workoutEngine && (workoutEngine.workout || workoutEngine.isRunning)) {
-      this.mode = "workout";
-    }
-
-    if (status === "ready") {
-      this.isWorkoutPaused = false;
-      this.isRowing = false;
-      this.targetSpm = 0;
-      if (this.onPhaseChange) {
-        this.onPhaseChange(`Ready: ${meta && meta.workout ? meta.workout.title : 'Workout'}`, 0);
-      }
-    } else if (status === "completed") {
-      this.isWorkoutPaused = false;
-      this.isRowing = false;
-      this.targetSpm = 0;
-      if (this.onPhaseChange) {
-        this.onPhaseChange("Workout Complete! 🎉", 0);
-      }
-    } else if (status === "paused") {
-      this.isWorkoutPaused = true;
-      // When workout is paused, simulate a user continuing to pull on the rower.
-      // Retain the active workout interval's targets so target indicators stay intact.
-      if (this.currentWorkoutStep) {
-        this.applyWorkoutStepTarget();
-      }
-      if (this.onPhaseChange) {
-        const step = this.currentWorkoutStep;
-        const stepType = (step && step.type ? step.type : "WORK").toUpperCase();
-        const title = step && step.title ? step.title : `Interval ${this.workoutStepIndex + 1}`;
-        this.onPhaseChange(`[PAUSED] [${stepType}] ${title}`, Math.round(this.targetSpm || 20));
-      }
-    } else if (status === "idle") {
-      this.isWorkoutPaused = false;
-      this.isRowing = false;
-      this.targetSpm = 0;
+    if (status === "idle") {
       this.currentWorkoutStep = null;
-      if (this.onPhaseChange) {
-        this.onPhaseChange("Workout Ended", 0);
-      }
-    } else if (status === "countdown") {
-      this.isWorkoutPaused = false;
-      this.isRowing = false;
-      this.targetSpm = 0;
-      if (this.onPhaseChange) {
-        this.onPhaseChange(`Starting in ${meta ? meta.countdown : 3}s...`, 0);
-      }
     } else if (status === "running") {
-      this.isWorkoutPaused = false;
       if (this.mode === "workout") {
         this.applyWorkoutStepTarget();
       }
@@ -371,7 +321,6 @@ export class VirtualRowerSimulator {
       let phaseLabel = "Paused";
       if (this.mode === "workout" && this.currentWorkoutStep) {
         phaseLabel = `[${(this.currentWorkoutStep.type || 'REST').toUpperCase()}] ${this.currentWorkoutStep.title || 'Rest'}`;
-        if (this.isWorkoutPaused) phaseLabel = `[PAUSED] ${phaseLabel}`;
       } else if (this.mode === "dynamic") {
         phaseLabel = this.dynamicPhases[this.currentPhaseIndex].name;
       }
@@ -451,7 +400,7 @@ export class VirtualRowerSimulator {
       const step = this.currentWorkoutStep;
       const stepType = (step && step.type ? step.type : "WORK").toUpperCase();
       const title = step && step.title ? step.title : "Interval";
-      activePhaseLabel = this.isWorkoutPaused ? `[PAUSED] [${stepType}] ${title}` : `[${stepType}] ${title}`;
+      activePhaseLabel = `[${stepType}] ${title}`;
     } else if (this.mode === "dynamic") {
       activePhaseLabel = this.dynamicPhases[this.currentPhaseIndex].name;
     }
@@ -489,6 +438,5 @@ export class VirtualRowerSimulator {
     this.currentWorkoutStep = null;
     this.workoutStepIndex = 0;
     this.workoutStepTotal = 0;
-    this.isWorkoutPaused = false;
   }
 }
