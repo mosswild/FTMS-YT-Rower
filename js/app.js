@@ -1,14 +1,14 @@
 import { RowerBLE } from "./modules/ble-rower.js?v=res-and-metric-reset-v19";
 import { HeartRateBLE } from "./modules/ble-heartrate.js?v=res-and-metric-reset-v19";
-import { RateController } from "./modules/rate-controller.js?v=workout-pause-fix-v33";
+import { RateController } from "./modules/rate-controller.js?v=paused-bottom-right-v34";
 import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
-import { PM5Hud } from "./modules/hud.js?v=workout-pause-fix-v33";
-import { SessionTracker } from "./modules/session-tracker.js?v=workout-pause-fix-v33";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=workout-pause-fix-v33";
+import { PM5Hud } from "./modules/hud.js?v=paused-bottom-right-v34";
+import { SessionTracker } from "./modules/session-tracker.js?v=paused-bottom-right-v34";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=paused-bottom-right-v34";
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-pause-fix-v33";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=paused-bottom-right-v34";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");

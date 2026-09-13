@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=workout-pause-fix-v33">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=paused-bottom-right-v34">
   <script>
     (function() {
       try {
@@ -299,20 +299,20 @@
             <div class="pm5-cell pm5-cell-distance pm5-cell-resettable" id="hud-cell-distance" title="Click to zero distance" role="button" tabindex="0">
               <div class="pm5-cell-header">
                 <span class="pm5-label">Distance</span>
-                <span class="pm5-frozen-badge" id="hud-frozen-dist" style="display: none;">PAUSED</span>
                 <span class="pm5-unit">meters</span>
               </div>
               <div class="pm5-value" id="hud-distance">0</div>
+              <div class="pm5-target-chip pm5-frozen-badge" id="hud-frozen-dist" style="display: none;">⏸ PAUSED</div>
             </div>
 
             <!-- Cell 5: Elapsed Time (Click to Reset) -->
             <div class="pm5-cell pm5-cell-time pm5-cell-resettable" id="hud-cell-time" title="Click to zero elapsed time" role="button" tabindex="0">
               <div class="pm5-cell-header">
                 <span class="pm5-label">Elapsed Time</span>
-                <span class="pm5-frozen-badge" id="hud-frozen-time" style="display: none;">PAUSED</span>
                 <span class="pm5-unit">time</span>
               </div>
               <div class="pm5-value" id="hud-time">00:00</div>
+              <div class="pm5-target-chip pm5-frozen-badge" id="hud-frozen-time" style="display: none;">⏸ PAUSED</div>
             </div>
 
             <!-- Cell 6: Heart Rate -->
@@ -1087,6 +1087,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=workout-pause-fix-v33"></script>
+  <script type="module" src="js/app.js?v=paused-bottom-right-v34"></script>
 </body>
 </html>

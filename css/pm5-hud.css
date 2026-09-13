@@ -5005,12 +5005,6 @@ body[data-theme="nordic"],
     letter-spacing: -0.01em !important;
   }
 
-  .pm5-frozen-badge,
-  [data-theme] .pm5-frozen-badge {
-    font-size: clamp(0.38rem, 1.6vw, 0.46rem) !important;
-    padding: 0.02rem 0.18rem !important;
-    margin-right: 2px !important;
-  }
 
   [data-theme="cyberpunk"] .cyber-ecg-container {
     height: 10px !important;
@@ -5341,31 +5335,20 @@ body[data-theme="nordic"],
 }
 
 /* Frozen Metric Badges (Elapsed Time & Distance during paused program) */
-.pm5-frozen-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-family: var(--font-mono, monospace);
-  font-size: 0.52rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 0.05rem 0.3rem;
-  border-radius: 3px;
+.pm5-target-chip.pm5-frozen-badge {
   background: rgba(245, 158, 11, 0.22);
   color: #fbbf24;
   border: 1px dashed rgba(245, 158, 11, 0.65);
-  margin-left: auto;
-  margin-right: 4px;
-  text-transform: uppercase;
   animation: pm5-chip-pause-pulse 1.8s infinite ease-in-out;
-  pointer-events: none;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .pm5-cell.cell-frozen {
   border-color: rgba(245, 158, 11, 0.45) !important;
 }
 
-[data-theme="cyberpunk"] .pm5-frozen-badge {
+[data-theme="cyberpunk"] .pm5-target-chip.pm5-frozen-badge {
   background: rgba(255, 170, 0, 0.22);
   color: #ffaa00;
   border-color: #ffaa00;
@@ -5377,7 +5360,7 @@ body[data-theme="nordic"],
   box-shadow: 0 0 16px rgba(255, 170, 0, 0.25) !important;
 }
 
-[data-theme="nordic"] .pm5-frozen-badge {
+[data-theme="nordic"] .pm5-target-chip.pm5-frozen-badge {
   background: rgba(217, 119, 6, 0.16);
   color: #b45309;
   border-color: rgba(217, 119, 6, 0.55);
@@ -5387,7 +5370,7 @@ body[data-theme="nordic"],
   border-color: rgba(217, 119, 6, 0.55) !important;
 }
 
-[data-theme="retro-pm5"] .pm5-frozen-badge {
+[data-theme="retro-pm5"] .pm5-target-chip.pm5-frozen-badge {
   background: rgba(245, 158, 11, 0.15);
   color: #f59e0b;
   border-color: #f59e0b;
