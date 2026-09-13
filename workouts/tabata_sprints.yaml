@@ -1,0 +1,52 @@
+schema: "1.0"
+id: "tabata-sprints"
+title: "Tabata Rowing Sprints"
+description: "High-intensity anaerobic protocol: 8 cycles of 20 seconds maximum effort sprint followed by 10 seconds of rest (4 minutes total work)."
+author: "Dr. Izumi Tabata"
+category: "intervals"
+difficulty: "advanced"
+tags: ["tabata", "hiit", "sprint", "anaerobic"]
+
+settings:
+  default_speed_mode: "cadence_zones"
+  audio_modulation: true
+  sound_alerts: true
+  countdown_seconds: 5
+
+segments:
+  - type: "warmup"
+    title: "Dynamic Warmup"
+    exit:
+      duration: "5m"
+    targets:
+      spm: [18, 22]
+
+  - type: "block"
+    title: "Tabata Rounds"
+    repeat: 8
+    steps:
+      - type: "work"
+        title: "20s All-Out Sprint"
+        exit:
+          duration: "20s"
+        targets:
+          spm: [32, 38]
+          watts: [280, 450]
+        cues:
+          on_start: "MAX EFFORT! Spin the wheel!"
+
+      - type: "rest"
+        title: "10s Rest"
+        mode: "passive"
+        auto_pause_video: true
+        exit:
+          duration: "10s"
+        cues:
+          on_start: "Breathe!"
+
+  - type: "cooldown"
+    title: "Flush Cooldown"
+    exit:
+      duration: "5m"
+    targets:
+      spm: [16, 20]

@@ -1,0 +1,63 @@
+schema: "1.0"
+id: "5x500m-power-intervals"
+title: "5 x 500m Power Intervals"
+description: "Classic high-intensity sprint interval workout: 5 repetitions of 500m max-effort power with 2-minute active recovery paddle."
+author: "Concept2 Benchmark"
+category: "intervals"
+difficulty: "advanced"
+tags: ["hiit", "vo2max", "sprint", "power"]
+
+settings:
+  default_speed_mode: "cadence_zones"
+  audio_modulation: true
+  sound_alerts: true
+  countdown_seconds: 5
+
+segments:
+  - type: "warmup"
+    title: "Progressive Warmup"
+    exit:
+      duration: "5m"
+    targets:
+      spm: [18, 22]
+      split: ["2:05", "2:15"]
+    cues:
+      on_start: "Settle into a relaxed rhythm, focusing on posture and leg drive."
+      at_midpoint: "Gradually build pressure through the legs."
+
+  - type: "block"
+    title: "500m Repeats"
+    repeat: 5
+    steps:
+      - type: "work"
+        title: "500m Sprint"
+        exit:
+          distance: "500m"
+        targets:
+          spm: [28, 32]
+          split: ["1:42", "1:48"]
+          watts: [240, 320]
+        cues:
+          on_start: "Explosive drive! Lock into your target split."
+          at_distance_remaining:
+            "100m": "Final sprint, empty the tank!"
+
+      - type: "rest"
+        title: "Paddle Rest"
+        mode: "active"
+        auto_pause_video: false
+        exit:
+          duration: "2m"
+        targets:
+          spm: [14, 18]
+        cues:
+          on_start: "Deep breaths. Light paddle to flush lactic acid."
+
+  - type: "cooldown"
+    title: "Flush Cooldown"
+    exit:
+      duration: "3m"
+    targets:
+      spm: [16, 20]
+    cues:
+      on_start: "Smooth, long strokes to bring your heart rate down."

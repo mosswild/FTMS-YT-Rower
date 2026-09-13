@@ -1,0 +1,62 @@
+schema: "1.0"
+id: "4x1000m-aerobic-threshold"
+title: "4 x 1000m Aerobic Threshold"
+description: "Sustained threshold power intervals: 4 sets of 1,000 meters holding steady 2k+6 pace with 3-minute recovery paddle."
+author: "British Rowing"
+category: "endurance"
+difficulty: "intermediate"
+tags: ["endurance", "aerobic", "threshold", "intervals"]
+
+settings:
+  default_speed_mode: "cadence_zones"
+  audio_modulation: true
+  sound_alerts: true
+  countdown_seconds: 5
+
+segments:
+  - type: "warmup"
+    title: "Aerobic Warmup"
+    exit:
+      duration: "6m"
+    targets:
+      spm: [18, 22]
+      split: ["2:05", "2:15"]
+    cues:
+      on_start: "Warm up gradually. Easy strokes and clean recovery."
+
+  - type: "block"
+    title: "1000m Repeats"
+    repeat: 4
+    steps:
+      - type: "work"
+        title: "1000m Threshold"
+        exit:
+          distance: "1000m"
+        targets:
+          spm: [24, 26]
+          split: ["1:54", "1:58"]
+          watts: [200, 240]
+        cues:
+          on_start: "Establish your threshold rhythm early. Relax shoulders."
+          at_distance_remaining:
+            "250m": "Hold strong through the finish!"
+
+      - type: "rest"
+        title: "Paddle Rest"
+        mode: "active"
+        auto_pause_video: false
+        exit:
+          duration: "3m"
+        targets:
+          spm: [14, 18]
+        cues:
+          on_start: "Recover breathing with easy paddling."
+
+  - type: "cooldown"
+    title: "Light Cooldown"
+    exit:
+      duration: "4m"
+    targets:
+      spm: [16, 18]
+    cues:
+      on_start: "Relaxed paddling to flush legs."

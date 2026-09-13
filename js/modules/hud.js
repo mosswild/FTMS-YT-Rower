@@ -27,7 +27,19 @@ export class PM5Hud {
       audioBadge: document.getElementById("hud-audio-badge"),
       autoPauseBadge: document.getElementById("hud-autopause-badge"),
       fullscreenBtn: document.getElementById("hud-fullscreen-btn"),
-      noticeToast: document.getElementById("hud-notice-toast")
+      noticeToast: document.getElementById("hud-notice-toast"),
+      workoutBar: document.getElementById("hud-workout-bar"),
+      workoutStepBadge: document.getElementById("workout-step-badge"),
+      workoutStepTitle: document.getElementById("workout-step-title"),
+      workoutTargetSummary: document.getElementById("workout-target-summary"),
+      workoutCountdown: document.getElementById("workout-step-countdown"),
+      workoutProgressFill: document.getElementById("workout-progress-fill"),
+      workoutCueToast: document.getElementById("workout-cue-toast"),
+      targetSpm: document.getElementById("hud-target-spm"),
+      targetSplit: document.getElementById("hud-target-split"),
+      targetWatts: document.getElementById("hud-target-watts"),
+      targetHr: document.getElementById("hud-target-hr"),
+      workoutBadge: document.getElementById("hud-workout-badge")
     };
 
     this.distanceOffset = 0;
@@ -346,5 +358,98 @@ export class PM5Hud {
     const remSecs = (totalSeconds % 60).toFixed(1);
     const paddedSecs = parseFloat(remSecs) < 10 ? `0${remSecs}` : remSecs;
     return `${mins}:${paddedSecs}`;
+  }
+
+  setWorkoutMode(title) {
+    if (this.elements.workoutBadge) {
+      this.elements.workoutBadge.textContent = title ? `Workout: ${title}` : "Workout: Free Row";
+    }
+  }
+
+  showWorkoutBar(show = true) {
+    if (this.elements.workoutBar) {
+      this.elements.workoutBar.style.display = show ? "block" : "none";
+    }
+    if (!show) {
+      this.clearWorkoutCompliance();
+    }
+  }
+
+  setWorkoutStep(step, index, total) {
+    if (!this.elements.workoutBar) return;
+    this.showWorkoutBar(true);
+
+    if (this.elements.workoutStepBadge) {
+      this.elements.workoutStepBadge.textContent = (step.type || "WORK").toUpperCase();
+      this.elements.workoutStepBadge.className = `workout-type-badge ${step.type || "work"}`;
+    }
+
+    if (this.elements.workoutStepTitle) {
+      this.elements.workoutStepTitle.textContent = step.title || `Step ${index + 1}/${total}`;
+    }
+
+    if (this.elements.workoutTargetSummary) {
+      const parts = [];
+      if (step.targets) {
+        if (step.targets.spm) parts.push(`${step.targets.spm[0]}-${step.targets.spm[1]} SPM`);
+        if (step.targets.split_formatted) parts.push(`${step.targets.split_formatted[0]}-${step.targets.split_formatted[1]}`);
+        if (step.targets.watts) parts.push(`${step.targets.watts[0]}-${step.targets.watts[1]}W`);
+      }
+      if (parts.length > 0) {
+        this.elements.workoutTargetSummary.textContent = `Target: ${parts.join(" • ")}`;
+        this.elements.workoutTargetSummary.style.display = "inline-block";
+      } else {
+        this.elements.workoutTargetSummary.style.display = "none";
+      }
+    }
+  }
+
+  updateWorkoutProgress(progress) {
+    if (this.elements.workoutCountdown && progress.remainingText) {
+      this.elements.workoutCountdown.textContent = progress.remainingText;
+    }
+    if (this.elements.workoutProgressFill && progress.percent !== undefined) {
+      this.elements.workoutProgressFill.style.width = `${progress.percent}%`;
+    }
+  }
+
+  showWorkoutCue(text, durationMs = 4500) {
+    if (!this.elements.workoutCueToast) return;
+    this.elements.workoutCueToast.textContent = `💡 ${text}`;
+    this.elements.workoutCueToast.style.display = "block";
+    clearTimeout(this.cueTimeout);
+    this.cueTimeout = setTimeout(() => {
+      this.elements.workoutCueToast.style.display = "none";
+    }, durationMs);
+  }
+
+  setWorkoutCompliance(compliance = {}) {
+    this.updateTargetChip(this.elements.targetSpm, compliance.spm);
+    this.updateTargetChip(this.elements.targetSplit, compliance.split);
+    this.updateTargetChip(this.elements.targetWatts, compliance.watts);
+    this.updateTargetChip(this.elements.targetHr, compliance.hr);
+  }
+
+  updateTargetChip(chipEl, comp) {
+    if (!chipEl) return;
+    if (!comp) {
+      chipEl.style.display = "none";
+      return;
+    }
+    chipEl.style.display = "inline-flex";
+    chipEl.className = `pm5-target-chip ${comp.status}`;
+    if (comp.status === "in-target") {
+      chipEl.innerHTML = `● ${comp.target}`;
+    } else if (comp.status === "under-target") {
+      chipEl.innerHTML = `▲ ${comp.target}`;
+    } else if (comp.status === "over-target") {
+      chipEl.innerHTML = `▼ ${comp.target}`;
+    }
+  }
+
+  clearWorkoutCompliance() {
+    [this.elements.targetSpm, this.elements.targetSplit, this.elements.targetWatts, this.elements.targetHr].forEach(chip => {
+      if (chip) chip.style.display = "none";
+    });
   }
 }

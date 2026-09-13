@@ -48,6 +48,10 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
         <span class="nav-label">History</span>
       </button>
+      <button class="nav-btn" data-view="workouts">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+        <span class="nav-label">Workouts</span>
+      </button>
     </nav>
 
     <div class="header-status">
@@ -155,6 +159,21 @@
               </div>
             </div>
 
+            <!-- Structured Workout Selector Dropdown -->
+            <div class="hud-dropdown-wrapper" id="hud-workout-dropdown-wrapper">
+              <button id="btn-hud-workout-picker" class="hud-info-badge hud-picker-btn" type="button" title="Select Structured Workout" aria-haspopup="true" aria-expanded="false">
+                <svg class="hud-picker-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+                <span id="hud-workout-badge" class="hud-picker-text">Workout: Free Row</span>
+                <svg class="hud-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div id="hud-workout-dropdown-menu" class="hud-dropdown-menu" style="display: none;">
+                <div class="hud-dropdown-header">
+                  <span>Structured Workouts</span>
+                </div>
+                <div id="hud-workout-list-container" class="hud-dropdown-list"></div>
+              </div>
+            </div>
+
             <!-- Live Resistance Level Badge -->
             <div id="hud-resistance-badge" class="resistance-badge" style="display: none;" title="Rower Damper / Resistance Level">
               <span class="badge-label" style="font-size: 0.68rem; opacity: 0.75; font-weight: 800; letter-spacing: 0.05em;">RES</span>
@@ -200,6 +219,31 @@
           <span>Audio paused by browser — Click to enable 1.0× sound</span>
         </div>
 
+        <!-- Floating Workout Interval Progress Bar -->
+        <div id="hud-workout-bar" class="hud-workout-bar" style="display: none;">
+          <div class="workout-bar-header">
+            <div class="workout-bar-left">
+              <span id="workout-step-badge" class="workout-type-badge work">WORK</span>
+              <span id="workout-step-title" class="workout-step-title">Interval 1/5: 500m Sprint</span>
+              <span id="workout-target-summary" class="workout-target-summary">Target: 28-32 SPM</span>
+            </div>
+            <div class="workout-bar-right">
+              <span id="workout-step-countdown" class="workout-countdown">01:45 left</span>
+              <div class="workout-bar-controls">
+                <button id="btn-workout-prev" class="workout-ctrl-btn" type="button" title="Restart / Previous Step">⏮</button>
+                <button id="btn-workout-skip" class="workout-ctrl-btn" type="button" title="Skip to Next Step">⏭</button>
+                <button id="btn-workout-stop" class="workout-ctrl-btn danger" type="button" title="Exit Workout">⏹</button>
+              </div>
+            </div>
+          </div>
+          <!-- Progress track -->
+          <div class="workout-progress-track">
+            <div id="workout-progress-fill" class="workout-progress-fill" style="width: 0%;"></div>
+          </div>
+          <!-- Coaching Cue Toast Banner -->
+          <div id="workout-cue-toast" class="workout-cue-toast" style="display: none;"></div>
+        </div>
+
         <!-- PM5 High-Contrast Bottom Metrics Grid -->
         <div class="pm5-metrics-panel">
           <!-- Cyberpunk Corner Accents -->
@@ -217,6 +261,7 @@
               </div>
               <div class="pm5-value" id="hud-spm">--</div>
               <span class="pm5-unit">s/m</span>
+              <div class="pm5-target-chip" id="hud-target-spm" style="display: none;"></div>
             </div>
 
             <!-- Cell 2: /500m Split -->
@@ -226,6 +271,7 @@
                 <span class="pm5-unit">/500m</span>
               </div>
               <div class="pm5-value" id="hud-split">--:--.-</div>
+              <div class="pm5-target-chip" id="hud-target-split" style="display: none;"></div>
             </div>
 
             <!-- Cell 3: Power -->
@@ -235,6 +281,7 @@
                 <span class="pm5-unit">watts</span>
               </div>
               <div class="pm5-value" id="hud-watts">--</div>
+              <div class="pm5-target-chip" id="hud-target-watts" style="display: none;"></div>
             </div>
 
             <!-- Cell 4: Distance (Click to Reset) -->
@@ -263,6 +310,7 @@
               </div>
               <div class="pm5-value" id="hud-hr">--</div>
               <span class="pm5-unit">bpm</span>
+              <div class="pm5-target-chip" id="hud-target-hr" style="display: none;"></div>
               <!-- Cyberpunk ECG Pulse Waveform -->
               <div class="cyber-ecg-container">
                 <svg class="cyber-ecg-svg" viewBox="0 0 100 24" preserveAspectRatio="none">
@@ -505,6 +553,109 @@
       </table>
     </div>
   </section>
+
+  <!-- VIEW 4: STRUCTURED WORKOUTS LIBRARY -->
+  <section id="view-workouts" class="view-panel" style="display: none;">
+    <div class="panel-header">
+      <div>
+        <h2 class="panel-title">Structured Workouts</h2>
+        <p class="panel-subtitle" style="margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.88rem;">
+          Built-in and custom interval training programs with real-time HUD pacing and target compliance.
+        </p>
+      </div>
+      <div class="history-actions-bar">
+        <button id="btn-open-new-workout" class="btn btn-primary btn-sm" title="Create a new workout in YAML">
+          <span class="btn-icon">➕</span> New Workout
+        </button>
+        <button id="btn-open-import-workout" class="btn btn-secondary btn-sm" title="Import a .yaml workout file">
+          <span class="btn-icon">📥</span> Import YAML
+        </button>
+        <input type="file" id="input-import-workout-file" accept=".yaml,.yml" style="display: none;">
+      </div>
+    </div>
+
+    <!-- Category Filters -->
+    <div class="workout-filter-bar">
+      <button class="workout-filter-btn active" data-category="all">All</button>
+      <button class="workout-filter-btn" data-category="intervals">Intervals</button>
+      <button class="workout-filter-btn" data-category="endurance">Endurance</button>
+      <button class="workout-filter-btn" data-category="pyramid">Pyramids</button>
+      <button class="workout-filter-btn" data-category="custom">Custom</button>
+    </div>
+
+    <!-- Workouts Cards Grid -->
+    <div id="workouts-grid" class="workouts-grid">
+      <!-- Injected via JavaScript -->
+    </div>
+  </section>
+
+  <!-- MODAL: CREATE / EDIT WORKOUT YAML -->
+  <div id="modal-new-workout" class="modal-overlay">
+    <div class="modal-card modal-card-lg" style="max-width: 720px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <span style="font-size: 1.25rem;">⚡</span>
+          <h3 id="modal-workout-editor-title" class="modal-title">Create / Edit Workout</h3>
+        </div>
+        <button id="btn-close-new-workout" class="close-btn" type="button">&times;</button>
+      </div>
+      <div style="margin-top: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <label class="form-label" style="margin-bottom: 0;">Workout Definition (YAML)</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <a href="docs/WORKOUT_SCHEMA.md" target="_blank" style="font-size: 0.8rem; color: var(--accent-blue); text-decoration: none;">📖 Schema Guide</a>
+            <span id="workout-editor-status" class="badge-status" style="font-size: 0.78rem; font-family: var(--font-mono);"></span>
+          </div>
+        </div>
+        <textarea id="editor-workout-yaml" class="code-textarea" rows="18" spellcheck="false" placeholder="Paste or write workout YAML here..."></textarea>
+      </div>
+      <div id="workout-editor-error" class="alert-box error" style="display: none; margin-top: 0.75rem;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem;">
+        <button type="button" id="btn-cancel-new-workout" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="btn-save-new-workout" class="btn btn-primary">Save & Validate Workout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PREVIEW WORKOUT STEPS -->
+  <div id="modal-preview-workout" class="modal-overlay">
+    <div class="modal-card modal-card-lg" style="max-width: 680px; width: 95%;">
+      <div class="modal-header">
+        <div>
+          <h3 id="preview-workout-title" class="modal-title">Workout Preview</h3>
+          <p id="preview-workout-desc" style="margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.85rem;"></p>
+        </div>
+        <button id="btn-close-preview-workout" class="close-btn" type="button">&times;</button>
+      </div>
+      <div class="preview-meta-row" style="display: flex; gap: 1.5rem; margin: 1rem 0; padding: 0.75rem 1rem; background: rgba(0,0,0,0.25); border-radius: 8px; border: 1px solid var(--surface-border);">
+        <div><span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Duration</span><div id="preview-meta-dur" style="font-family: var(--font-mono); font-weight: 700;">--</div></div>
+        <div><span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Distance</span><div id="preview-meta-dist" style="font-family: var(--font-mono); font-weight: 700;">--</div></div>
+        <div><span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Steps</span><div id="preview-meta-steps" style="font-family: var(--font-mono); font-weight: 700;">--</div></div>
+        <div><span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Difficulty</span><div id="preview-meta-diff" style="font-family: var(--font-mono); font-weight: 700; text-transform: capitalize;">--</div></div>
+      </div>
+      <div style="max-height: 340px; overflow-y: auto; border: 1px solid var(--surface-border); border-radius: 8px;">
+        <table class="sessions-table" style="margin: 0;">
+          <thead>
+            <tr>
+              <th style="width: 45px;">#</th>
+              <th>Type</th>
+              <th>Step Name</th>
+              <th>Exit Target</th>
+              <th>Target Pacing</th>
+            </tr>
+          </thead>
+          <tbody id="preview-steps-table-body"></tbody>
+        </table>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem;">
+        <button type="button" id="btn-download-preview-yaml" class="btn btn-secondary btn-sm">⤓ Download YAML</button>
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" id="btn-close-preview-btn" class="btn btn-secondary">Close</button>
+          <button type="button" id="btn-start-preview-workout" class="btn btn-primary">Start in Cockpit ▶</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- DASHBOARD SETTINGS MODAL -->
   <div id="modal-settings" class="modal-overlay">

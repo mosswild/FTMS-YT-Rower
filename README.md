@@ -166,6 +166,7 @@ Open `http://localhost:8000` in your browser.
 - **User Permissions:** Supports `PUID` and `PGID` environment variables (default: `1000:1000`) for seamless non-root host file ownership.
 
 > 📖 **Helpful Guides:**
+> - [Structured Workout YAML Schema Guide](docs/WORKOUT_SCHEMA.md) (specification, examples, and compliance rules)
 > - [Synology NAS Docker Setup Guide](docs/DOCKER_SYNOLOGY.md) (step-by-step GUI instructions for Synology Container Manager)
 > - [Bluetooth Relay Bridge Setup Guide](docs/BLUETOOTH_RELAY.md) (auto-start on Windows boot, macOS launchd, and Linux systemd)
 
@@ -309,7 +310,7 @@ PYTHONPATH=. .venv/bin/python tests/test_backend.py
 ## 🗺️ Development Roadmap
 
 ### Upcoming
-- [ ] **Structured & Built-In Workouts:** Configurable interval workout programs specifying rest periods, baseline rowing periods, and high-intensity sprint segments. Features live Cockpit HUD segment tracking with countdown timers, target SPM / Heart Rate zones, and visual target feedback. Import/export support for JSON and YAML formats.
+- [ ] **Structured & Built-In Workouts:** Configurable interval workout programs specifying rest periods, baseline rowing periods, and high-intensity sprint segments. Features live Cockpit HUD segment tracking with countdown timers, target SPM / Heart Rate zones, and visual target feedback. Import/export support for JSON and YAML formats (see [YAML Schema Guide](docs/WORKOUT_SCHEMA.md)).
 - [ ] **Live GitHub Pages Demo:** Client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and simulator directly in the browser with bundled lightweight sample media.
 
 ### Recent Milestones

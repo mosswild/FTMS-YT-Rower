@@ -8,6 +8,7 @@ import { VirtualRowerSimulator } from "./modules/simulator.js?v=res-and-metric-r
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-engine-v1";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -305,6 +306,40 @@ if (cellTime) {
   });
 }
 
+// Initialize Workout Engine
+const workoutEngine = new WorkoutEngine({
+  onStatusChange: (status, meta) => {
+    if (status === "countdown") {
+      pm5Hud.showNotice(`Workout starting in ${meta ? meta.countdown : ''}...`, 1000);
+      pm5Hud.showWorkoutBar(true);
+    } else if (status === "running") {
+      pm5Hud.showWorkoutBar(true);
+    } else if (status === "idle") {
+      pm5Hud.showWorkoutBar(false);
+      pm5Hud.setWorkoutMode(null);
+    } else if (status === "completed") {
+      pm5Hud.showNotice("🎉 Workout Complete! Great row!", 4000);
+      pm5Hud.showWorkoutBar(false);
+      pm5Hud.setWorkoutMode(null);
+    }
+  },
+  onStepChange: (step, index, total) => {
+    pm5Hud.setWorkoutStep(step, index, total);
+  },
+  onTick: (progress) => {
+    pm5Hud.updateWorkoutProgress(progress);
+  },
+  onCompliance: (compliance) => {
+    pm5Hud.setWorkoutCompliance(compliance);
+  },
+  onCue: (text) => {
+    pm5Hud.showWorkoutCue(text);
+  },
+  onWorkoutComplete: (summary) => {
+    pm5Hud.showNotice("🎉 Workout Finished!", 4000);
+  }
+});
+
 // Telemetry Dispatcher (handles both BLE Rower and Simulator)
 function handleTelemetryPacket(data) {
   pm5Hud.updateMetrics(data);
@@ -313,6 +348,10 @@ function handleTelemetryPacket(data) {
     audioEngine.updateCadence(data.strokeRate);
   }
   sessionTracker.updateTelemetry(data);
+
+  if (workoutEngine && workoutEngine.isRunning) {
+    workoutEngine.onTelemetry(data);
+  }
 
   // Auto-sync: ensure soundtrack plays if video is actively playing and audio is not muted
   if (videoEl && !videoEl.paused && !audioEngine.isPlaying && audioEngine.mode !== "mute") {
@@ -491,6 +530,7 @@ const views = {
   cockpit: document.getElementById("view-cockpit"),
   media: document.getElementById("view-media"),
   history: document.getElementById("view-history"),
+  workouts: document.getElementById("view-workouts"),
 };
 
 function switchView(viewName) {
@@ -509,6 +549,8 @@ function switchView(viewName) {
     loadTracksUI();
   } else if (viewName === "history") {
     loadHistoryUI();
+  } else if (viewName === "workouts") {
+    loadWorkoutsUI();
   }
 }
 
@@ -3322,11 +3364,13 @@ function closeHudDropdowns() {
   const trackBtn = document.getElementById("btn-hud-track-picker");
   const audioBtn = document.getElementById("btn-hud-audio-picker");
   const speedMenu = document.getElementById("hud-speed-dropdown-menu");
-  const speedBtn = document.getElementById("hud-speed-badge");
+  const workoutMenu = document.getElementById("hud-workout-dropdown-menu");
+  const workoutBtn = document.getElementById("btn-hud-workout-picker");
 
   if (trackMenu) trackMenu.style.display = "none";
   if (audioMenu) audioMenu.style.display = "none";
   if (speedMenu) speedMenu.style.display = "none";
+  if (workoutMenu) workoutMenu.style.display = "none";
   if (trackBtn) {
     trackBtn.classList.remove("active-dropdown");
     trackBtn.setAttribute("aria-expanded", "false");
@@ -3338,6 +3382,10 @@ function closeHudDropdowns() {
   if (speedBtn) {
     speedBtn.classList.remove("active-dropdown");
     speedBtn.setAttribute("aria-expanded", "false");
+  }
+  if (workoutBtn) {
+    workoutBtn.classList.remove("active-dropdown");
+    workoutBtn.setAttribute("aria-expanded", "false");
   }
 }
 
@@ -3677,6 +3725,509 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
+// ==========================================================================
+// Structured Workouts System (Library, Cockpit HUD Dropdown, Modals, Import/Export)
+// ==========================================================================
+let cachedWorkouts = [];
+let activeWorkoutCategory = "all";
+let previewWorkoutData = null;
+
+// Cockpit Workout Bar Transport Controls
+const btnWorkoutPrev = document.getElementById("btn-workout-prev");
+const btnWorkoutSkip = document.getElementById("btn-workout-skip");
+const btnWorkoutStop = document.getElementById("btn-workout-stop");
+if (btnWorkoutPrev) btnWorkoutPrev.addEventListener("click", () => workoutEngine.prevStep());
+if (btnWorkoutSkip) btnWorkoutSkip.addEventListener("click", () => workoutEngine.nextStep());
+if (btnWorkoutStop) btnWorkoutStop.addEventListener("click", () => {
+  workoutEngine.stop();
+  pm5Hud.showNotice("Workout stopped");
+});
+
+// In-Cockpit Workout Dropdown Picker
+const btnHudWorkoutPicker = document.getElementById("btn-hud-workout-picker");
+const hudWorkoutDropdownMenu = document.getElementById("hud-workout-dropdown-menu");
+if (btnHudWorkoutPicker && hudWorkoutDropdownMenu) {
+  btnHudWorkoutPicker.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const isOpen = hudWorkoutDropdownMenu.style.display === "flex";
+    closeHudDropdowns();
+    if (!isOpen) {
+      await renderHudWorkoutDropdown();
+      hudWorkoutDropdownMenu.style.display = "flex";
+      btnHudWorkoutPicker.classList.add("active-dropdown");
+      btnHudWorkoutPicker.setAttribute("aria-expanded", "true");
+    }
+  });
+}
+
+async function renderHudWorkoutDropdown() {
+  const container = document.getElementById("hud-workout-list-container");
+  if (!container) return;
+
+  if (cachedWorkouts.length === 0) {
+    try {
+      const res = await fetch("/api/workouts");
+      const data = await res.json();
+      cachedWorkouts = data.workouts || [];
+    } catch (e) {}
+  }
+
+  container.innerHTML = "";
+
+  // 1. "Free Row" option (stops any active workout)
+  const isFreeRow = !workoutEngine.workout || !workoutEngine.isRunning;
+  const freeRowBtn = document.createElement("button");
+  freeRowBtn.type = "button";
+  freeRowBtn.className = `hud-dropdown-item ${isFreeRow ? "active" : ""}`;
+  freeRowBtn.innerHTML = `
+    <div class="item-title">Free Row</div>
+    <div class="item-meta">Standard open row without interval targets</div>
+  `;
+  freeRowBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    workoutEngine.stop();
+    pm5Hud.setWorkoutMode(null);
+    closeHudDropdowns();
+  });
+  container.appendChild(freeRowBtn);
+
+  // 2. Divider
+  const div = document.createElement("div");
+  div.className = "hud-dropdown-divider";
+  container.appendChild(div);
+
+  // 3. Workouts List
+  cachedWorkouts.forEach(w => {
+    const isActive = workoutEngine.workout && workoutEngine.workout.id === w.id;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `hud-dropdown-item ${isActive ? "active" : ""}`;
+    const durM = Math.round((w.estimates.estimated_duration_seconds || 0) / 60);
+    btn.innerHTML = `
+      <div class="item-title">${escapeHtml(w.title)}</div>
+      <div class="item-meta">${w.step_count} steps • ~${durM} min • ${escapeHtml(w.difficulty)}</div>
+    `;
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await startWorkoutInCockpit(w.id);
+      closeHudDropdowns();
+    });
+    container.appendChild(btn);
+  });
+
+  // 4. "Browse All Workouts" link
+  const browseBtn = document.createElement("button");
+  browseBtn.type = "button";
+  browseBtn.className = "hud-dropdown-item";
+  browseBtn.style.borderTop = "1px solid var(--surface-border, rgba(255,255,255,0.1))";
+  browseBtn.style.marginTop = "0.35rem";
+  browseBtn.innerHTML = `
+    <div class="item-title" style="color: var(--accent-blue);">Browse All Workouts...</div>
+  `;
+  browseBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeHudDropdowns();
+    switchView("workouts");
+  });
+  container.appendChild(browseBtn);
+}
+
+// Workouts Library Management
+async function loadWorkoutsUI() {
+  try {
+    const res = await fetch("/api/workouts");
+    const data = await res.json();
+    cachedWorkouts = data.workouts || [];
+    renderWorkoutsGrid();
+  } catch (err) {
+    console.error("[Workouts] Failed to load workouts:", err);
+  }
+}
+
+function renderWorkoutsGrid() {
+  const grid = document.getElementById("workouts-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  const filtered = cachedWorkouts.filter(w => {
+    if (activeWorkoutCategory === "all") return true;
+    if (activeWorkoutCategory === "custom") return !w.is_builtin;
+    return w.category === activeWorkoutCategory;
+  });
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">No workouts found in this category.</p>
+        <p style="font-size: 0.85rem;">Click "New Workout" or "Import YAML" to add one!</p>
+      </div>
+    `;
+    return;
+  }
+
+  filtered.forEach(w => {
+    const card = document.createElement("div");
+    card.className = "workout-card";
+
+    // Timeline mini-bar
+    let timelineHtml = "";
+    if (w.timeline && w.timeline.length > 0) {
+      timelineHtml = `<div class="workout-timeline-bar">` +
+        w.timeline.map(step => {
+          return `<div class="timeline-segment ${step.type}" style="flex: 1;" title="${escapeHtml(step.title)} (${step.type})"></div>`;
+        }).join("") +
+        `</div>`;
+    }
+
+    const durMins = Math.round((w.estimates.estimated_duration_seconds || 0) / 60);
+    const distMeters = Math.round(w.estimates.estimated_distance_meters || 0);
+
+    card.innerHTML = `
+      <div class="workout-card-top">
+        <div class="workout-card-badges">
+          <span class="card-badge category">${escapeHtml(w.category)}</span>
+          <span class="card-badge difficulty">${escapeHtml(w.difficulty)}</span>
+          ${w.is_builtin ? '<span class="card-badge builtin">Built-in</span>' : '<span class="card-badge" style="background:rgba(16,185,129,0.15);color:#34d399;">Custom</span>'}
+        </div>
+        <h3 class="workout-card-title">${escapeHtml(w.title)}</h3>
+        <p class="workout-card-desc">${escapeHtml(w.description || "Structured rowing interval session.")}</p>
+        ${timelineHtml}
+        <div class="workout-card-meta">
+          <span>⏱ ~${durMins} min</span>
+          <span>📏 ~${distMeters.toLocaleString()}m</span>
+          <span>🪜 ${w.step_count} steps</span>
+        </div>
+      </div>
+      <div class="workout-card-actions">
+        <button class="btn btn-primary btn-sm btn-start-workout" data-id="${w.id}">
+          Start in Cockpit ▶
+        </button>
+        <div style="display: flex; gap: 0.35rem;">
+          <button class="btn btn-secondary btn-sm btn-preview-workout" data-id="${w.id}" title="Preview interval details">
+            Preview
+          </button>
+          <button class="btn btn-secondary btn-sm btn-download-workout-yaml" data-id="${w.id}" title="Download YAML file">
+            ⤓
+          </button>
+          ${!w.is_builtin ? `
+            <button class="btn btn-danger btn-sm btn-delete-workout" data-id="${w.id}" title="Delete custom workout">
+              🗑️
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    // Event listeners
+    card.querySelector(".btn-start-workout").addEventListener("click", () => startWorkoutInCockpit(w.id));
+    card.querySelector(".btn-preview-workout").addEventListener("click", () => openWorkoutPreviewModal(w.id));
+    card.querySelector(".btn-download-workout-yaml").addEventListener("click", () => {
+      window.location.href = `/api/workouts/${w.id}/yaml`;
+    });
+
+    const deleteBtn = card.querySelector(".btn-delete-workout");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", () => {
+        showConfirmDialog({
+          title: "Delete Custom Workout",
+          message: `Are you sure you want to delete <strong>${escapeHtml(w.title)}</strong>?`,
+          confirmBtnText: "Delete",
+          isDanger: true
+        }).then(async (confirmed) => {
+          if (confirmed) {
+            try {
+              const res = await fetch(`/api/workouts/${w.id}`, { method: "DELETE" });
+              if (res.ok) {
+                showHudToast("Workout deleted");
+                await loadWorkoutsUI();
+              }
+            } catch (err) {
+              alert(`Failed to delete workout: ${err}`);
+            }
+          }
+        });
+      });
+    }
+
+    grid.appendChild(card);
+  });
+}
+
+// Category filter tabs
+document.querySelectorAll(".workout-filter-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".workout-filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeWorkoutCategory = btn.dataset.category;
+    renderWorkoutsGrid();
+  });
+});
+
+// Start Workout in Cockpit
+async function startWorkoutInCockpit(workoutId) {
+  try {
+    const res = await fetch(`/api/workouts/${workoutId}`);
+    if (!res.ok) throw new Error("Failed to fetch workout details");
+    const workoutData = await res.json();
+
+    workoutEngine.loadWorkout(workoutData);
+    pm5Hud.setWorkoutMode(workoutData.title);
+
+    // If workout has a default speed mode, apply it
+    if (workoutData.settings && workoutData.settings.default_speed_mode) {
+      const mode = workoutData.settings.default_speed_mode;
+      if (rateController) {
+        rateController.setSpeedMode(mode);
+        updateSpeedDropdownSelection();
+      }
+    }
+
+    // Switch view to Cockpit
+    switchView("cockpit");
+
+    // Establish telemetry baselines and start
+    const curTelemetry = {
+      distanceMeters: pm5Hud.rawDistance || 0,
+      elapsedSeconds: pm5Hud.rawElapsedSeconds || 0,
+      totalStrokes: sessionTracker ? sessionTracker.totalStrokes : 0
+    };
+    workoutEngine.start(curTelemetry);
+
+  } catch (err) {
+    console.error("[Workout Start Error]", err);
+    alert(`Could not start workout: ${err.message}`);
+  }
+}
+
+// Preview Modal
+const modalPreviewWorkout = document.getElementById("modal-preview-workout");
+const btnClosePreviewWorkout = document.getElementById("btn-close-preview-workout");
+const btnClosePreviewBtn = document.getElementById("btn-close-preview-btn");
+const btnStartPreviewWorkout = document.getElementById("btn-start-preview-workout");
+const btnDownloadPreviewYaml = document.getElementById("btn-download-preview-yaml");
+
+async function openWorkoutPreviewModal(workoutId) {
+  try {
+    const res = await fetch(`/api/workouts/${workoutId}`);
+    if (!res.ok) return;
+    previewWorkoutData = await res.json();
+
+    document.getElementById("preview-workout-title").textContent = previewWorkoutData.title;
+    document.getElementById("preview-workout-desc").textContent = previewWorkoutData.description || "";
+
+    const durMins = Math.round((previewWorkoutData.estimates.estimated_duration_seconds || 0) / 60);
+    const distMeters = Math.round(previewWorkoutData.estimates.estimated_distance_meters || 0);
+
+    document.getElementById("preview-meta-dur").textContent = `~${durMins} min`;
+    document.getElementById("preview-meta-dist").textContent = `~${distMeters.toLocaleString()}m`;
+    document.getElementById("preview-meta-steps").textContent = `${previewWorkoutData.expanded_steps.length}`;
+    document.getElementById("preview-meta-diff").textContent = previewWorkoutData.difficulty || "Intermediate";
+
+    const tbody = document.getElementById("preview-steps-table-body");
+    tbody.innerHTML = "";
+
+    previewWorkoutData.expanded_steps.forEach((step, idx) => {
+      const tr = document.createElement("tr");
+
+      // Exit trigger text
+      let exitText = "--";
+      if (step.exit.duration) {
+        const m = Math.floor(step.exit.duration / 60);
+        const s = step.exit.duration % 60;
+        exitText = s > 0 ? `${m}m ${s}s` : `${m} min`;
+      } else if (step.exit.distance) {
+        exitText = `${step.exit.distance}m`;
+      } else if (step.exit.strokes) {
+        exitText = `${step.exit.strokes} strokes`;
+      } else if (step.exit.manual) {
+        exitText = `Manual (Next)`;
+      }
+
+      // Pacing text
+      const targets = [];
+      if (step.targets) {
+        if (step.targets.spm) targets.push(`${step.targets.spm[0]}-${step.targets.spm[1]} SPM`);
+        if (step.targets.split_formatted) targets.push(`${step.targets.split_formatted[0]} - ${step.targets.split_formatted[1]}`);
+        if (step.targets.watts) targets.push(`${step.targets.watts[0]}-${step.targets.watts[1]}W`);
+      }
+
+      tr.innerHTML = `
+        <td style="font-family: var(--font-mono); color: var(--text-dim);">${idx + 1}</td>
+        <td><span class="workout-type-badge ${step.type}">${step.type}</span></td>
+        <td style="font-weight: 600;">${escapeHtml(step.title)}</td>
+        <td style="font-family: var(--font-mono); font-weight: 700;">${exitText}</td>
+        <td style="font-family: var(--font-mono); font-size: 0.82rem; color: #38bdf8;">${targets.join(" • ") || "--"}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    if (modalPreviewWorkout) modalPreviewWorkout.classList.add("open");
+  } catch (err) {
+    console.error("[Preview Modal Error]", err);
+  }
+}
+
+function closeWorkoutPreviewModal() {
+  if (modalPreviewWorkout) modalPreviewWorkout.classList.remove("open");
+  previewWorkoutData = null;
+}
+
+if (btnClosePreviewWorkout) btnClosePreviewWorkout.addEventListener("click", closeWorkoutPreviewModal);
+if (btnClosePreviewBtn) btnClosePreviewBtn.addEventListener("click", closeWorkoutPreviewModal);
+if (btnStartPreviewWorkout) {
+  btnStartPreviewWorkout.addEventListener("click", () => {
+    if (previewWorkoutData) {
+      const id = previewWorkoutData.id;
+      closeWorkoutPreviewModal();
+      startWorkoutInCockpit(id);
+    }
+  });
+}
+if (btnDownloadPreviewYaml) {
+  btnDownloadPreviewYaml.addEventListener("click", () => {
+    if (previewWorkoutData) {
+      window.location.href = `/api/workouts/${previewWorkoutData.id}/yaml`;
+    }
+  });
+}
+
+// New / Edit Workout Modal
+const modalNewWorkout = document.getElementById("modal-new-workout");
+const btnOpenNewWorkout = document.getElementById("btn-open-new-workout");
+const btnCloseNewWorkout = document.getElementById("btn-close-new-workout");
+const btnCancelNewWorkout = document.getElementById("btn-cancel-new-workout");
+const btnSaveNewWorkout = document.getElementById("btn-save-new-workout");
+const editorWorkoutYaml = document.getElementById("editor-workout-yaml");
+const workoutEditorError = document.getElementById("workout-editor-error");
+
+const STARTER_WORKOUT_TEMPLATE = `schema: "1.0"
+id: "my-custom-workout"
+title: "Custom Interval Workout"
+description: "My custom interval session created in FTMS-Rower."
+author: "Me"
+category: "intervals"
+difficulty: "intermediate"
+tags: ["custom", "intervals"]
+
+settings:
+  default_speed_mode: "cadence_zones"
+  audio_modulation: true
+  sound_alerts: true
+  countdown_seconds: 5
+
+segments:
+  - type: "warmup"
+    title: "Light Warmup"
+    exit: { duration: "5m" }
+    targets: { spm: [18, 22] }
+
+  - type: "block"
+    title: "Work Repeats"
+    repeat: 4
+    steps:
+      - type: "work"
+        title: "500m Push"
+        exit: { distance: "500m" }
+        targets: { spm: [26, 28], split: ["1:52", "1:58"] }
+        cues:
+          on_start: "Commit to the stroke rate and length!"
+
+      - type: "rest"
+        title: "Active Recovery"
+        mode: "active"
+        auto_pause_video: false
+        exit: { duration: "2m" }
+        targets: { spm: [14, 18] }
+
+  - type: "cooldown"
+    title: "Cooldown"
+    exit: { duration: "3m" }
+    targets: { spm: [16, 18] }
+`;
+
+if (btnOpenNewWorkout) {
+  btnOpenNewWorkout.addEventListener("click", () => {
+    if (editorWorkoutYaml) editorWorkoutYaml.value = STARTER_WORKOUT_TEMPLATE;
+    if (workoutEditorError) workoutEditorError.style.display = "none";
+    if (modalNewWorkout) modalNewWorkout.classList.add("open");
+  });
+}
+
+function closeNewWorkoutModal() {
+  if (modalNewWorkout) modalNewWorkout.classList.remove("open");
+}
+
+if (btnCloseNewWorkout) btnCloseNewWorkout.addEventListener("click", closeNewWorkoutModal);
+if (btnCancelNewWorkout) btnCancelNewWorkout.addEventListener("click", closeNewWorkoutModal);
+
+if (btnSaveNewWorkout) {
+  btnSaveNewWorkout.addEventListener("click", async () => {
+    const yamlContent = editorWorkoutYaml ? editorWorkoutYaml.value.trim() : "";
+    if (!yamlContent) {
+      if (workoutEditorError) {
+        workoutEditorError.textContent = "Please provide workout YAML content.";
+        workoutEditorError.style.display = "block";
+      }
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ yaml: yamlContent })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to validate workout");
+      }
+
+      showHudToast(`Saved: ${data.workout.title}`);
+      closeNewWorkoutModal();
+      await loadWorkoutsUI();
+    } catch (err) {
+      if (workoutEditorError) {
+        workoutEditorError.textContent = `Validation Error: ${err.message}`;
+        workoutEditorError.style.display = "block";
+      }
+    }
+  });
+}
+
+// Import Workout (.yaml file input)
+const btnOpenImportWorkout = document.getElementById("btn-open-import-workout");
+const inputImportWorkoutFile = document.getElementById("input-import-workout-file");
+
+if (btnOpenImportWorkout && inputImportWorkoutFile) {
+  btnOpenImportWorkout.addEventListener("click", () => inputImportWorkoutFile.click());
+  inputImportWorkoutFile.addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const yamlText = ev.target.result;
+      try {
+        const res = await fetch("/api/workouts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ yaml: yamlText })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || "Failed to validate imported file");
+        }
+        showHudToast(`Imported: ${data.workout.title}`);
+        await loadWorkoutsUI();
+      } catch (err) {
+        alert(`Import Failed: ${err.message}`);
+      }
+      inputImportWorkoutFile.value = "";
+    };
+    reader.readAsText(file);
+  });
+}
+
 // Initialize on page load
 async function initApp() {
   try {
@@ -3684,6 +4235,7 @@ async function initApp() {
     applyHudScale(getActiveHudScale());
     await loadLibraryUI();
     await loadTracksUI();
+    await loadWorkoutsUI();
 
     // If there is a configured track, or a downloaded video, load it into cockpit
     if (cachedTracks && cachedTracks.length > 0) {

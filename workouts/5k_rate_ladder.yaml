@@ -1,0 +1,79 @@
+schema: "1.0"
+id: "5k-rate-ladder"
+title: "5K Negative Split & Rate Ladder"
+description: "A continuous 5,000m aerobic row climbing stroke rate by 2 SPM every 1,000 meters for disciplined pacing and negative splits."
+author: "Pete Plan"
+category: "endurance"
+difficulty: "intermediate"
+tags: ["endurance", "aerobic", "negative-split", "steady-state"]
+
+settings:
+  default_speed_mode: "cadence_zones"
+  audio_modulation: true
+  sound_alerts: true
+  countdown_seconds: 5
+
+segments:
+  - type: "warmup"
+    title: "Warmup"
+    exit:
+      duration: "3m"
+    targets:
+      spm: [18, 20]
+
+  - type: "work"
+    title: "0 – 1000m (Settle In)"
+    exit:
+      distance: "1000m"
+    targets:
+      spm: [20, 22]
+      split: ["2:05", "2:10"]
+    cues:
+      on_start: "Find a long, rhythmic catch. Hold 20–22 SPM."
+
+  - type: "work"
+    title: "1000 – 2000m (Base Pace)"
+    exit:
+      distance: "1000m"
+    targets:
+      spm: [22, 24]
+      split: ["2:02", "2:05"]
+    cues:
+      on_start: "Step it up to 22–24 SPM. Keep recovery relaxed."
+
+  - type: "work"
+    title: "2000 – 3000m (Tempo Surge)"
+    exit:
+      distance: "1000m"
+    targets:
+      spm: [24, 26]
+      split: ["1:58", "2:02"]
+    cues:
+      on_start: "Halfway through! Step up to 24–26 SPM."
+
+  - type: "work"
+    title: "3000 – 4000m (Hold Pressure)"
+    exit:
+      distance: "1000m"
+    targets:
+      spm: [26, 28]
+      split: ["1:54", "1:58"]
+    cues:
+      on_start: "Drive through the legs. Build to 26–28 SPM."
+
+  - type: "work"
+    title: "4000 – 5000m (Sprint Finish)"
+    exit:
+      distance: "1000m"
+    targets:
+      spm: [28, 32]
+      split: ["1:48", "1:54"]
+    cues:
+      on_start: "Final kilometer! Bring up the rate and sprint to the finish!"
+
+  - type: "cooldown"
+    title: "Cooldown"
+    exit:
+      duration: "3m"
+    targets:
+      spm: [16, 18]

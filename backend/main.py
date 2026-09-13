@@ -22,6 +22,7 @@ from backend.downloader import (
 from backend.uploader import save_uploaded_media
 from backend.streaming import range_streaming_response
 from backend.tcx_generator import generate_tcx, generate_multi_tcx
+import backend.workout_manager as workout_mgr
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -461,6 +462,73 @@ async def delete_single_track(track_id: str):
     if not success:
         raise HTTPException(status_code=404, detail="Track not found")
     return {"deleted": True}
+
+
+# ----------------- Structured Workouts Endpoints -----------------
+@app.get("/api/workouts")
+async def get_all_workouts():
+    return {"workouts": workout_mgr.list_workouts()}
+
+@app.get("/api/workouts/{workout_id}")
+async def get_single_workout(workout_id: str):
+    w = workout_mgr.get_workout(workout_id)
+    if not w:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    return w
+
+@app.get("/api/workouts/{workout_id}/yaml")
+async def download_workout_yaml(workout_id: str):
+    w = workout_mgr.get_workout(workout_id)
+    if not w:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    yaml_content = w.get("raw_yaml", "")
+    filename = f"{workout_id}.yaml"
+    return Response(
+        content=yaml_content,
+        media_type="text/yaml; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+@app.post("/api/workouts")
+async def create_or_upload_workout(request: Request):
+    content_type = request.headers.get("content-type", "")
+    yaml_text = ""
+    if "multipart/form-data" in content_type:
+        form = await request.form()
+        file_obj = form.get("file")
+        if file_obj and hasattr(file_obj, "read"):
+            bytes_content = await file_obj.read()
+            yaml_text = bytes_content.decode("utf-8")
+        elif "yaml" in form:
+            yaml_text = str(form.get("yaml"))
+    else:
+        try:
+            body = await request.json()
+            yaml_text = body.get("yaml", "")
+        except Exception:
+            raw_bytes = await request.body()
+            yaml_text = raw_bytes.decode("utf-8")
+
+    if not yaml_text.strip():
+        raise HTTPException(status_code=400, detail="No YAML content provided.")
+
+    try:
+        saved = workout_mgr.save_workout(yaml_text)
+        return {"status": "saved", "workout": saved}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save workout: {e}")
+
+@app.delete("/api/workouts/{workout_id}")
+async def delete_single_workout(workout_id: str):
+    try:
+        success = workout_mgr.delete_workout(workout_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Workout not found")
+        return {"deleted": True}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ----------------- Static Frontend Mounting -----------------
