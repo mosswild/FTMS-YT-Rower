@@ -180,11 +180,11 @@ export class WorkoutEngine {
         } else {
           clearInterval(this.tickInterval);
           this.playTransitionChime();
-          this.beginExecution(telemetry);
+          this.beginExecution(this.lastTelemetry);
         }
       }, 1000);
     } else {
-      this.beginExecution(telemetry);
+      this.beginExecution(this.lastTelemetry || telemetry);
     }
   }
 
@@ -193,7 +193,10 @@ export class WorkoutEngine {
     this.currentStepIndex = 0;
     this.totalElapsedSeconds = 0;
     this.totalDistanceMeters = 0;
-    this.activateStep(0, telemetry);
+    const telem = (telemetry && (telemetry.distanceMeters !== undefined || telemetry.elapsedSeconds !== undefined))
+      ? telemetry
+      : this.lastTelemetry;
+    this.activateStep(0, telem);
 
     clearInterval(this.tickInterval);
     this.tickInterval = setInterval(() => {
@@ -202,7 +205,7 @@ export class WorkoutEngine {
       }
     }, 250);
 
-    this.options.onStatusChange(this.status, { step: this.currentStep });
+    this.options.onStatusChange(this.status, { step: this.currentStep, isExecutionStart: true });
   }
 
   activateStep(index, telemetry = null) {

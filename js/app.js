@@ -3,12 +3,12 @@ import { HeartRateBLE } from "./modules/ble-heartrate.js?v=res-and-metric-reset-
 import { RateController } from "./modules/rate-controller.js?v=paused-bottom-right-v34";
 import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
 import { PM5Hud } from "./modules/hud.js?v=paused-bottom-right-v34";
-import { SessionTracker } from "./modules/session-tracker.js?v=paused-bottom-right-v34";
+import { SessionTracker } from "./modules/session-tracker.js?v=countdown-zero-and-pause-iso-v38";
 import { VirtualRowerSimulator } from "./modules/simulator.js?v=decoupled-sim-program-v37";
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=decoupled-sim-program-v37";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=countdown-zero-and-pause-iso-v38";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -376,6 +376,12 @@ const workoutEngine = new WorkoutEngine({
       pm5Hud.showWorkoutBar(true);
     } else if (status === "running") {
       pm5Hud.showWorkoutBar(true);
+      if (meta && meta.isExecutionStart) {
+        pm5Hud.resetOffsets();
+        if (typeof sessionTracker !== "undefined" && sessionTracker) {
+          sessionTracker.resetBaselines();
+        }
+      }
     } else if (status === "paused") {
       pm5Hud.showWorkoutBar(true);
       pm5Hud.showNotice("Program Paused", 2500);

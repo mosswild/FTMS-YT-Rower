@@ -20,6 +20,13 @@ export class SessionTracker {
       hr: 0
     };
 
+    this.baseDistance = 0;
+    this.baseStrokes = 0;
+    this.distanceOffset = 0;
+    this.strokesOffset = 0;
+    this.pausedAtDistance = null;
+    this.pausedAtStrokes = null;
+
     this.timerInterval = null;
     this.sampleInterval = null;
 
@@ -47,6 +54,10 @@ export class SessionTracker {
     this.elapsedSeconds = 0;
     this.baseDistance = this.currentMetrics.distance || 0;
     this.baseStrokes = this.currentMetrics.strokes || 0;
+    this.distanceOffset = 0;
+    this.strokesOffset = 0;
+    this.pausedAtDistance = null;
+    this.pausedAtStrokes = null;
     this.samples = [];
 
     // 1-second elapsed timer
@@ -63,10 +74,27 @@ export class SessionTracker {
     if (this.onStateChange) this.onStateChange(this.state, prevState);
   }
 
+  resetBaselines() {
+    this.elapsedSeconds = 0;
+    this.startTime = new Date().toISOString();
+    this.baseDistance = this.currentMetrics.distance || 0;
+    this.baseStrokes = this.currentMetrics.strokes || 0;
+    this.distanceOffset = 0;
+    this.strokesOffset = 0;
+    this.pausedAtDistance = null;
+    this.pausedAtStrokes = null;
+    this.samples = [];
+    if (this.onTick) {
+      this.onTick(this.getSummary());
+    }
+  }
+
   pause() {
     if (this.state === "active") {
       const prevState = this.state;
       this.state = "paused";
+      this.pausedAtDistance = this.currentMetrics.distance || 0;
+      this.pausedAtStrokes = this.currentMetrics.strokes || 0;
       if (this.onStateChange) this.onStateChange(this.state, prevState);
     }
   }
@@ -75,6 +103,16 @@ export class SessionTracker {
     if (this.state === "paused") {
       const prevState = this.state;
       this.state = "active";
+      const curDist = this.currentMetrics.distance || 0;
+      if (this.pausedAtDistance !== null && curDist > this.pausedAtDistance) {
+        this.distanceOffset = (this.distanceOffset || 0) + (curDist - this.pausedAtDistance);
+      }
+      const curStrokes = this.currentMetrics.strokes || 0;
+      if (this.pausedAtStrokes !== null && curStrokes > this.pausedAtStrokes) {
+        this.strokesOffset = (this.strokesOffset || 0) + (curStrokes - this.pausedAtStrokes);
+      }
+      this.pausedAtDistance = null;
+      this.pausedAtStrokes = null;
       if (this.onStateChange) this.onStateChange(this.state, prevState);
     }
   }
@@ -98,6 +136,8 @@ export class SessionTracker {
 
   resetDistance() {
     this.baseDistance = this.currentMetrics.distance || 0;
+    this.distanceOffset = 0;
+    this.pausedAtDistance = null;
   }
 
   resetTime() {
@@ -105,14 +145,15 @@ export class SessionTracker {
   }
 
   recordSample() {
-    const sessionDist = Math.max(0, (this.currentMetrics.distance || 0) - (this.baseDistance || 0));
+    const rawDist = this.currentMetrics.distance || 0;
+    const sessionDist = Math.max(0, rawDist - (this.baseDistance || 0) - (this.distanceOffset || 0));
     this.samples.push({
       elapsed_seconds: this.elapsedSeconds,
       stroke_rate: this.currentMetrics.spm,
       split_seconds: this.currentMetrics.split,
       watts: this.currentMetrics.watts,
       hr: this.currentMetrics.hr,
-      distance: sessionDist
+      distance: Math.round(sessionDist)
     });
   }
 
@@ -125,10 +166,20 @@ export class SessionTracker {
     const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length * 10) / 10 : 0;
     const max = arr => arr.length ? Math.max(...arr) : 0;
 
+    const rawDist = (this.state === "paused" && this.pausedAtDistance !== null)
+      ? this.pausedAtDistance
+      : (this.currentMetrics.distance || 0);
+    const sessionDist = Math.max(0, rawDist - (this.baseDistance || 0) - (this.distanceOffset || 0));
+
+    const rawStrokes = (this.state === "paused" && this.pausedAtStrokes !== null)
+      ? this.pausedAtStrokes
+      : (this.currentMetrics.strokes || 0);
+    const sessionStrokes = Math.max(0, rawStrokes - (this.baseStrokes || 0) - (this.strokesOffset || 0));
+
     return {
       durationSeconds: this.elapsedSeconds,
-      distanceMeters: this.currentMetrics.distance,
-      totalStrokes: this.currentMetrics.strokes,
+      distanceMeters: Math.round(sessionDist),
+      totalStrokes: Math.round(sessionStrokes),
       avgSpm: avg(validSpms),
       avgSplit: avg(validSplits),
       avgWatts: avg(validWatts),
