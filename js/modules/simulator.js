@@ -56,6 +56,7 @@ export class VirtualRowerSimulator {
 
     this.currentPhaseIndex = 0;
     this.phaseElapsed = 0;
+    this.isWorkoutPaused = false;
   }
 
   setMode(mode) {
@@ -66,7 +67,11 @@ export class VirtualRowerSimulator {
         this.onPhaseChange("Manual Control", Math.round(this.targetSpm));
       }
     } else if (this.mode === "workout") {
-      this.applyWorkoutStepTarget();
+      if (this.isWorkoutPaused) {
+        this.applyCurrentPhase();
+      } else {
+        this.applyWorkoutStepTarget();
+      }
     } else {
       this.currentPhaseIndex = 0;
       this.phaseElapsed = 0;
@@ -91,7 +96,9 @@ export class VirtualRowerSimulator {
     this.targetWatts = null;
     this.targetHr = null;
     if (this.onPhaseChange) {
-      this.onPhaseChange(phase.name, phase.targetSpm);
+      const isPaused = this.isWorkoutPaused || (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.status === "paused");
+      const phaseLabel = isPaused ? `[PAUSED] Dynamic: ${phase.name}` : phase.name;
+      this.onPhaseChange(phaseLabel, phase.targetSpm);
     }
   }
 
@@ -102,7 +109,7 @@ export class VirtualRowerSimulator {
     if (typeof workoutEngine !== "undefined" && workoutEngine && (workoutEngine.workout || workoutEngine.isRunning)) {
       this.mode = "workout";
     }
-    if (this.mode === "workout") {
+    if (this.mode === "workout" && !this.isWorkoutPaused) {
       this.applyWorkoutStepTarget();
     }
   }
@@ -120,22 +127,29 @@ export class VirtualRowerSimulator {
     }
 
     if (status === "ready") {
+      this.isWorkoutPaused = false;
       this.isRowing = false;
       this.targetSpm = 0;
       if (this.onPhaseChange) {
         this.onPhaseChange(`Ready: ${meta && meta.workout ? meta.workout.title : 'Workout'}`, 0);
       }
     } else if (status === "completed") {
+      this.isWorkoutPaused = false;
       this.isRowing = false;
       this.targetSpm = 0;
       if (this.onPhaseChange) {
         this.onPhaseChange("Workout Complete! 🎉", 0);
       }
     } else if (status === "paused") {
-      if (this.onPhaseChange) {
-        this.onPhaseChange("[PAUSED] Program Paused", Math.round(this.targetSpm || 20));
-      }
+      this.isWorkoutPaused = true;
+      // Clear fixed targets from previous workout step so dynamic modulation works naturally
+      this.targetSplitSeconds = null;
+      this.targetWatts = null;
+      this.targetHr = null;
+      // Immediately apply current dynamic phase so simulator continues its cycle
+      this.applyCurrentPhase();
     } else if (status === "idle") {
+      this.isWorkoutPaused = false;
       this.isRowing = false;
       this.targetSpm = 0;
       this.currentWorkoutStep = null;
@@ -143,13 +157,17 @@ export class VirtualRowerSimulator {
         this.onPhaseChange("Workout Ended", 0);
       }
     } else if (status === "countdown") {
+      this.isWorkoutPaused = false;
       this.isRowing = false;
       this.targetSpm = 0;
       if (this.onPhaseChange) {
         this.onPhaseChange(`Starting in ${meta ? meta.countdown : 3}s...`, 0);
       }
     } else if (status === "running") {
-      this.applyWorkoutStepTarget();
+      this.isWorkoutPaused = false;
+      if (this.mode === "workout") {
+        this.applyWorkoutStepTarget();
+      }
     }
   }
 
@@ -223,7 +241,8 @@ export class VirtualRowerSimulator {
     this.lastTickTime = Date.now();
     this.phaseElapsed = 0;
 
-    if (this.mode === "dynamic") {
+    const isPaused = this.isWorkoutPaused || (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.status === "paused");
+    if (this.mode === "dynamic" || (this.mode === "workout" && isPaused)) {
       this.applyCurrentPhase();
     } else if (this.mode === "workout") {
       this.applyWorkoutStepTarget();
@@ -333,8 +352,11 @@ export class VirtualRowerSimulator {
     const dtSeconds = (now - this.lastTickTime) / 1000;
     this.lastTickTime = now;
 
-    // Advance dynamic program if in dynamic mode
-    if (this.mode === "dynamic") {
+    // Advance dynamic program if in dynamic mode OR if workout is paused
+    const isPaused = this.isWorkoutPaused || (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.status === "paused");
+    const shouldRunDynamicCycle = (this.mode === "dynamic") || (this.mode === "workout" && isPaused);
+
+    if (shouldRunDynamicCycle) {
       this.phaseElapsed += dtSeconds;
       const currentPhase = this.dynamicPhases[this.currentPhaseIndex];
       if (this.phaseElapsed >= currentPhase.duration) {
@@ -352,7 +374,9 @@ export class VirtualRowerSimulator {
       const hrPayload = this.isHrEnabled ? Math.round(this.heartRate) : 0;
 
       let phaseLabel = "Paused";
-      if (this.mode === "workout" && this.currentWorkoutStep) {
+      if (isPaused) {
+        phaseLabel = `[PAUSED] ${this.dynamicPhases[this.currentPhaseIndex].name}`;
+      } else if (this.mode === "workout" && this.currentWorkoutStep) {
         phaseLabel = `[${(this.currentWorkoutStep.type || 'REST').toUpperCase()}] ${this.currentWorkoutStep.title || 'Rest'}`;
       } else if (this.mode === "dynamic") {
         phaseLabel = this.dynamicPhases[this.currentPhaseIndex].name;
@@ -430,7 +454,9 @@ export class VirtualRowerSimulator {
     const currentHr = this.isHrEnabled ? Math.round(this.heartRate) : 0;
 
     let activePhaseLabel = "Manual";
-    if (this.mode === "workout") {
+    if (isPaused) {
+      activePhaseLabel = `[PAUSED] ${this.dynamicPhases[this.currentPhaseIndex].name}`;
+    } else if (this.mode === "workout") {
       activePhaseLabel = this.currentWorkoutStep 
         ? `[${(this.currentWorkoutStep.type || 'WORK').toUpperCase()}] ${this.currentWorkoutStep.title || 'Interval'}`
         : "Workout";
@@ -471,5 +497,6 @@ export class VirtualRowerSimulator {
     this.currentWorkoutStep = null;
     this.workoutStepIndex = 0;
     this.workoutStepTotal = 0;
+    this.isWorkoutPaused = false;
   }
 }

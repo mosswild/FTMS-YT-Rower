@@ -4,7 +4,7 @@ import { RateController } from "./modules/rate-controller.js?v=paused-bottom-rig
 import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
 import { PM5Hud } from "./modules/hud.js?v=paused-bottom-right-v34";
 import { SessionTracker } from "./modules/session-tracker.js?v=paused-bottom-right-v34";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=paused-bottom-right-v34";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=dynamic-sim-pause-cycle-v35";
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
@@ -358,13 +358,11 @@ const workoutEngine = new WorkoutEngine({
       simulator.onWorkoutStatusChange(status, meta);
       const simRowToggleBtn = document.getElementById("btn-sim-toggle-rowing");
       if (simRowToggleBtn) {
-        if (status === "paused") {
-          simRowToggleBtn.textContent = "Resume Pulling";
-          simRowToggleBtn.className = "btn btn-success btn-sm";
-        } else if (status === "running") {
-          simRowToggleBtn.textContent = "Pause Pulling";
-          simRowToggleBtn.className = "btn btn-secondary btn-sm";
-        }
+        simRowToggleBtn.textContent = simulator.isRowing ? "Pause Pulling" : "Resume Pulling";
+        simRowToggleBtn.className = simulator.isRowing ? "btn btn-secondary btn-sm" : "btn btn-success btn-sm";
+      }
+      if (status === "idle") {
+        updateSimModeUi(simulator.mode);
       }
     }
     syncWorkoutPauseButton();
@@ -3096,15 +3094,30 @@ async function populateSimWorkoutDropdown() {
   });
 }
 
+function updateSimModeUi(mode) {
+  if (!simModeBtn) return;
+  if (mode === "workout") {
+    simModeBtn.textContent = "Mode: Follow Workout";
+    if (simManualControls) simManualControls.style.display = "none";
+    if (selectSimWorkout) selectSimWorkout.style.display = "inline-block";
+  } else if (mode === "manual") {
+    simModeBtn.textContent = "Mode: Manual Slider";
+    if (selectSimWorkout) selectSimWorkout.style.display = "none";
+    if (simManualControls) simManualControls.style.display = "flex";
+  } else {
+    simModeBtn.textContent = "Mode: Dynamic Program";
+    if (selectSimWorkout) selectSimWorkout.style.display = "none";
+    if (simManualControls) simManualControls.style.display = "none";
+  }
+}
+
 if (simModeBtn) {
   simModeBtn.addEventListener("click", async () => {
     if (simulator.mode === "dynamic") {
       // 1. Dynamic -> Follow Workout
       simulator.setMode("workout");
-      simModeBtn.textContent = "Mode: Follow Workout";
-      if (simManualControls) simManualControls.style.display = "none";
+      updateSimModeUi("workout");
       if (selectSimWorkout) {
-        selectSimWorkout.style.display = "inline-block";
         await populateSimWorkoutDropdown();
       }
       if (!workoutEngine.workout) {
@@ -3121,15 +3134,11 @@ if (simModeBtn) {
     } else if (simulator.mode === "workout") {
       // 2. Follow Workout -> Manual Slider
       simulator.setMode("manual");
-      simModeBtn.textContent = "Mode: Manual Slider";
-      if (selectSimWorkout) selectSimWorkout.style.display = "none";
-      if (simManualControls) simManualControls.style.display = "flex";
+      updateSimModeUi("manual");
     } else {
       // 3. Manual Slider -> Dynamic Program
       simulator.setMode("dynamic");
-      simModeBtn.textContent = "Mode: Dynamic Program";
-      if (selectSimWorkout) selectSimWorkout.style.display = "none";
-      if (simManualControls) simManualControls.style.display = "none";
+      updateSimModeUi("dynamic");
     }
   });
 }
@@ -4383,6 +4392,7 @@ function startActiveWorkout() {
 
   if (typeof simulator !== "undefined" && simulator) {
     simulator.setMode("workout");
+    updateSimModeUi("workout");
   }
 
   const curTelemetry = {
