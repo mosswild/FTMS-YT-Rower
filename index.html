@@ -369,6 +369,7 @@
     <div id="sim-controls-bar" class="sim-controls-bar" style="display: none;">
       <button id="btn-toggle-sim" class="btn btn-primary btn-sm">Start Simulator</button>
       <button id="btn-toggle-sim-mode" class="btn btn-secondary btn-sm">Mode: Dynamic Program</button>
+      <select id="select-sim-workout" class="select-dropdown" style="display: none; padding: 0.2rem 0.6rem; font-size: 0.78rem; height: 30px; background: var(--surface-card); border-color: var(--surface-border); border-radius: 6px; cursor: pointer;" title="Choose workout for simulator to follow"></select>
       <select id="select-sim-mimic" class="select-dropdown" style="padding: 0.2rem 0.6rem; font-size: 0.78rem; height: 30px; background: var(--surface-card); border-color: var(--surface-border); border-radius: 6px; cursor: pointer;" title="Choose connection type to simulate">
         <option value="relay">Mimic: Bluetooth Relay</option>
         <option value="direct">Mimic: Direct Web Bluetooth</option>
@@ -1075,6 +1076,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=workout-cockpit-fix-v23"></script>
+  <script type="module" src="js/app.js?v=workout-sim-v24"></script>
 </body>
 </html>

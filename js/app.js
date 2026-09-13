@@ -4,7 +4,7 @@ import { RateController } from "./modules/rate-controller.js?v=res-and-metric-re
 import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
 import { PM5Hud } from "./modules/hud.js?v=res-and-metric-reset-v19";
 import { SessionTracker } from "./modules/session-tracker.js?v=res-and-metric-reset-v19";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=res-and-metric-reset-v19";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=workout-sim-v24";
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
@@ -23,6 +23,7 @@ const audioUnmuteBanner = document.getElementById("audio-unmute-banner");
 // Simulator DOM Elements
 const simBtn = document.getElementById("btn-toggle-sim");
 const simModeBtn = document.getElementById("btn-toggle-sim-mode");
+const selectSimWorkout = document.getElementById("select-sim-workout");
 const simPhaseBadge = document.getElementById("sim-phase-badge");
 const simRowToggleBtn = document.getElementById("btn-sim-pause-rowing");
 const btnSimEnableHr = document.getElementById("btn-sim-enable-hr");
@@ -309,6 +310,9 @@ if (cellTime) {
 // Initialize Workout Engine
 const workoutEngine = new WorkoutEngine({
   onStatusChange: (status, meta) => {
+    if (typeof simulator !== "undefined" && simulator) {
+      simulator.onWorkoutStatusChange(status, meta);
+    }
     if (status === "countdown") {
       pm5Hud.showNotice(`Workout starting in ${meta ? meta.countdown : ''}...`, 1000);
       pm5Hud.showWorkoutBar(true);
@@ -324,6 +328,9 @@ const workoutEngine = new WorkoutEngine({
     }
   },
   onStepChange: (step, index, total) => {
+    if (typeof simulator !== "undefined" && simulator) {
+      simulator.onWorkoutStepChange(step, index, total);
+    }
     pm5Hud.setWorkoutStep(step, index, total);
   },
   onTick: (progress) => {
@@ -636,6 +643,7 @@ function showConfirmDialog({ title = "Confirm Deletion", message = "Are you sure
 // ----------------- Media Loading & Library -----------------
 let cachedLibrary = { videos: [], audio: [] };
 let cachedTracks = [];
+let cachedWorkouts = [];
 
 async function loadLibraryUI() {
   cachedLibrary = await mediaManager.fetchLibrary();
@@ -2927,6 +2935,14 @@ if (simBtn) {
     } else {
       const mimicVal = selectSimMimic ? selectSimMimic.value : "relay";
       simulator.setMimicType(mimicVal);
+      if (simulator.mode === "workout") {
+        if (!workoutEngine.isRunning || !workoutEngine.workout) {
+          const workoutId = selectSimWorkout ? selectSimWorkout.value : (cachedWorkouts[0] && cachedWorkouts[0].id);
+          if (workoutId) {
+            startWorkoutInCockpit(workoutId);
+          }
+        }
+      }
       simulator.start();
       simBtn.textContent = "Stop Simulator";
       simBtn.className = "btn btn-secondary btn-sm";
@@ -2975,16 +2991,83 @@ if (btnSimEnableHr) {
   });
 }
 
+async function populateSimWorkoutDropdown() {
+  if (!selectSimWorkout) return;
+  if (cachedWorkouts.length === 0) {
+    try {
+      const res = await fetch("/api/workouts");
+      const data = await res.json();
+      cachedWorkouts = data.workouts || [];
+    } catch (e) {
+      console.error("[Sim Workout Dropdown] Failed to fetch workouts:", e);
+    }
+  }
+
+  selectSimWorkout.innerHTML = "";
+  if (cachedWorkouts.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "No workouts found";
+    selectSimWorkout.appendChild(opt);
+    return;
+  }
+
+  cachedWorkouts.forEach(w => {
+    const opt = document.createElement("option");
+    opt.value = w.id;
+    opt.textContent = `Workout: ${w.title}`;
+    if (workoutEngine && workoutEngine.workout && workoutEngine.workout.id === w.id) {
+      opt.selected = true;
+    }
+    selectSimWorkout.appendChild(opt);
+  });
+}
+
 if (simModeBtn) {
-  simModeBtn.addEventListener("click", () => {
+  simModeBtn.addEventListener("click", async () => {
     if (simulator.mode === "dynamic") {
+      // 1. Dynamic -> Follow Workout
+      simulator.setMode("workout");
+      simModeBtn.textContent = "Mode: Follow Workout";
+      if (simManualControls) simManualControls.style.display = "none";
+      if (selectSimWorkout) {
+        selectSimWorkout.style.display = "inline-block";
+        await populateSimWorkoutDropdown();
+      }
+      if (!workoutEngine.isRunning || !workoutEngine.workout) {
+        const workoutId = selectSimWorkout ? selectSimWorkout.value : (cachedWorkouts[0] && cachedWorkouts[0].id);
+        if (workoutId) {
+          await startWorkoutInCockpit(workoutId);
+        }
+      } else {
+        if (selectSimWorkout && workoutEngine.workout) {
+          selectSimWorkout.value = workoutEngine.workout.id;
+        }
+        simulator.applyWorkoutStepTarget();
+      }
+    } else if (simulator.mode === "workout") {
+      // 2. Follow Workout -> Manual Slider
       simulator.setMode("manual");
       simModeBtn.textContent = "Mode: Manual Slider";
+      if (selectSimWorkout) selectSimWorkout.style.display = "none";
       if (simManualControls) simManualControls.style.display = "flex";
     } else {
+      // 3. Manual Slider -> Dynamic Program
       simulator.setMode("dynamic");
       simModeBtn.textContent = "Mode: Dynamic Program";
+      if (selectSimWorkout) selectSimWorkout.style.display = "none";
       if (simManualControls) simManualControls.style.display = "none";
+    }
+  });
+}
+
+if (selectSimWorkout) {
+  selectSimWorkout.addEventListener("change", async () => {
+    const workoutId = selectSimWorkout.value;
+    if (!workoutId) return;
+    await startWorkoutInCockpit(workoutId);
+    if (!simulator.isRunning) {
+      if (simBtn) simBtn.click();
     }
   });
 }
@@ -3739,7 +3822,6 @@ window.addEventListener("keydown", (e) => {
 // ==========================================================================
 // Structured Workouts System (Library, Cockpit HUD Dropdown, Modals, Import/Export)
 // ==========================================================================
-let cachedWorkouts = [];
 let activeWorkoutCategory = "all";
 let previewWorkoutData = null;
 
@@ -4024,6 +4106,9 @@ async function startWorkoutInCockpit(workoutId) {
 
     workoutEngine.loadWorkout(workoutData);
     pm5Hud.setWorkoutMode(workoutData.title);
+    if (selectSimWorkout) {
+      selectSimWorkout.value = workoutId;
+    }
 
     // If workout has a default speed mode, apply it
     if (workoutData.settings && workoutData.settings.default_speed_mode) {
