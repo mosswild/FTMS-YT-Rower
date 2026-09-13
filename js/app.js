@@ -4,11 +4,11 @@ import { RateController } from "./modules/rate-controller.js?v=res-and-metric-re
 import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
 import { PM5Hud } from "./modules/hud.js?v=res-and-metric-reset-v19";
 import { SessionTracker } from "./modules/session-tracker.js?v=res-and-metric-reset-v19";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=workout-manual-start-v26";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=workout-warmup-fix-v27";
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-manual-start-v26";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-warmup-fix-v27";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -2943,14 +2943,23 @@ if (simBtn) {
     } else {
       const mimicVal = selectSimMimic ? selectSimMimic.value : "relay";
       simulator.setMimicType(mimicVal);
-      if (simulator.mode === "workout") {
-        if (workoutEngine.workout && !workoutEngine.isRunning) {
-          startActiveWorkout();
-        } else if (!workoutEngine.workout) {
-          const workoutId = selectSimWorkout ? selectSimWorkout.value : (cachedWorkouts[0] && cachedWorkouts[0].id);
-          if (workoutId) {
-            loadWorkoutInCockpit(workoutId).then(() => startActiveWorkout());
+      if (workoutEngine.workout) {
+        if (simulator.mode !== "workout") {
+          simulator.setMode("workout");
+          if (simModeBtn) simModeBtn.textContent = "Mode: Follow Workout";
+          if (selectSimWorkout) {
+            selectSimWorkout.style.display = "inline-block";
+            selectSimWorkout.value = workoutEngine.workout.id;
           }
+          if (simManualControls) simManualControls.style.display = "none";
+        }
+        if (!workoutEngine.isRunning) {
+          startActiveWorkout();
+        }
+      } else if (simulator.mode === "workout") {
+        const workoutId = selectSimWorkout ? selectSimWorkout.value : (cachedWorkouts[0] && cachedWorkouts[0].id);
+        if (workoutId) {
+          loadWorkoutInCockpit(workoutId).then(() => startActiveWorkout());
         }
       }
       simulator.start();
@@ -4159,6 +4168,17 @@ async function loadWorkoutInCockpit(workoutId) {
         rateController.setSpeedMode(mode);
         updateSpeedDropdownSelection();
       }
+    }
+
+    // Automatically sync simulator to Follow Workout mode so it is primed
+    if (simulator && simulator.mode !== "workout") {
+      simulator.setMode("workout");
+      if (simModeBtn) simModeBtn.textContent = "Mode: Follow Workout";
+      if (selectSimWorkout) {
+        selectSimWorkout.style.display = "inline-block";
+        populateSimWorkoutDropdown();
+      }
+      if (simManualControls) simManualControls.style.display = "none";
     }
 
     // Switch view to Cockpit

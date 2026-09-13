@@ -192,7 +192,7 @@ export class WorkoutEngine {
       }
     }, 250);
 
-    this.options.onStatusChange(this.status);
+    this.options.onStatusChange(this.status, { step: this.currentStep });
   }
 
   activateStep(index, telemetry = null) {

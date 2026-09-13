@@ -105,6 +105,9 @@ export class VirtualRowerSimulator {
 
   onWorkoutStatusChange(status, meta) {
     if (this.mode !== "workout") return;
+    if (meta && meta.step) {
+      this.currentWorkoutStep = meta.step;
+    }
     if (status === "ready") {
       this.isRowing = false;
       this.targetSpm = 0;
@@ -129,6 +132,8 @@ export class VirtualRowerSimulator {
       if (this.onPhaseChange) {
         this.onPhaseChange(`Starting in ${meta ? meta.countdown : 3}s...`, 0);
       }
+    } else if (status === "running") {
+      this.applyWorkoutStepTarget();
     }
   }
 
@@ -162,6 +167,9 @@ export class VirtualRowerSimulator {
         this.targetSpm = 18;
       } else {
         this.targetSpm = 28;
+      }
+      if (this.spm < 14) {
+        this.spm = this.targetSpm;
       }
     }
 
