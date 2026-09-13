@@ -4,11 +4,11 @@ import { RateController } from "./modules/rate-controller.js?v=paused-bottom-rig
 import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
 import { PM5Hud } from "./modules/hud.js?v=paused-bottom-right-v34";
 import { SessionTracker } from "./modules/session-tracker.js?v=paused-bottom-right-v34";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=dynamic-sim-pause-cycle-v35";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=live-pull-compliance-restored-v36";
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=paused-bottom-right-v34";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=live-pull-compliance-restored-v36";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");

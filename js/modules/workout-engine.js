@@ -373,6 +373,7 @@ export class WorkoutEngine {
     const compliance = {};
     const targets = step.targets;
     const isStepRest = step.type === "rest";
+    const curTelem = this.lastTelemetry || {};
     const isRowerStopped = this.isRowerPaused || (curTelem.strokeRate === 0 && (curTelem.powerWatts === 0 || curTelem.splitSeconds === 0));
     const isPaused = isRowerStopped || (this.status === "paused" && (!curTelem.strokeRate || curTelem.strokeRate === 0));
 

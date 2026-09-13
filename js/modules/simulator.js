@@ -67,11 +67,7 @@ export class VirtualRowerSimulator {
         this.onPhaseChange("Manual Control", Math.round(this.targetSpm));
       }
     } else if (this.mode === "workout") {
-      if (this.isWorkoutPaused) {
-        this.applyCurrentPhase();
-      } else {
-        this.applyWorkoutStepTarget();
-      }
+      this.applyWorkoutStepTarget();
     } else {
       this.currentPhaseIndex = 0;
       this.phaseElapsed = 0;
@@ -96,9 +92,7 @@ export class VirtualRowerSimulator {
     this.targetWatts = null;
     this.targetHr = null;
     if (this.onPhaseChange) {
-      const isPaused = this.isWorkoutPaused || (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.status === "paused");
-      const phaseLabel = isPaused ? `[PAUSED] Dynamic: ${phase.name}` : phase.name;
-      this.onPhaseChange(phaseLabel, phase.targetSpm);
+      this.onPhaseChange(phase.name, phase.targetSpm);
     }
   }
 
@@ -109,7 +103,7 @@ export class VirtualRowerSimulator {
     if (typeof workoutEngine !== "undefined" && workoutEngine && (workoutEngine.workout || workoutEngine.isRunning)) {
       this.mode = "workout";
     }
-    if (this.mode === "workout" && !this.isWorkoutPaused) {
+    if (this.mode === "workout") {
       this.applyWorkoutStepTarget();
     }
   }
@@ -142,12 +136,17 @@ export class VirtualRowerSimulator {
       }
     } else if (status === "paused") {
       this.isWorkoutPaused = true;
-      // Clear fixed targets from previous workout step so dynamic modulation works naturally
-      this.targetSplitSeconds = null;
-      this.targetWatts = null;
-      this.targetHr = null;
-      // Immediately apply current dynamic phase so simulator continues its cycle
-      this.applyCurrentPhase();
+      // When workout is paused, simulate a user continuing to pull on the rower.
+      // Retain the active workout interval's targets so target indicators stay intact.
+      if (this.currentWorkoutStep) {
+        this.applyWorkoutStepTarget();
+      }
+      if (this.onPhaseChange) {
+        const step = this.currentWorkoutStep;
+        const stepType = (step && step.type ? step.type : "WORK").toUpperCase();
+        const title = step && step.title ? step.title : `Interval ${this.workoutStepIndex + 1}`;
+        this.onPhaseChange(`[PAUSED] [${stepType}] ${title}`, Math.round(this.targetSpm || 20));
+      }
     } else if (status === "idle") {
       this.isWorkoutPaused = false;
       this.isRowing = false;
@@ -241,8 +240,7 @@ export class VirtualRowerSimulator {
     this.lastTickTime = Date.now();
     this.phaseElapsed = 0;
 
-    const isPaused = this.isWorkoutPaused || (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.status === "paused");
-    if (this.mode === "dynamic" || (this.mode === "workout" && isPaused)) {
+    if (this.mode === "dynamic") {
       this.applyCurrentPhase();
     } else if (this.mode === "workout") {
       this.applyWorkoutStepTarget();
@@ -352,11 +350,8 @@ export class VirtualRowerSimulator {
     const dtSeconds = (now - this.lastTickTime) / 1000;
     this.lastTickTime = now;
 
-    // Advance dynamic program if in dynamic mode OR if workout is paused
-    const isPaused = this.isWorkoutPaused || (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.status === "paused");
-    const shouldRunDynamicCycle = (this.mode === "dynamic") || (this.mode === "workout" && isPaused);
-
-    if (shouldRunDynamicCycle) {
+    // Advance dynamic program if in dynamic mode
+    if (this.mode === "dynamic") {
       this.phaseElapsed += dtSeconds;
       const currentPhase = this.dynamicPhases[this.currentPhaseIndex];
       if (this.phaseElapsed >= currentPhase.duration) {
@@ -374,10 +369,9 @@ export class VirtualRowerSimulator {
       const hrPayload = this.isHrEnabled ? Math.round(this.heartRate) : 0;
 
       let phaseLabel = "Paused";
-      if (isPaused) {
-        phaseLabel = `[PAUSED] ${this.dynamicPhases[this.currentPhaseIndex].name}`;
-      } else if (this.mode === "workout" && this.currentWorkoutStep) {
+      if (this.mode === "workout" && this.currentWorkoutStep) {
         phaseLabel = `[${(this.currentWorkoutStep.type || 'REST').toUpperCase()}] ${this.currentWorkoutStep.title || 'Rest'}`;
+        if (this.isWorkoutPaused) phaseLabel = `[PAUSED] ${phaseLabel}`;
       } else if (this.mode === "dynamic") {
         phaseLabel = this.dynamicPhases[this.currentPhaseIndex].name;
       }
@@ -404,31 +398,29 @@ export class VirtualRowerSimulator {
       return;
     }
 
-    // Smoothly transition SPM toward target with gentle organic micro-variation (+- 0.25 SPM)
-    const organicJitter = (Math.sin(now / 1500) * 0.25);
+    // Smoothly transition SPM toward target with realistic organic stroke-by-stroke variation
+    const organicJitter = (Math.sin(now / 1100) * 0.85 + Math.cos(now / 2700) * 0.45);
     const effectiveTargetSpm = Math.max(14, this.targetSpm + organicJitter);
     this.spm += (effectiveTargetSpm - this.spm) * 0.22;
     const currentSpm = Math.round(this.spm * 10) / 10;
 
-    // Transition split pace
+    // Transition split pace with natural stroke drive variation (±1.5s)
+    const splitJitter = (Math.sin(now / 1300) * 1.5);
     if (this.targetSplitSeconds) {
-      this.splitSeconds += (this.targetSplitSeconds - this.splitSeconds) * 0.20;
+      this.splitSeconds += (this.targetSplitSeconds + splitJitter - this.splitSeconds) * 0.20;
     } else {
       // Faster stroke rate yields faster split
-      // SPM 16 -> Split 140s (2:20)
-      // SPM 22 -> Split 125s (2:05)
-      // SPM 29 -> Split 108s (1:48)
-      // SPM 34 -> Split 95s  (1:35)
       const baseSplit = Math.max(80, Math.min(170, 180 - (currentSpm * 2.5)));
-      this.splitSeconds += (baseSplit - this.splitSeconds) * 0.20;
+      this.splitSeconds += (baseSplit + splitJitter - this.splitSeconds) * 0.20;
     }
 
-    // Concept2 Watts = 2.80 / (pace_in_sec_per_meter ^ 3)
+    // Concept2 Watts = 2.80 / (pace_in_sec_per_meter ^ 3) with stroke power impulse (±7W)
+    const wattsJitter = (Math.sin(now / 1300) * 7.0);
     if (this.targetWatts) {
-      this.watts += (this.targetWatts - this.watts) * 0.20;
+      this.watts += (this.targetWatts + wattsJitter - this.watts) * 0.20;
     } else {
       const secPerMeter = this.splitSeconds / 500.0;
-      this.watts = Math.round(2.80 / Math.pow(secPerMeter, 3));
+      this.watts = Math.round(2.80 / Math.pow(secPerMeter, 3)) + wattsJitter;
     }
 
     // Distance increment
@@ -439,7 +431,7 @@ export class VirtualRowerSimulator {
     // Stroke count increment
     this.strokeCount += (currentSpm / 60) * dtSeconds;
 
-    // Dynamic heart rate drift
+    // Dynamic heart rate drift with sinus rhythm jitter
     if (this.isHrEnabled) {
       let targetHr = 135;
       if (this.mode === "manual" && this.manualHr) {
@@ -449,17 +441,17 @@ export class VirtualRowerSimulator {
       } else {
         targetHr = 100 + (currentSpm * 1.8);
       }
-      this.heartRate += (targetHr - this.heartRate) * 0.08;
+      const hrJitter = (Math.sin(now / 1800) * 1.2);
+      this.heartRate += (targetHr + hrJitter - this.heartRate) * 0.08;
     }
     const currentHr = this.isHrEnabled ? Math.round(this.heartRate) : 0;
 
     let activePhaseLabel = "Manual";
-    if (isPaused) {
-      activePhaseLabel = `[PAUSED] ${this.dynamicPhases[this.currentPhaseIndex].name}`;
-    } else if (this.mode === "workout") {
-      activePhaseLabel = this.currentWorkoutStep 
-        ? `[${(this.currentWorkoutStep.type || 'WORK').toUpperCase()}] ${this.currentWorkoutStep.title || 'Interval'}`
-        : "Workout";
+    if (this.mode === "workout") {
+      const step = this.currentWorkoutStep;
+      const stepType = (step && step.type ? step.type : "WORK").toUpperCase();
+      const title = step && step.title ? step.title : "Interval";
+      activePhaseLabel = this.isWorkoutPaused ? `[PAUSED] [${stepType}] ${title}` : `[${stepType}] ${title}`;
     } else if (this.mode === "dynamic") {
       activePhaseLabel = this.dynamicPhases[this.currentPhaseIndex].name;
     }
