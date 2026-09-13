@@ -46,6 +46,9 @@ export class PM5Hud {
     this.timeOffset = 0;
     this.rawDistance = 0;
     this.rawElapsedSeconds = 0;
+    this.isSessionPaused = false;
+    this.pausedAtRawSeconds = null;
+    this.pausedAtRawDistance = null;
     this.toastTimeout = null;
     this.userScale = "auto";
     this.isWorkoutBarVisible = false;
@@ -54,7 +57,30 @@ export class PM5Hud {
     this.setupFullscreen();
   }
 
+  pauseSession() {
+    this.isSessionPaused = true;
+    this.pausedAtRawSeconds = this.rawElapsedSeconds;
+    this.pausedAtRawDistance = this.rawDistance;
+  }
+
+  resumeSession() {
+    if (this.isSessionPaused) {
+      this.isSessionPaused = false;
+      if (this.pausedAtRawSeconds !== null && this.rawElapsedSeconds > this.pausedAtRawSeconds) {
+        this.timeOffset += (this.rawElapsedSeconds - this.pausedAtRawSeconds);
+      }
+      if (this.pausedAtRawDistance !== null && this.rawDistance > this.pausedAtRawDistance) {
+        this.distanceOffset += (this.rawDistance - this.pausedAtRawDistance);
+      }
+      this.pausedAtRawSeconds = null;
+      this.pausedAtRawDistance = null;
+    }
+  }
+
   resetOffsets(dist, time) {
+    this.isSessionPaused = false;
+    this.pausedAtRawSeconds = null;
+    this.pausedAtRawDistance = null;
     this.distanceOffset = dist !== undefined ? dist : this.rawDistance;
     this.timeOffset = time !== undefined ? time : this.rawElapsedSeconds;
     if (this.elements.distance) this.elements.distance.textContent = "0";
@@ -109,7 +135,10 @@ export class PM5Hud {
 
     if (data.distance !== undefined) {
       this.rawDistance = data.distance;
-      const displayDistance = Math.max(0, data.distance - this.distanceOffset);
+      const effectiveDist = (this.isSessionPaused && this.pausedAtRawDistance !== null)
+        ? this.pausedAtRawDistance
+        : data.distance;
+      const displayDistance = Math.max(0, effectiveDist - this.distanceOffset);
       if (this.elements.distance) {
         this.elements.distance.textContent = Math.round(displayDistance).toLocaleString();
       }
@@ -117,7 +146,10 @@ export class PM5Hud {
 
     if (data.elapsedSeconds !== undefined) {
       this.rawElapsedSeconds = data.elapsedSeconds;
-      const displaySeconds = Math.max(0, data.elapsedSeconds - this.timeOffset);
+      const effectiveSec = (this.isSessionPaused && this.pausedAtRawSeconds !== null)
+        ? this.pausedAtRawSeconds
+        : data.elapsedSeconds;
+      const displaySeconds = Math.max(0, effectiveSec - this.timeOffset);
       if (this.elements.time) {
         this.elements.time.textContent = this.formatTime(displaySeconds);
       }

@@ -99,16 +99,26 @@ export class VirtualRowerSimulator {
     this.currentWorkoutStep = step;
     this.workoutStepIndex = index;
     this.workoutStepTotal = total;
+    if (typeof workoutEngine !== "undefined" && workoutEngine && (workoutEngine.workout || workoutEngine.isRunning)) {
+      this.mode = "workout";
+    }
     if (this.mode === "workout") {
       this.applyWorkoutStepTarget();
     }
   }
 
   onWorkoutStatusChange(status, meta) {
-    if (this.mode !== "workout") return;
     if (meta && meta.step) {
       this.currentWorkoutStep = meta.step;
+    } else if (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.currentStep) {
+      this.currentWorkoutStep = workoutEngine.currentStep;
     }
+
+    // If a structured workout is active or changing state, ensure mode is aligned
+    if (this.mode !== "workout" && typeof workoutEngine !== "undefined" && workoutEngine && (workoutEngine.workout || workoutEngine.isRunning)) {
+      this.mode = "workout";
+    }
+
     if (status === "ready") {
       this.isRowing = false;
       this.targetSpm = 0;

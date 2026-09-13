@@ -215,29 +215,46 @@ if (videoEl) {
 // Initialize Session Tracker
 const sessionTracker = new SessionTracker({
   onTick: (summary) => {},
-  onStateChange: (state) => {
+  onStateChange: (state, prevState) => {
     const workoutBtn = document.getElementById("btn-toggle-workout");
-    if (workoutBtn) {
-      if (state === "active" || state === "paused") {
-        requestScreenWakeLock();
+    if (state === "active") {
+      requestScreenWakeLock();
+      if (workoutBtn) {
         workoutBtn.textContent = "Finish Workout";
         workoutBtn.className = "btn btn-danger";
-        pm5Hud.setActiveSession(true);
-        pm5Hud.resetOffsets();
-        rateController.setWorkoutLive(true);
-        if (state === "active" && videoEl && videoEl.paused && (rateController.isFixedSpeed || rateController.smoothedRate > 0)) {
-          rateController.resumeVideo();
-          audioEngine.play();
-        }
+      }
+      pm5Hud.setActiveSession(true);
+      if (prevState === "paused") {
+        pm5Hud.resumeSession();
       } else {
-        releaseScreenWakeLock();
-        workoutBtn.textContent = "Start Workout";
-        workoutBtn.className = "btn btn-success";
-        pm5Hud.setActiveSession(false);
-        rateController.setWorkoutLive(false);
-        if (videoEl) videoEl.pause();
+        pm5Hud.resetOffsets();
+      }
+      rateController.setWorkoutLive(true);
+      if (videoEl && videoEl.paused && (rateController.isFixedSpeed || rateController.smoothedRate > 0)) {
+        rateController.resumeVideo();
+        audioEngine.play();
+      }
+    } else if (state === "paused") {
+      if (workoutBtn) {
+        workoutBtn.textContent = "Finish Workout";
+        workoutBtn.className = "btn btn-danger";
+      }
+      pm5Hud.pauseSession();
+      rateController.setWorkoutLive(false);
+      if (videoEl && !videoEl.paused) {
+        videoEl.pause();
         audioEngine.pause();
       }
+    } else {
+      releaseScreenWakeLock();
+      if (workoutBtn) {
+        workoutBtn.textContent = "Start Workout";
+        workoutBtn.className = "btn btn-success";
+      }
+      pm5Hud.setActiveSession(false);
+      rateController.setWorkoutLive(false);
+      if (videoEl) videoEl.pause();
+      audioEngine.pause();
     }
   }
 });
@@ -330,6 +347,16 @@ const workoutEngine = new WorkoutEngine({
   onStatusChange: (status, meta) => {
     if (typeof simulator !== "undefined" && simulator) {
       simulator.onWorkoutStatusChange(status, meta);
+      const simRowToggleBtn = document.getElementById("btn-sim-toggle-rowing");
+      if (simRowToggleBtn) {
+        if (status === "paused") {
+          simRowToggleBtn.textContent = "Resume Pulling";
+          simRowToggleBtn.className = "btn btn-success btn-sm";
+        } else if (status === "running") {
+          simRowToggleBtn.textContent = "Pause Pulling";
+          simRowToggleBtn.className = "btn btn-secondary btn-sm";
+        }
+      }
     }
     syncWorkoutPauseButton();
     if (status === "ready") {
@@ -2965,11 +2992,15 @@ if (simBtn) {
       const mimicVal = selectSimMimic ? selectSimMimic.value : "relay";
       simulator.setMimicType(mimicVal);
       if (workoutEngine.workout && !workoutEngine.isRunning) {
+        simulator.setMode("workout");
         startActiveWorkout();
       } else if (simulator.mode === "workout" && !workoutEngine.workout) {
         const workoutId = selectSimWorkout ? selectSimWorkout.value : (cachedWorkouts[0] && cachedWorkouts[0].id);
         if (workoutId) {
-          loadWorkoutInCockpit(workoutId).then(() => startActiveWorkout());
+          loadWorkoutInCockpit(workoutId).then(() => {
+            simulator.setMode("workout");
+            startActiveWorkout();
+          });
         }
       }
       simulator.start();
@@ -3889,6 +3920,11 @@ if (btnWorkoutPause) {
       workoutEngine.pause();
       if (sessionTracker && sessionTracker.state === "active") {
         sessionTracker.pause();
+      } else {
+        pm5Hud.pauseSession();
+      }
+      if (typeof simulator !== "undefined" && simulator && simulator.isRunning) {
+        simulator.onWorkoutStatusChange("paused");
       }
       if (videoEl && !videoEl.paused) {
         videoEl.pause();
@@ -3900,6 +3936,11 @@ if (btnWorkoutPause) {
       workoutEngine.resume();
       if (sessionTracker && sessionTracker.state === "paused") {
         sessionTracker.resume();
+      } else {
+        pm5Hud.resumeSession();
+      }
+      if (typeof simulator !== "undefined" && simulator && simulator.isRunning) {
+        simulator.onWorkoutStatusChange("running");
       }
       if (videoEl && videoEl.paused) {
         rateController.resumeVideo();
@@ -4311,6 +4352,10 @@ async function loadWorkoutInCockpit(workoutId) {
 function startActiveWorkout() {
   if (!workoutEngine.workout) return;
   if (workoutEngine.isRunning) return;
+
+  if (typeof simulator !== "undefined" && simulator) {
+    simulator.setMode("workout");
+  }
 
   const curTelemetry = {
     distanceMeters: pm5Hud.rawDistance || 0,

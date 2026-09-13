@@ -41,6 +41,7 @@ export class SessionTracker {
 
   start() {
     if (this.state === "active") return;
+    const prevState = this.state;
     this.state = "active";
     this.startTime = new Date().toISOString();
     this.elapsedSeconds = 0;
@@ -59,20 +60,22 @@ export class SessionTracker {
       }
     }, 1000);
 
-    if (this.onStateChange) this.onStateChange(this.state);
+    if (this.onStateChange) this.onStateChange(this.state, prevState);
   }
 
   pause() {
     if (this.state === "active") {
+      const prevState = this.state;
       this.state = "paused";
-      if (this.onStateChange) this.onStateChange(this.state);
+      if (this.onStateChange) this.onStateChange(this.state, prevState);
     }
   }
 
   resume() {
     if (this.state === "paused") {
+      const prevState = this.state;
       this.state = "active";
-      if (this.onStateChange) this.onStateChange(this.state);
+      if (this.onStateChange) this.onStateChange(this.state, prevState);
     }
   }
 
@@ -135,6 +138,7 @@ export class SessionTracker {
   async finish() {
     if (this.state === "finished" || this.state === "idle") return null;
     
+    const prevState = this.state;
     this.state = "finished";
     this.endTime = new Date().toISOString();
 
@@ -143,7 +147,7 @@ export class SessionTracker {
       this.timerInterval = null;
     }
 
-    if (this.onStateChange) this.onStateChange(this.state);
+    if (this.onStateChange) this.onStateChange(this.state, prevState);
 
     const summary = this.getSummary();
     const sessionId = "workout_" + Date.now();
