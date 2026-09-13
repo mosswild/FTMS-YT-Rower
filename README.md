@@ -320,7 +320,7 @@ PYTHONPATH=. .venv/bin/python tests/test_backend.py
   - [x] **Program Session Tracking & Paused Metrics:** When a program is paused, live pulling metrics (SPM, Watts, Split, HR) continue to stream and update in real time while Elapsed Time and Distance hold frozen with an amber `PAUSED` indicator badge.
   - [x] Distance and elapsed time should be set to zero after the 5 second countdown leading up to the first interval of the program. Right now it just aggregates distance and elapsed time during this countdown. 
   - [x] Ensure that any SPM/Watts/Split/HR data that is tracked during a Program pause period isn't aggregated into the session average metrics.
-  - [ ] **Interval-by-Interval Export (Garmin & Strava):** Record structured program interval transitions as discrete lap markers in session history and export files (`.tcx` / `.fit`) to enable automatic interval and work/rest breakdown in Garmin Connect and Strava Workout Analysis.
+  - [x] **Interval-by-Interval Export (Garmin & Strava):** Record structured program interval transitions as discrete lap markers in session history and export files (`.tcx` / `.fit`) to enable automatic interval and work/rest breakdown in Garmin Connect and Strava Workout Analysis.
 - [x] **Simulator Fixes:**
   - [x] Hitting "Stop Simulator" now immediately zeroes out live metric displays (SPM, Split, Watts).
   - [x] Decoupled simulated Polar H10 Heart Rate monitor from the virtual rowing machine with an independent simulation loop so both can be enabled or disabled on their own.

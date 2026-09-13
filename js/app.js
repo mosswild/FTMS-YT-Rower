@@ -3,7 +3,7 @@ import { HeartRateBLE } from "./modules/ble-heartrate.js?v=res-and-metric-reset-
 import { RateController } from "./modules/rate-controller.js?v=paused-bottom-right-v34";
 import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
 import { PM5Hud } from "./modules/hud.js?v=paused-bottom-right-v34";
-import { SessionTracker } from "./modules/session-tracker.js?v=countdown-zero-and-pause-iso-v38";
+import { SessionTracker } from "./modules/session-tracker.js?v=interval-export-garmin-strava-v39";
 import { VirtualRowerSimulator } from "./modules/simulator.js?v=decoupled-sim-program-v37";
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
@@ -398,6 +398,9 @@ const workoutEngine = new WorkoutEngine({
     if (typeof simulator !== "undefined" && simulator) {
       simulator.onWorkoutStepChange(step, index, total);
     }
+    if (typeof sessionTracker !== "undefined" && sessionTracker && sessionTracker.state === "active") {
+      sessionTracker.startLap(step, index, total);
+    }
     pm5Hud.setWorkoutStep(step, index, total);
   },
   onTick: (progress) => {
@@ -410,6 +413,9 @@ const workoutEngine = new WorkoutEngine({
     pm5Hud.showWorkoutCue(text);
   },
   onWorkoutComplete: (summary) => {
+    if (typeof sessionTracker !== "undefined" && sessionTracker) {
+      sessionTracker.endLap();
+    }
     pm5Hud.showNotice("🎉 Workout Finished!", 4000);
   }
 });

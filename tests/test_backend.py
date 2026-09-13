@@ -89,6 +89,79 @@ class TestBackendAndFormulas(unittest.TestCase):
         root = ET.fromstring(xml_str)
         self.assertEqual(root.tag.split("}")[-1], "TrainingCenterDatabase")
 
+    def test_multi_lap_tcx_generation(self):
+        workout_data = {
+            "id": "interval-tcx-test",
+            "start_time": "2026-09-08T10:00:00Z",
+            "duration_seconds": 180,
+            "distance_meters": 750.0,
+            "avg_spm": 24,
+            "avg_watts": 220.0,
+            "avg_hr": 155,
+            "max_hr": 170,
+            "laps": [
+                {
+                    "index": 0,
+                    "name": "Interval 1/2",
+                    "type": "work",
+                    "start_elapsed_seconds": 0.0,
+                    "duration_seconds": 120.0,
+                    "distance_meters": 500.0,
+                    "avg_spm": 28,
+                    "avg_watts": 260.0,
+                    "max_watts": 300.0,
+                    "avg_hr": 160,
+                    "max_hr": 170,
+                    "intensity": "Active"
+                },
+                {
+                    "index": 1,
+                    "name": "Rest 1/2",
+                    "type": "rest",
+                    "start_elapsed_seconds": 120.0,
+                    "duration_seconds": 60.0,
+                    "distance_meters": 250.0,
+                    "avg_spm": 16,
+                    "avg_watts": 80.0,
+                    "max_watts": 100.0,
+                    "avg_hr": 135,
+                    "max_hr": 145,
+                    "intensity": "Resting"
+                }
+            ],
+            "samples": [
+                {"elapsed_seconds": 0.0, "stroke_rate": 26, "split_seconds": 115.0, "watts": 250.0, "hr": 150, "distance": 0.0},
+                {"elapsed_seconds": 60.0, "stroke_rate": 28, "split_seconds": 110.0, "watts": 270.0, "hr": 165, "distance": 260.0},
+                {"elapsed_seconds": 130.0, "stroke_rate": 16, "split_seconds": 150.0, "watts": 80.0, "hr": 138, "distance": 530.0},
+                {"elapsed_seconds": 170.0, "stroke_rate": 16, "split_seconds": 155.0, "watts": 80.0, "hr": 132, "distance": 700.0},
+            ]
+        }
+        xml_str = generate_tcx(workout_data)
+        self.assertIn("TrainingCenterDatabase", xml_str)
+
+        root = ET.fromstring(xml_str)
+        # Find all Lap tags (accounting for namespaces)
+        laps = root.findall(".//{http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2}Lap")
+        self.assertEqual(len(laps), 2)
+
+        # Lap 1 checks
+        lap1_dist = laps[0].find("{http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2}DistanceMeters").text
+        lap1_intensity = laps[0].find("{http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2}Intensity").text
+        self.assertEqual(lap1_dist, "500.0")
+        self.assertEqual(lap1_intensity, "Active")
+
+        # Lap 2 checks
+        lap2_dist = laps[1].find("{http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2}DistanceMeters").text
+        lap2_intensity = laps[1].find("{http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2}Intensity").text
+        self.assertEqual(lap2_dist, "250.0")
+        self.assertEqual(lap2_intensity, "Resting")
+
+        # Check trackpoints assigned to lap 1 and lap 2
+        lap1_tps = laps[0].findall(".//{http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2}Trackpoint")
+        lap2_tps = laps[1].findall(".//{http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2}Trackpoint")
+        self.assertEqual(len(lap1_tps), 2)
+        self.assertEqual(len(lap2_tps), 2)
+
     def test_range_header_parsing(self):
         file_size = 1000
         start, end = parse_range_header("bytes=0-499", file_size)

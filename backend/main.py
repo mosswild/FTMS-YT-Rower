@@ -79,6 +79,23 @@ class WorkoutSampleModel(BaseModel):
     hr: float = 0.0
     distance: float = 0.0
 
+class LapModel(BaseModel):
+    index: int = 0
+    name: Optional[str] = None
+    type: Optional[str] = "work"
+    start_time: Optional[str] = None
+    start_elapsed_seconds: float = 0.0
+    duration_seconds: float = 0.0
+    distance_meters: float = 0.0
+    total_strokes: int = 0
+    avg_spm: float = 0.0
+    avg_split: float = 0.0
+    avg_watts: float = 0.0
+    max_watts: float = 0.0
+    avg_hr: float = 0.0
+    max_hr: float = 0.0
+    intensity: Optional[str] = "Active"
+
 class WorkoutSaveRequest(BaseModel):
     id: str
     start_time: str
@@ -96,6 +113,7 @@ class WorkoutSaveRequest(BaseModel):
     audio_source: Optional[str] = None
     notes: Optional[str] = ""
     samples: Optional[List[WorkoutSampleModel]] = None
+    laps: Optional[List[LapModel]] = None
 
 class BulkExportRequest(BaseModel):
     ids: Optional[List[str]] = None

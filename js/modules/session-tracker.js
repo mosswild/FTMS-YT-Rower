@@ -26,6 +26,8 @@ export class SessionTracker {
     this.strokesOffset = 0;
     this.pausedAtDistance = null;
     this.pausedAtStrokes = null;
+    this.laps = [];
+    this.currentLap = null;
 
     this.timerInterval = null;
     this.sampleInterval = null;
@@ -59,6 +61,8 @@ export class SessionTracker {
     this.pausedAtDistance = null;
     this.pausedAtStrokes = null;
     this.samples = [];
+    this.laps = [];
+    this.currentLap = null;
 
     // 1-second elapsed timer
     this.timerInterval = setInterval(() => {
@@ -84,9 +88,67 @@ export class SessionTracker {
     this.pausedAtDistance = null;
     this.pausedAtStrokes = null;
     this.samples = [];
+    this.laps = [];
+    this.currentLap = null;
     if (this.onTick) {
       this.onTick(this.getSummary());
     }
+  }
+
+  startLap(step, index, total) {
+    this.endLap();
+    const curDist = Math.max(0, (this.currentMetrics.distance || 0) - (this.baseDistance || 0) - (this.distanceOffset || 0));
+    const stepType = (step && step.type) ? step.type.toLowerCase() : "work";
+    this.currentLap = {
+      index: index !== undefined ? index : this.laps.length,
+      name: step && step.title ? step.title : `Interval ${(index || 0) + 1}`,
+      type: stepType,
+      intensity: stepType === "rest" ? "Resting" : "Active",
+      start_time: new Date().toISOString(),
+      start_elapsed_seconds: this.elapsedSeconds,
+      start_distance: curDist,
+      start_strokes: Math.max(0, (this.currentMetrics.strokes || 0) - (this.baseStrokes || 0) - (this.strokesOffset || 0)),
+      sample_start_index: this.samples.length
+    };
+  }
+
+  endLap() {
+    if (!this.currentLap) return;
+    const curDist = Math.max(0, (this.currentMetrics.distance || 0) - (this.baseDistance || 0) - (this.distanceOffset || 0));
+    const curStrokes = Math.max(0, (this.currentMetrics.strokes || 0) - (this.baseStrokes || 0) - (this.strokesOffset || 0));
+    const lapSamples = this.samples.slice(this.currentLap.sample_start_index);
+
+    const validWatts = lapSamples.map(s => s.watts).filter(w => w > 0);
+    const validSplits = lapSamples.map(s => s.split_seconds).filter(s => s > 0);
+    const validSpms = lapSamples.map(s => s.stroke_rate).filter(sp => sp > 0);
+    const validHrs = lapSamples.map(s => s.hr).filter(h => h > 0);
+
+    const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length * 10) / 10 : 0;
+    const max = arr => arr.length ? Math.max(...arr) : 0;
+
+    const lapDuration = Math.max(0, this.elapsedSeconds - this.currentLap.start_elapsed_seconds);
+    const lapDistance = Math.max(0, curDist - this.currentLap.start_distance);
+    const lapStrokes = Math.max(0, curStrokes - this.currentLap.start_strokes);
+
+    this.laps.push({
+      index: this.currentLap.index,
+      name: this.currentLap.name,
+      type: this.currentLap.type,
+      intensity: this.currentLap.intensity,
+      start_time: this.currentLap.start_time,
+      start_elapsed_seconds: this.currentLap.start_elapsed_seconds,
+      duration_seconds: Math.round(lapDuration * 10) / 10,
+      distance_meters: Math.round(lapDistance * 10) / 10,
+      total_strokes: Math.round(lapStrokes),
+      avg_spm: avg(validSpms),
+      avg_split: avg(validSplits),
+      avg_watts: avg(validWatts),
+      max_watts: max(validWatts),
+      avg_hr: avg(validHrs),
+      max_hr: max(validHrs)
+    });
+
+    this.currentLap = null;
   }
 
   pause() {
@@ -186,12 +248,14 @@ export class SessionTracker {
       maxWatts: max(validWatts),
       avgHr: avg(validHrs),
       maxHr: max(validHrs),
+      laps: this.laps || []
     };
   }
 
   async finish() {
     if (this.state === "finished" || this.state === "idle") return null;
     
+    this.endLap();
     const prevState = this.state;
     this.state = "finished";
     this.endTime = new Date().toISOString();
@@ -222,7 +286,8 @@ export class SessionTracker {
       video_id: this.meta.videoId,
       audio_source: this.meta.audioSource,
       notes: this.meta.notes || "",
-      samples: this.samples
+      samples: this.samples,
+      laps: this.laps || []
     };
 
     try {

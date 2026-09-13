@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import json
 from typing import List, Dict, Any, Optional
 
 DATA_DIR = os.getenv("DATA_DIR", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data")))
@@ -30,7 +31,8 @@ def init_db():
         avg_hr REAL DEFAULT 0.0,
         video_id TEXT,
         audio_source TEXT,
-        notes TEXT
+        notes TEXT,
+        laps TEXT DEFAULT '[]'
     )
     """)
 
@@ -66,6 +68,11 @@ def init_db():
     # Migration for existing databases
     try:
         cursor.execute("ALTER TABLE tracks ADD COLUMN fixed_speed INTEGER DEFAULT 0")
+    except Exception:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE workouts ADD COLUMN laps TEXT DEFAULT '[]'")
     except Exception:
         pass
 
@@ -153,12 +160,15 @@ def save_workout(workout_data: Dict[str, Any], samples: Optional[List[Dict[str, 
     cursor = conn.cursor()
     workout_id = workout_data["id"]
 
+    laps_data = workout_data.get("laps", [])
+    laps_json = json.dumps(laps_data) if isinstance(laps_data, list) else str(laps_data or "[]")
+
     cursor.execute("""
     INSERT OR REPLACE INTO workouts (
         id, start_time, end_time, duration_seconds, distance_meters,
         total_strokes, avg_spm, avg_split, avg_watts, max_watts,
-        avg_hr, video_id, audio_source, notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        avg_hr, video_id, audio_source, notes, laps
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         workout_id,
         workout_data.get("start_time"),
@@ -173,7 +183,8 @@ def save_workout(workout_data: Dict[str, Any], samples: Optional[List[Dict[str, 
         workout_data.get("avg_hr", 0.0),
         workout_data.get("video_id"),
         workout_data.get("audio_source"),
-        workout_data.get("notes", "")
+        workout_data.get("notes", ""),
+        laps_json
     ))
 
     if samples:
@@ -207,13 +218,21 @@ def list_workouts() -> List[Dict[str, Any]]:
     cursor.execute("""
     SELECT id, start_time, end_time, duration_seconds, distance_meters,
            total_strokes, avg_spm, avg_split, avg_watts, max_watts,
-           avg_hr, video_id, audio_source, notes
+           avg_hr, video_id, audio_source, notes, laps
     FROM workouts
     ORDER BY start_time DESC
     """)
     rows = cursor.fetchall()
     conn.close()
-    return [dict(row) for row in rows]
+    result = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["laps"] = json.loads(d.get("laps") or "[]")
+        except Exception:
+            d["laps"] = []
+        result.append(d)
+    return result
 
 def get_workout(workout_id: str) -> Optional[Dict[str, Any]]:
     conn = get_db_connection()
@@ -225,6 +244,11 @@ def get_workout(workout_id: str) -> Optional[Dict[str, Any]]:
         return None
 
     workout = dict(workout_row)
+    try:
+        workout["laps"] = json.loads(workout.get("laps") or "[]")
+    except Exception:
+        workout["laps"] = []
+
     cursor.execute("""
     SELECT elapsed_seconds, stroke_rate, split_seconds, watts, hr, distance
     FROM workout_samples
