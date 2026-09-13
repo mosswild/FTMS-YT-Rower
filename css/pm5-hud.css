@@ -5120,6 +5120,30 @@ body[data-theme="nordic"],
   border: 1px solid rgba(245, 158, 11, 0.4);
 }
 
+.pm5-target-chip.under-target.paused {
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+  border: 1px dashed rgba(239, 68, 68, 0.65);
+  animation: pm5-chip-pause-pulse 1.6s infinite ease-in-out;
+}
+
+@keyframes pm5-chip-pause-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.68;
+    transform: scale(0.97);
+  }
+}
+
+[data-theme="nordic"] .pm5-target-chip.under-target.paused {
+  background: rgba(220, 38, 38, 0.15);
+  color: #dc2626;
+  border: 1px dashed rgba(220, 38, 38, 0.55);
+}
+
 .pm5-target-chip.over-target {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;

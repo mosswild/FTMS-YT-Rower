@@ -40,7 +40,16 @@ export class WorkoutEngine {
     this.countdownSeconds = 0;
     this.lastBeepSecond = null;
     this.triggeredCues = new Set();
-    this.lastTelemetry = { distanceMeters: 0, elapsedSeconds: 0, totalStrokes: 0 };
+    this.lastTelemetry = {
+      distanceMeters: 0,
+      elapsedSeconds: 0,
+      totalStrokes: 0,
+      strokeRate: 0,
+      splitSeconds: 0,
+      powerWatts: 0,
+      heartRate: 0
+    };
+    this.isRowerPaused = false;
 
     // Web Audio Context for beeps
     this.audioCtx = null;
@@ -48,7 +57,7 @@ export class WorkoutEngine {
   }
 
   get isRunning() {
-    return this.status === "running" || this.status === "countdown";
+    return this.status === "running" || this.status === "countdown" || this.status === "paused";
   }
 
   get currentStep() {
@@ -228,6 +237,7 @@ export class WorkoutEngine {
     }
 
     this.updateProgress();
+    this.evaluateCompliance(this.lastTelemetry);
   }
 
   onTelemetry(telemetry) {
@@ -235,8 +245,20 @@ export class WorkoutEngine {
       if (telemetry.distanceMeters !== undefined) this.lastTelemetry.distanceMeters = telemetry.distanceMeters;
       if (telemetry.elapsedSeconds !== undefined) this.lastTelemetry.elapsedSeconds = telemetry.elapsedSeconds;
       if (telemetry.totalStrokes !== undefined) this.lastTelemetry.totalStrokes = telemetry.totalStrokes;
+      if (telemetry.strokeRate !== undefined) this.lastTelemetry.strokeRate = telemetry.strokeRate;
+      if (telemetry.splitSeconds !== undefined) this.lastTelemetry.splitSeconds = telemetry.splitSeconds;
+      if (telemetry.powerWatts !== undefined) this.lastTelemetry.powerWatts = telemetry.powerWatts;
+      if (telemetry.heartRate !== undefined) this.lastTelemetry.heartRate = telemetry.heartRate;
+      if (telemetry.strokeRate !== undefined && telemetry.strokeRate > 0) {
+        this.isRowerPaused = false;
+      }
     }
-    if (this.status !== "running") return;
+    if (this.status !== "running" && this.status !== "paused") return;
+
+    if (this.status === "paused") {
+      this.evaluateCompliance(this.lastTelemetry);
+      return;
+    }
 
     // Update distance
     if (telemetry.distanceMeters !== undefined) {
@@ -319,24 +341,35 @@ export class WorkoutEngine {
       }
     }
 
+    // Continuously evaluate compliance on tick so HUD remains active when stopped/paused
+    this.evaluateCompliance(this.lastTelemetry);
     this.updateProgress();
   }
 
   evaluateCompliance(telemetry) {
     const step = this.currentStep;
-    if (!step || !step.targets) {
+    if (!step || !step.targets || this.status === "idle" || this.status === "completed") {
       this.options.onCompliance({});
       return;
     }
 
     const compliance = {};
     const targets = step.targets;
+    const isStepRest = step.type === "rest";
+    const curTelem = telemetry || this.lastTelemetry || {};
+    const isPaused = this.isRowerPaused || this.status === "paused" || curTelem.strokeRate === 0;
 
     // SPM Compliance
-    if (targets.spm && telemetry.strokeRate !== undefined && telemetry.strokeRate > 0) {
+    if (targets.spm) {
       const [minSpm, maxSpm] = targets.spm;
-      const val = telemetry.strokeRate;
-      if (val >= minSpm && val <= maxSpm) {
+      const val = curTelem.strokeRate !== undefined ? curTelem.strokeRate : 0;
+      if (val === 0) {
+        if (isStepRest && minSpm <= 0) {
+          compliance.spm = { status: "in-target", target: `${minSpm}-${maxSpm}` };
+        } else {
+          compliance.spm = { status: "under-target", target: `${minSpm}-${maxSpm}`, diff: minSpm, isPaused: true };
+        }
+      } else if (val >= minSpm && val <= maxSpm) {
         compliance.spm = { status: "in-target", target: `${minSpm}-${maxSpm}` };
       } else if (val < minSpm) {
         compliance.spm = { status: "under-target", target: `${minSpm}-${maxSpm}`, diff: minSpm - val };
@@ -346,11 +379,17 @@ export class WorkoutEngine {
     }
 
     // Split Compliance (seconds per 500m)
-    if (targets.split_seconds && telemetry.splitSeconds !== undefined && telemetry.splitSeconds > 0) {
+    if (targets.split_seconds) {
       const [minSplit, maxSplit] = targets.split_seconds; // min is fastest (lowest s), max is slowest
-      const val = telemetry.splitSeconds;
+      const val = curTelem.splitSeconds !== undefined ? curTelem.splitSeconds : 0;
       const targetStr = targets.split_formatted ? `${targets.split_formatted[0]} - ${targets.split_formatted[1]}` : "";
-      if (val >= minSplit && val <= maxSplit) {
+      if (val === 0) {
+        if (isStepRest) {
+          compliance.split = { status: "in-target", target: targetStr };
+        } else {
+          compliance.split = { status: "under-target", target: targetStr, isPaused: true };
+        }
+      } else if (val >= minSplit && val <= maxSplit) {
         compliance.split = { status: "in-target", target: targetStr };
       } else if (val > maxSplit) {
         // Slower split than target
@@ -362,28 +401,34 @@ export class WorkoutEngine {
     }
 
     // Watts Compliance
-    if (targets.watts && telemetry.powerWatts !== undefined && telemetry.powerWatts > 0) {
+    if (targets.watts) {
       const [minW, maxW] = targets.watts;
-      const val = telemetry.powerWatts;
-      if (val >= minW && val <= maxW) {
+      const val = curTelem.powerWatts !== undefined ? curTelem.powerWatts : 0;
+      if (val === 0) {
+        if (isStepRest && minW <= 0) {
+          compliance.watts = { status: "in-target", target: `${minW}-${maxW}W` };
+        } else {
+          compliance.watts = { status: "under-target", target: `${minW}-${maxW}W`, diff: minW, isPaused: true };
+        }
+      } else if (val >= minW && val <= maxW) {
         compliance.watts = { status: "in-target", target: `${minW}-${maxW}W` };
       } else if (val < minW) {
-        compliance.watts = { status: "under-target", target: `${minW}-${maxW}W` };
+        compliance.watts = { status: "under-target", target: `${minW}-${maxW}W`, diff: minW - val };
       } else {
-        compliance.watts = { status: "over-target", target: `${minW}-${maxW}W` };
+        compliance.watts = { status: "over-target", target: `${minW}-${maxW}W`, diff: val - maxW };
       }
     }
 
     // Heart Rate Compliance
-    if (targets.hr && telemetry.heartRate !== undefined && telemetry.heartRate > 0) {
+    if (targets.hr && curTelem.heartRate !== undefined && curTelem.heartRate > 0) {
       const [minHr, maxHr] = targets.hr;
-      const val = telemetry.heartRate;
+      const val = curTelem.heartRate;
       if (val >= minHr && val <= maxHr) {
         compliance.hr = { status: "in-target", target: `${minHr}-${maxHr}` };
       } else if (val < minHr) {
-        compliance.hr = { status: "under-target", target: `${minHr}-${maxHr}` };
+        compliance.hr = { status: "under-target", target: `${minHr}-${maxHr}`, diff: minHr - val };
       } else {
-        compliance.hr = { status: "over-target", target: `${minHr}-${maxHr}` };
+        compliance.hr = { status: "over-target", target: `${minHr}-${maxHr}`, diff: val - maxHr };
       }
     }
 
@@ -407,23 +452,24 @@ export class WorkoutEngine {
     } else if (step.exit && step.exit.distance) {
       const dist = step.exit.distance;
       percent = Math.min(100, Math.max(0, (this.stepDistanceMeters / dist) * 100));
-      const remMeters = Math.max(0, Math.ceil(dist - this.stepDistanceMeters));
-      remainingText = `${remMeters}m left`;
+      const remDist = Math.max(0, Math.round(dist - this.stepDistanceMeters));
+      remainingText = `${remDist}m left`;
     } else if (step.exit && step.exit.strokes) {
-      const st = step.exit.strokes;
-      percent = Math.min(100, Math.max(0, (this.stepStrokes / st) * 100));
-      remainingText = `${Math.max(0, st - this.stepStrokes)} strokes left`;
-    } else if (step.exit && step.exit.manual) {
-      remainingText = "Tap Next when ready";
+      const str = step.exit.strokes;
+      percent = Math.min(100, Math.max(0, (this.stepStrokes / str) * 100));
+      const remStr = Math.max(0, str - this.stepStrokes);
+      remainingText = `${remStr} strokes left`;
+    } else {
       percent = 100;
+      remainingText = "Open step";
     }
 
     this.options.onTick({
       stepIndex: this.currentStepIndex,
       totalSteps: this.steps.length,
-      step,
-      percent,
-      remainingText,
+      step: step,
+      percent: percent,
+      remainingText: remainingText,
       stepElapsedSeconds: this.stepElapsedSeconds,
       stepDistanceMeters: this.stepDistanceMeters,
       stepStrokes: this.stepStrokes,
@@ -435,7 +481,11 @@ export class WorkoutEngine {
   }
 
   skipStep(telemetry = null) {
-    this.advanceStep(telemetry);
+    if (this.currentStepIndex < this.steps.length - 1) {
+      this.activateStep(this.currentStepIndex + 1, telemetry);
+    } else {
+      this.completeWorkout();
+    }
   }
 
   advanceStep(telemetry = null) {
@@ -444,7 +494,6 @@ export class WorkoutEngine {
   }
 
   prevStep(telemetry = null) {
-    this.playTransitionChime();
     if (this.currentStepIndex > 0) {
       this.activateStep(this.currentStepIndex - 1, telemetry);
     } else {
@@ -460,6 +509,7 @@ export class WorkoutEngine {
     if (this.status === "running") {
       this.status = "paused";
       this.options.onStatusChange(this.status);
+      this.evaluateCompliance(this.lastTelemetry);
     }
   }
 
@@ -470,6 +520,20 @@ export class WorkoutEngine {
       this.stepStartTime = Date.now() - (this.stepElapsedSeconds * 1000.0);
       this.options.onStatusChange(this.status);
     }
+  }
+
+  onRowerPaused() {
+    this.isRowerPaused = true;
+    this.lastTelemetry.strokeRate = 0;
+    this.lastTelemetry.powerWatts = 0;
+    this.lastTelemetry.splitSeconds = 0;
+    if (this.status === "running" || this.status === "paused") {
+      this.evaluateCompliance(this.lastTelemetry);
+    }
+  }
+
+  onRowerResumed() {
+    this.isRowerPaused = false;
   }
 
   completeWorkout() {

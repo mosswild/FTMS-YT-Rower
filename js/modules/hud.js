@@ -437,11 +437,12 @@ export class PM5Hud {
       return;
     }
     chipEl.style.display = "inline-flex";
-    chipEl.className = `pm5-target-chip ${comp.status}`;
+    chipEl.className = `pm5-target-chip ${comp.status}${comp.isPaused ? " paused" : ""}`;
+    chipEl.title = comp.isPaused ? `Paused — Out of Target (${comp.target})` : `Target: ${comp.target}`;
     if (comp.status === "in-target") {
       chipEl.innerHTML = `● ${comp.target}`;
     } else if (comp.status === "under-target") {
-      chipEl.innerHTML = `▲ ${comp.target}`;
+      chipEl.innerHTML = comp.isPaused ? `⏸ ▲ ${comp.target}` : `▲ ${comp.target}`;
     } else if (comp.status === "over-target") {
       chipEl.innerHTML = `▼ ${comp.target}`;
     }
