@@ -23,6 +23,7 @@ export class VirtualRowerSimulator {
     this.isHrEnabled = options.isHrEnabled || false;
     this.hrDeviceName = options.hrDeviceName || "Polar H10 (Sim)";
     this.manualHr = 135;
+    this.hrIntervalId = null;
 
     this.spm = 20;
     this.targetSpm = 22;
@@ -226,6 +227,21 @@ export class VirtualRowerSimulator {
     if (this.onPhaseChange) {
       this.onPhaseChange("Stopped", 0);
     }
+    // Zero out live rowing metrics when simulation stops
+    this.spm = 0;
+    this.watts = 0;
+    this.splitSeconds = 0;
+    if (this.onData) {
+      const stopPacket = {
+        strokeRate: 0,
+        instantaneousPace: 0,
+        watts: 0
+      };
+      if (!this.isHrEnabled) {
+        stopPacket.heartRate = 0;
+      }
+      this.onData(stopPacket);
+    }
   }
 
   toggleRowing() {
@@ -245,10 +261,44 @@ export class VirtualRowerSimulator {
 
   setHrEnabled(enabled) {
     this.isHrEnabled = !!enabled;
-    if (this.isHrEnabled && (!this.heartRate || this.heartRate < 50)) {
-      this.heartRate = this.manualHr || 135;
+    if (this.isHrEnabled) {
+      if (!this.heartRate || this.heartRate < 50) {
+        this.heartRate = this.manualHr || 135;
+      }
+      this.startHrLoop();
+    } else {
+      this.stopHrLoop();
+      if (this.onData) {
+        this.onData({ heartRate: 0 });
+      }
     }
     return this.isHrEnabled;
+  }
+
+  startHrLoop() {
+    if (this.hrIntervalId) return;
+    // Emit immediate packet
+    if (this.onData) {
+      this.onData({ heartRate: Math.round(this.heartRate) });
+    }
+    this.hrIntervalId = setInterval(() => {
+      if (!this.isHrEnabled) return;
+      // If rowing simulator is not actively running its own 500ms loop, emit independent HR packets with slight natural jitter
+      if (!this.isRunning) {
+        const jitter = (Math.random() - 0.5) * 1.5;
+        const currentHr = Math.round(Math.max(50, Math.min(220, (this.manualHr || 135) + jitter)));
+        if (this.onData) {
+          this.onData({ heartRate: currentHr });
+        }
+      }
+    }, 1000);
+  }
+
+  stopHrLoop() {
+    if (this.hrIntervalId) {
+      clearInterval(this.hrIntervalId);
+      this.hrIntervalId = null;
+    }
   }
 
   toggleHr() {
@@ -258,6 +308,9 @@ export class VirtualRowerSimulator {
   setManualHr(targetBpm) {
     this.manualHr = Math.max(50, Math.min(220, targetBpm));
     this.heartRate = this.manualHr;
+    if (this.isHrEnabled && this.onData) {
+      this.onData({ heartRate: Math.round(this.heartRate) });
+    }
   }
 
   tick() {

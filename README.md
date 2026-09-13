@@ -310,7 +310,16 @@ PYTHONPATH=. .venv/bin/python tests/test_backend.py
 ## 🗺️ Development Roadmap
 
 ### Upcoming
-- [ ] **Structured & Built-In Workouts:** Configurable interval workout programs specifying rest periods, baseline rowing periods, and high-intensity sprint segments. Features live Cockpit HUD segment tracking with countdown timers, target SPM / Heart Rate zones, and visual target feedback. Import/export support for JSON and YAML formats (see [YAML Schema Guide](docs/WORKOUT_SCHEMA.md)).
+- [x] **Structured & Built-In Programs:** Configurable interval workout programs specifying rest periods, baseline rowing periods, and high-intensity sprint segments. Features live Cockpit HUD segment tracking with countdown timers, target SPM / Heart Rate zones, and visual target feedback. Import/export support for JSON and YAML formats (see [YAML Schema Guide](docs/WORKOUT_SCHEMA.md)).
+  - [x] The last fix to stop the workout when switching workouts worked.
+  - [x] Adopted "Programs" for the planned structured routines, "Intervals" for segment steps, and "Sessions" for recorded history. Renamed "Workouts" tab to "Programs" and Cockpit dropdown to "Programs ▾".
+  - [x] When the workout bar is visible, HUD density automatically switches to compact mode when Auto/Adaptive is set, and cleanly reverts back when the workout bar is hidden or the program ends.
+  - [x] **Cyberpunk Theme Fix:** Standardized Cyberpunk metric cell padding, font line-height, and ECG waveform height so metric cell dimensions match the other three themes.
+  - [x] **Workout Bar Theme:** Increased workout bar transparency on Modern Slate, Cyberpunk, and Retro Concept2 PM5 themes so scenic video remains visible behind the interval ribbon.
+  - [x] **Target Indicators for Workout:** Positioned target compliance chips at a consistent bottom offset across all metric cells for a unified horizontal baseline.
+- [x] **Simulator Fixes:**
+  - [x] Hitting "Stop Simulator" now immediately zeroes out live metric displays (SPM, Split, Watts).
+  - [x] Decoupled simulated Polar H10 Heart Rate monitor from the virtual rowing machine with an independent simulation loop so both can be enabled or disabled on their own.
 - [ ] **Live GitHub Pages Demo:** Client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and simulator directly in the browser with bundled lightweight sample media.
 
 ### Recent Milestones

@@ -184,12 +184,17 @@ export class SessionTracker {
 
   reset() {
     if (this.timerInterval) clearInterval(this.timerInterval);
+    this.timerInterval = null;
     this.state = "idle";
     this.startTime = null;
     this.endTime = null;
     this.elapsedSeconds = 0;
     this.samples = [];
-    this.currentMetrics = { spm: 0, split: 0, watts: 0, distance: 0, strokes: 0, hr: 0 };
+    this.baseDistance = this.currentMetrics.distance || 0;
+    this.baseStrokes = this.currentMetrics.strokes || 0;
+    this.currentMetrics.spm = 0;
+    this.currentMetrics.split = 0;
+    this.currentMetrics.watts = 0;
     if (this.onStateChange) this.onStateChange(this.state);
   }
 }

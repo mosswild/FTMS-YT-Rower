@@ -143,6 +143,7 @@ export class WorkoutEngine {
     this.options.onStatusChange(this.status, { workout: workoutData });
     if (this.steps.length > 0) {
       this.options.onStepChange(this.steps[0], 0, this.steps.length);
+      this.options.onCompliance({});
       this.options.onTick({
         stepIndex: 0,
         totalSteps: this.steps.length,

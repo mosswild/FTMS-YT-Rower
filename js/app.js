@@ -2860,7 +2860,7 @@ const btnCloseSimPanel = document.getElementById("btn-close-sim-panel");
 const selectSimMimic = document.getElementById("select-sim-mimic");
 
 function syncSimHrButtons() {
-  const isEnabled = simulator.isHrEnabled && simulator.isRunning;
+  const isEnabled = simulator.isHrEnabled;
   if (btnSimEnableHr) {
     if (isEnabled) {
       btnSimEnableHr.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; vertical-align: -1px;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>HR: Active (${simulator.hrDeviceName || "Polar H10"})`;
@@ -2931,10 +2931,9 @@ if (simBtn) {
         relayDeviceName = null;
       }
       updateRowerStatus(false, "Simulator Stopped");
-      if (simulator.isHrEnabled) {
-        handleTelemetryPacket({ heartRate: 0 });
-        updateHrStatus(false, "Simulator Stopped");
-      }
+      // Zero out live rowing metrics when simulation stops
+      handleTelemetryPacket({ strokeRate: 0, instantaneousPace: 0, watts: 0 });
+      pm5Hud.updateMetrics({ strokeRate: 0, instantaneousPace: 0, watts: 0 });
       syncSimHrButtons();
 
       if (sessionTracker.state === "active") {
@@ -2986,7 +2985,7 @@ if (simBtn) {
 
 if (btnSimEnableHr) {
   btnSimEnableHr.addEventListener("click", () => {
-    if (simulator.isHrEnabled && simulator.isRunning) {
+    if (simulator.isHrEnabled) {
       simulator.setHrEnabled(false);
       handleTelemetryPacket({ heartRate: 0 });
       updateHrStatus(false, "HR Disconnected");
@@ -2994,13 +2993,9 @@ if (btnSimEnableHr) {
       showHudToast("Simulated Heart Rate Monitor disconnected");
     } else {
       simulator.setHrEnabled(true);
-      if (!simulator.isRunning) {
-        if (simBtn) simBtn.click();
-      } else {
-        updateHrStatus(true, simulator.hrDeviceName || "Polar H10 (Sim)", "sim", simulator.hrDeviceName || "Polar H10 (Sim)");
-        syncSimHrButtons();
-        showHudToast(`Simulated Heart Rate Monitor connected (${simulator.hrDeviceName || "Polar H10"})`);
-      }
+      updateHrStatus(true, simulator.hrDeviceName || "Polar H10 (Sim)", "sim", simulator.hrDeviceName || "Polar H10 (Sim)");
+      syncSimHrButtons();
+      showHudToast(`Simulated Heart Rate Monitor connected (${simulator.hrDeviceName || "Polar H10"})`);
     }
   });
 }
@@ -3059,9 +3054,6 @@ if (simModeBtn) {
         }
         simulator.applyWorkoutStepTarget();
       }
-      if (simulator.isRunning && !workoutEngine.isRunning && workoutEngine.workout) {
-        startActiveWorkout();
-      }
     } else if (simulator.mode === "workout") {
       // 2. Follow Workout -> Manual Slider
       simulator.setMode("manual");
@@ -3083,9 +3075,6 @@ if (selectSimWorkout) {
     const workoutId = selectSimWorkout.value;
     if (!workoutId) return;
     await loadWorkoutInCockpit(workoutId);
-    if (simulator.isRunning) {
-      startActiveWorkout();
-    }
   });
 }
 
@@ -3937,9 +3926,39 @@ async function renderHudWorkoutDropdown() {
     <div class="item-title">Free Row</div>
     <div class="item-meta">Standard open row without interval targets</div>
   `;
-  freeRowBtn.addEventListener("click", (e) => {
+  freeRowBtn.addEventListener("click", async (e) => {
     e.stopPropagation();
-    workoutEngine.stop();
+    const hadActiveSession = sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused");
+    if (hadActiveSession) {
+      await sessionTracker.finish();
+      sessionTracker.reset();
+      pm5Hud.showNotice("Previous session saved to History.", 3000);
+    }
+    if (workoutEngine && workoutEngine.isRunning) {
+      workoutEngine.stop();
+    }
+    if (simulator && simulator.isRunning) {
+      simulator.stop();
+      if (simBtn) {
+        simBtn.textContent = "Start Simulator";
+        simBtn.className = "btn btn-primary btn-sm";
+      }
+      if (btnOpenSimPanel) btnOpenSimPanel.classList.remove("active");
+      updateRowerStatus(false, "Simulator Stopped");
+      applySimulatorConnectionStatus();
+    }
+    if (videoEl && !videoEl.paused) {
+      videoEl.pause();
+    }
+    if (audioEngine) audioEngine.pause();
+    if (rateController) rateController.setWorkoutLive(false);
+
+    const toggleWorkoutBtn = document.getElementById("btn-toggle-workout");
+    if (toggleWorkoutBtn) {
+      toggleWorkoutBtn.textContent = "Start Workout";
+      toggleWorkoutBtn.className = "btn btn-success";
+    }
+
     workoutEngine.workout = null;
     pm5Hud.setWorkoutMode(null);
     pm5Hud.showWorkoutBar(false);
@@ -3995,14 +4014,14 @@ async function renderHudWorkoutDropdown() {
     container.appendChild(btn);
   });
 
-  // 4. "Browse All Workouts" link
+  // 4. "Browse All Programs" link
   const browseBtn = document.createElement("button");
   browseBtn.type = "button";
   browseBtn.className = "hud-dropdown-item";
   browseBtn.style.borderTop = "1px solid var(--surface-border, rgba(255,255,255,0.1))";
   browseBtn.style.marginTop = "0.35rem";
   browseBtn.innerHTML = `
-    <div class="item-title" style="color: var(--accent-blue);">Browse All Workouts...</div>
+    <div class="item-title" style="color: var(--accent-blue);">Browse All Programs...</div>
   `;
   browseBtn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -4146,12 +4165,56 @@ document.querySelectorAll(".workout-filter-btn").forEach(btn => {
 // Load Workout in Cockpit (stages workout without auto-starting)
 async function loadWorkoutInCockpit(workoutId) {
   try {
+    // 1. Cleanly finish and persist previous active session if one was running
+    const hadActiveSession = sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused");
+    if (hadActiveSession) {
+      await sessionTracker.finish();
+      sessionTracker.reset();
+      pm5Hud.showNotice("Previous session saved to History.", 3000);
+    }
+
+    // 2. Stop running workoutEngine
+    if (workoutEngine && workoutEngine.isRunning) {
+      workoutEngine.stop();
+    }
+
+    // 3. Stop running simulator and restore controls
+    if (simulator && simulator.isRunning) {
+      simulator.stop();
+      if (simBtn) {
+        simBtn.textContent = "Start Simulator";
+        simBtn.className = "btn btn-primary btn-sm";
+      }
+      if (btnOpenSimPanel) btnOpenSimPanel.classList.remove("active");
+      updateRowerStatus(false, "Simulator Stopped");
+      applySimulatorConnectionStatus();
+    }
+
+    // 4. Pause media and audio
+    if (videoEl && !videoEl.paused) {
+      videoEl.pause();
+    }
+    if (audioEngine) audioEngine.pause();
+    if (rateController) rateController.setWorkoutLive(false);
+
+    // 5. Ensure Cockpit Start button is reset to ready state
+    const toggleWorkoutBtn = document.getElementById("btn-toggle-workout");
+    if (toggleWorkoutBtn) {
+      toggleWorkoutBtn.textContent = "Start Workout";
+      toggleWorkoutBtn.className = "btn btn-success";
+    }
+
+    // 6. Reset PM5 HUD active flags and clear live compliance chips
+    pm5Hud.setActiveSession(false);
+    pm5Hud.clearWorkoutCompliance();
+
     const res = await fetch(`/api/workouts/${workoutId}`);
     if (!res.ok) throw new Error("Failed to fetch workout details");
     const workoutData = await res.json();
 
     workoutEngine.loadWorkout(workoutData);
     pm5Hud.setWorkoutMode(workoutData.title);
+    pm5Hud.clearWorkoutCompliance();
     if (selectSimWorkout) {
       selectSimWorkout.value = workoutId;
     }

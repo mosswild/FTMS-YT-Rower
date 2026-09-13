@@ -47,6 +47,8 @@ export class PM5Hud {
     this.rawDistance = 0;
     this.rawElapsedSeconds = 0;
     this.toastTimeout = null;
+    this.userScale = "auto";
+    this.isWorkoutBarVisible = false;
 
     this.setupInactivityWatchdog();
     this.setupFullscreen();
@@ -325,15 +327,23 @@ export class PM5Hud {
 
   setScale(scale) {
     if (!this.container) return;
+    this.userScale = scale || "auto";
+    this.applyEffectiveScale();
+  }
+
+  applyEffectiveScale() {
+    if (!this.container) return;
     this.container.classList.remove("hud-scale-compact", "hud-scale-large", "hud-scale-standard");
-    if (scale === "compact") {
+    if (this.userScale === "compact") {
       this.container.classList.add("hud-scale-compact");
-    } else if (scale === "large") {
+    } else if (this.userScale === "large") {
       this.container.classList.add("hud-scale-large");
-    } else if (scale === "standard") {
+    } else if (this.userScale === "standard") {
       this.container.classList.add("hud-scale-standard");
+    } else if (this.userScale === "auto" && this.isWorkoutBarVisible) {
+      // When Auto/Adaptive is active and interval ribbon is visible, visually condense to compact mode
+      this.container.classList.add("hud-scale-compact");
     }
-    // "auto" removes custom scale classes and lets pure responsive CSS handle it
   }
 
   isMobileDevice() {
@@ -362,14 +372,16 @@ export class PM5Hud {
 
   setWorkoutMode(title) {
     if (this.elements.workoutBadge) {
-      this.elements.workoutBadge.textContent = title ? `Workout: ${title}` : "Workout: Free Row";
+      this.elements.workoutBadge.textContent = title ? `Program: ${title}` : "Program: Free Row";
     }
   }
 
   showWorkoutBar(show = true) {
+    this.isWorkoutBarVisible = !!show;
     if (this.elements.workoutBar) {
       this.elements.workoutBar.style.display = show ? "block" : "none";
     }
+    this.applyEffectiveScale();
     if (!show) {
       this.clearWorkoutCompliance();
     }
@@ -385,7 +397,7 @@ export class PM5Hud {
     }
 
     if (this.elements.workoutStepTitle) {
-      this.elements.workoutStepTitle.textContent = step.title || `Step ${index + 1}/${total}`;
+      this.elements.workoutStepTitle.textContent = step.title || `Interval ${index + 1}/${total}`;
     }
 
     if (this.elements.workoutTargetSummary) {

@@ -759,7 +759,7 @@ body.in-fullscreen .app-header {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
-  padding: 0.95rem 1.15rem;
+  padding: 0.75rem 1.05rem 1.85rem;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
@@ -2820,7 +2820,7 @@ body.in-fullscreen .app-header {
 .scenic-viewport-container.hud-scale-compact .pm5-cell {
   flex: 1 1 0 !important;
   min-width: 0 !important;
-  padding: 0.3rem 0.45rem !important;
+  padding: 0.3rem 0.45rem 1.45rem !important;
   border-radius: 6px !important;
 }
 
@@ -3041,10 +3041,10 @@ body.in-fullscreen .app-header {
   background: linear-gradient(135deg, rgba(10, 16, 38, 0.65) 0%, rgba(6, 10, 26, 0.5) 100%) !important;
   backdrop-filter: blur(24px) saturate(200%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
-  border: 1.5px solid rgba(0, 240, 255, 0.45) !important;
+  border: 1px solid rgba(0, 240, 255, 0.45) !important;
   border-radius: 12px !important;
   clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
-  padding: 0.95rem 1.15rem !important;
+  padding: 0.75rem 1.05rem 1.85rem !important;
   box-shadow: 0 0 18px rgba(0, 240, 255, 0.16), 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(0, 240, 255, 0.35) !important;
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease !important;
 }
@@ -3084,8 +3084,10 @@ body.in-fullscreen .app-header {
 /* Cyberpunk Typography: Bold Sci-Fi Orbitron */
 [data-theme="cyberpunk"] .pm5-value {
   font-family: 'Orbitron', monospace, sans-serif !important;
+  font-size: 2.1rem !important;
+  line-height: 1 !important;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   color: #ffffff;
   text-shadow: 0 0 10px rgba(0, 240, 255, 0.8), 0 0 22px rgba(0, 240, 255, 0.4);
 }
@@ -3148,9 +3150,11 @@ body.in-fullscreen .app-header {
 [data-theme="cyberpunk"] .cyber-ecg-container {
   display: block;
   width: 100%;
-  height: 20px;
-  margin-top: 5px;
+  height: 10px;
+  margin-top: 2px;
+  margin-bottom: 2px;
   overflow: hidden;
+  opacity: 0.7;
 }
 
 [data-theme="cyberpunk"] .cyber-ecg-svg {
@@ -4923,14 +4927,14 @@ body[data-theme="nordic"],
 /* Sleek Docked Workout Interval Ribbon above PM5 Metrics Grid */
 .hud-workout-bar {
   width: 100%;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   padding: 0.35rem 0.75rem 0.4rem;
   margin-bottom: 0.5rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   pointer-events: auto;
   position: relative;
   z-index: 20;
@@ -5096,16 +5100,29 @@ body[data-theme="nordic"],
 
 /* Compliance Target Chips in PM5 Cells */
 .pm5-target-chip {
-  margin-top: 0.3rem;
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0;
   font-family: var(--font-mono, monospace);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  padding: 0.15rem 0.45rem;
+  padding: 0.12rem 0.45rem;
   border-radius: 4px;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 5;
   transition: all 0.2s ease;
+}
+
+.scenic-viewport-container.hud-scale-compact .pm5-target-chip {
+  bottom: 3px !important;
+  font-size: 0.58rem !important;
+  padding: 0.05rem 0.3rem !important;
 }
 
 .pm5-target-chip.in-target {
@@ -5206,10 +5223,10 @@ body[data-theme="nordic"],
 
 /* 2. Neon Cyberpunk Theme */
 [data-theme="cyberpunk"] .hud-workout-bar {
-  background: linear-gradient(135deg, rgba(10, 16, 38, 0.75) 0%, rgba(6, 10, 26, 0.6) 100%) !important;
-  backdrop-filter: blur(24px) saturate(200%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
-  border: 1.5px solid rgba(0, 240, 255, 0.45) !important;
+  background: linear-gradient(135deg, rgba(10, 16, 38, 0.42) 0%, rgba(6, 10, 26, 0.32) 100%) !important;
+  backdrop-filter: blur(16px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(200%) !important;
+  border: 1px solid rgba(0, 240, 255, 0.45) !important;
   border-radius: 8px !important;
   clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px) !important;
   box-shadow: 0 0 16px rgba(0, 240, 255, 0.2), inset 0 1px 0 rgba(0, 240, 255, 0.35) !important;
@@ -5260,12 +5277,12 @@ body[data-theme="nordic"],
 
 /* 3. Retro Concept2 PM5 Theme */
 [data-theme="retro-pm5"] .hud-workout-bar {
-  background: rgba(20, 31, 22, 0.85) !important;
-  backdrop-filter: blur(18px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(140%) !important;
-  border: 2px solid rgba(56, 75, 59, 0.85) !important;
+  background: rgba(20, 31, 22, 0.55) !important;
+  backdrop-filter: blur(14px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
+  border: 1.5px solid rgba(56, 75, 59, 0.75) !important;
   border-radius: 6px !important;
-  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.6) !important;
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.5) !important;
   font-family: var(--font-mono) !important;
 }
 
