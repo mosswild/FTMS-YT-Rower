@@ -4098,8 +4098,8 @@ function renderWorkoutsGrid() {
         </div>
       </div>
       <div class="workout-card-actions">
-        <button class="btn btn-primary btn-sm btn-start-workout" data-id="${w.id}">
-          Start in Cockpit ▶
+        <button class="btn btn-primary btn-sm btn-load-workout" data-id="${w.id}">
+          Load in Cockpit
         </button>
         <div style="display: flex; gap: 0.35rem;">
           <button class="btn btn-secondary btn-sm btn-preview-workout" data-id="${w.id}" title="Preview interval details">
@@ -4118,7 +4118,7 @@ function renderWorkoutsGrid() {
     `;
 
     // Event listeners
-    card.querySelector(".btn-start-workout").addEventListener("click", () => startWorkoutInCockpit(w.id));
+    card.querySelector(".btn-load-workout").addEventListener("click", () => loadWorkoutInCockpit(w.id));
     card.querySelector(".btn-preview-workout").addEventListener("click", () => openWorkoutPreviewModal(w.id));
     card.querySelector(".btn-download-workout-yaml").addEventListener("click", () => {
       window.location.href = `/api/workouts/${w.id}/yaml`;
@@ -4364,7 +4364,7 @@ if (btnStartPreviewWorkout) {
     if (previewWorkoutData) {
       const id = previewWorkoutData.id;
       closeWorkoutPreviewModal();
-      startWorkoutInCockpit(id);
+      loadWorkoutInCockpit(id);
     }
   });
 }
