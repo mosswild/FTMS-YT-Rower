@@ -318,6 +318,8 @@ PYTHONPATH=. .venv/bin/python tests/test_backend.py
   - [x] **Workout Bar Theme:** Increased workout bar transparency on Modern Slate, Cyberpunk, and Retro Concept2 PM5 themes so scenic video remains visible behind the interval ribbon.
   - [x] **Target Indicators for Workout:** Positioned target compliance chips at a consistent bottom offset across all metric cells for a unified horizontal baseline.
   - [x] **Program Session Tracking & Paused Metrics:** When a program is paused, live pulling metrics (SPM, Watts, Split, HR) continue to stream and update in real time while Elapsed Time and Distance hold frozen with an amber `PAUSED` indicator badge.
+  - [ ] Distance and elapsed time should be set to zero after the 5 second countdown leading up to the first interval of the program. Right now it just aggregates distance and elapsed time during this countdown. 
+  - [ ] **Interval-by-Interval Export (Garmin & Strava):** Record structured program interval transitions as discrete lap markers in session history and export files (`.tcx` / `.fit`) to enable automatic interval and work/rest breakdown in Garmin Connect and Strava Workout Analysis. 
 - [x] **Simulator Fixes:**
   - [x] Hitting "Stop Simulator" now immediately zeroes out live metric displays (SPM, Split, Watts).
   - [x] Decoupled simulated Polar H10 Heart Rate monitor from the virtual rowing machine with an independent simulation loop so both can be enabled or disabled on their own.
