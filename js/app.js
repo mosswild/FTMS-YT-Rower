@@ -313,12 +313,25 @@ if (cellTime) {
   });
 }
 
+function syncWorkoutPauseButton() {
+  const btn = document.getElementById("btn-workout-pause") || document.getElementById("btn-workout-stop");
+  if (!btn) return;
+  if (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.status === "paused") {
+    btn.textContent = "▶";
+    btn.title = "Resume Program";
+  } else {
+    btn.textContent = "⏸";
+    btn.title = "Pause Program";
+  }
+}
+
 // Initialize Workout Engine
 const workoutEngine = new WorkoutEngine({
   onStatusChange: (status, meta) => {
     if (typeof simulator !== "undefined" && simulator) {
       simulator.onWorkoutStatusChange(status, meta);
     }
+    syncWorkoutPauseButton();
     if (status === "ready") {
       const title = meta && meta.workout ? meta.workout.title : (workoutEngine.workout ? workoutEngine.workout.title : "Workout");
       pm5Hud.setWorkoutMode(title);
@@ -329,6 +342,9 @@ const workoutEngine = new WorkoutEngine({
       pm5Hud.showWorkoutBar(true);
     } else if (status === "running") {
       pm5Hud.showWorkoutBar(true);
+    } else if (status === "paused") {
+      pm5Hud.showWorkoutBar(true);
+      pm5Hud.showNotice("Program Paused", 2500);
     } else if (status === "idle") {
       pm5Hud.showWorkoutBar(false);
       pm5Hud.setWorkoutMode(null);
@@ -3840,7 +3856,7 @@ let previewWorkoutData = null;
 // Cockpit Workout Bar Transport & Visibility Controls
 const btnWorkoutPrev = document.getElementById("btn-workout-prev");
 const btnWorkoutSkip = document.getElementById("btn-workout-skip");
-const btnWorkoutStop = document.getElementById("btn-workout-stop");
+const btnWorkoutPause = document.getElementById("btn-workout-pause") || document.getElementById("btn-workout-stop");
 const btnWorkoutToggle = document.getElementById("btn-workout-toggle");
 
 function getActiveWorkoutTelemetrySnapshot() {
@@ -3865,36 +3881,78 @@ if (btnWorkoutSkip) {
   });
 }
 
-if (btnWorkoutStop) {
-  btnWorkoutStop.addEventListener("click", (e) => {
+if (btnWorkoutPause) {
+  btnWorkoutPause.addEventListener("click", (e) => {
     e.stopPropagation();
-    if (workoutEngine) {
-      workoutEngine.stop();
-      workoutEngine.workout = null;
+    if (!workoutEngine) return;
+    if (workoutEngine.status === "running") {
+      workoutEngine.pause();
+      if (sessionTracker && sessionTracker.state === "active") {
+        sessionTracker.pause();
+      }
+      if (videoEl && !videoEl.paused) {
+        videoEl.pause();
+        audioEngine.pause();
+      }
+      syncWorkoutPauseButton();
+      pm5Hud.showNotice("Program Paused", 2500);
+    } else if (workoutEngine.status === "paused") {
+      workoutEngine.resume();
+      if (sessionTracker && sessionTracker.state === "paused") {
+        sessionTracker.resume();
+      }
+      if (videoEl && videoEl.paused) {
+        rateController.resumeVideo();
+        audioEngine.play();
+      }
+      syncWorkoutPauseButton();
+      pm5Hud.showNotice("Program Resumed", 2000);
     }
-    if (typeof rateController !== "undefined" && rateController) {
-      rateController.setWorkoutLive(false);
-    }
-    pm5Hud.setWorkoutMode(null);
-    pm5Hud.showWorkoutBar(false);
-    pm5Hud.clearWorkoutCompliance();
-    pm5Hud.showNotice("Program ended — Free Row active");
   });
 }
+
+function endWorkoutAndReset() {
+  if (workoutEngine) {
+    workoutEngine.stop();
+    workoutEngine.workout = null;
+  }
+  if (typeof rateController !== "undefined" && rateController) {
+    rateController.setWorkoutLive(false);
+  }
+  if (typeof simulator !== "undefined" && simulator && simulator.isRunning) {
+    simulator.stop();
+    if (simBtn) {
+      simBtn.textContent = "Start Simulator";
+      simBtn.className = "btn btn-primary btn-sm";
+    }
+    if (btnOpenSimPanel) {
+      btnOpenSimPanel.classList.remove("active");
+      btnOpenSimPanel.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Simulator';
+    }
+    updateRowerStatus(false, "Simulator Stopped");
+    applySimulatorConnectionStatus();
+    handleTelemetryPacket({ strokeRate: 0, instantaneousPace: 0, watts: 0 });
+  }
+  if (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) {
+    sessionTracker.finish();
+  }
+  if (videoEl && !videoEl.paused) {
+    videoEl.pause();
+  }
+  if (audioEngine) {
+    audioEngine.pause();
+  }
+  syncWorkoutPauseButton();
+  pm5Hud.setWorkoutMode(null);
+  pm5Hud.showWorkoutBar(false);
+  pm5Hud.clearWorkoutCompliance();
+  pm5Hud.showNotice("Program ended — Free Row active");
+}
+
 if (btnWorkoutToggle) {
   btnWorkoutToggle.addEventListener("click", (e) => {
     e.stopPropagation();
-    if (workoutEngine) {
-      workoutEngine.stop();
-      workoutEngine.workout = null;
-    }
-    if (typeof rateController !== "undefined" && rateController) {
-      rateController.setWorkoutLive(false);
-    }
-    pm5Hud.setWorkoutMode(null);
-    pm5Hud.showWorkoutBar(false);
-    pm5Hud.clearWorkoutCompliance();
-    pm5Hud.showNotice("Program ended — Free Row active");
+    endWorkoutAndReset();
   });
 }
 

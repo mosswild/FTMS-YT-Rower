@@ -531,6 +531,10 @@ export class WorkoutEngine {
       remainingText = "Open step";
     }
 
+    if (this.status === "paused") {
+      remainingText = `[PAUSED] ${remainingText}`;
+    }
+
     this.options.onTick({
       stepIndex: this.currentStepIndex,
       totalSteps: this.steps.length,
@@ -577,6 +581,7 @@ export class WorkoutEngine {
       this.status = "paused";
       this.options.onStatusChange(this.status);
       this.evaluateCompliance(this.lastTelemetry);
+      this.updateProgress();
     }
   }
 
@@ -586,6 +591,7 @@ export class WorkoutEngine {
       // Adjust start time to account for pause duration
       this.stepStartTime = Date.now() - (this.stepElapsedSeconds * 1000.0);
       this.options.onStatusChange(this.status);
+      this.updateProgress();
     }
   }
 
