@@ -3364,6 +3364,7 @@ function closeHudDropdowns() {
   const trackBtn = document.getElementById("btn-hud-track-picker");
   const audioBtn = document.getElementById("btn-hud-audio-picker");
   const speedMenu = document.getElementById("hud-speed-dropdown-menu");
+  const speedBtn = document.getElementById("hud-speed-badge");
   const workoutMenu = document.getElementById("hud-workout-dropdown-menu");
   const workoutBtn = document.getElementById("btn-hud-workout-picker");
 
@@ -3671,12 +3672,22 @@ if (audioVolumeSlider) {
   });
 }
 
+// In-Cockpit Workout Dropdown Picker Elements
+const btnHudWorkoutPicker = document.getElementById("btn-hud-workout-picker");
+const hudWorkoutDropdownMenu = document.getElementById("hud-workout-dropdown-menu");
+
 // Keep dropdown open when interacting inside it
 if (hudTrackDropdownMenu) {
   hudTrackDropdownMenu.addEventListener("click", (e) => e.stopPropagation());
 }
 if (hudAudioDropdownMenu) {
   hudAudioDropdownMenu.addEventListener("click", (e) => e.stopPropagation());
+}
+if (hudSpeedDropdownMenu) {
+  hudSpeedDropdownMenu.addEventListener("click", (e) => e.stopPropagation());
+}
+if (hudWorkoutDropdownMenu) {
+  hudWorkoutDropdownMenu.addEventListener("click", (e) => e.stopPropagation());
 }
 
 // Close dropdowns on outside click
@@ -3732,20 +3743,33 @@ let cachedWorkouts = [];
 let activeWorkoutCategory = "all";
 let previewWorkoutData = null;
 
-// Cockpit Workout Bar Transport Controls
+// Cockpit Workout Bar Transport & Visibility Controls
 const btnWorkoutPrev = document.getElementById("btn-workout-prev");
 const btnWorkoutSkip = document.getElementById("btn-workout-skip");
 const btnWorkoutStop = document.getElementById("btn-workout-stop");
+const btnWorkoutToggle = document.getElementById("btn-workout-toggle");
+
 if (btnWorkoutPrev) btnWorkoutPrev.addEventListener("click", () => workoutEngine.prevStep());
 if (btnWorkoutSkip) btnWorkoutSkip.addEventListener("click", () => workoutEngine.nextStep());
 if (btnWorkoutStop) btnWorkoutStop.addEventListener("click", () => {
   workoutEngine.stop();
-  pm5Hud.showNotice("Workout stopped");
+  workoutEngine.workout = null;
+  pm5Hud.setWorkoutMode(null);
+  pm5Hud.showWorkoutBar(false);
+  pm5Hud.clearWorkoutCompliance();
+  pm5Hud.showNotice("Workout stopped — Free Row active");
 });
+if (btnWorkoutToggle) {
+  btnWorkoutToggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const bar = document.getElementById("hud-workout-bar");
+    if (bar) {
+      bar.style.display = "none";
+      pm5Hud.showNotice("Workout ribbon hidden. In-cell target chips active.", 2500);
+    }
+  });
+}
 
-// In-Cockpit Workout Dropdown Picker
-const btnHudWorkoutPicker = document.getElementById("btn-hud-workout-picker");
-const hudWorkoutDropdownMenu = document.getElementById("hud-workout-dropdown-menu");
 if (btnHudWorkoutPicker && hudWorkoutDropdownMenu) {
   btnHudWorkoutPicker.addEventListener("click", async (e) => {
     e.stopPropagation();
@@ -3769,12 +3793,14 @@ async function renderHudWorkoutDropdown() {
       const res = await fetch("/api/workouts");
       const data = await res.json();
       cachedWorkouts = data.workouts || [];
-    } catch (e) {}
+    } catch (e) {
+      console.error("[Workouts] Failed to load workouts in dropdown:", e);
+    }
   }
 
   container.innerHTML = "";
 
-  // 1. "Free Row" option (stops any active workout)
+  // 1. "Free Row" option (default state, stops any active workout)
   const isFreeRow = !workoutEngine.workout || !workoutEngine.isRunning;
   const freeRowBtn = document.createElement("button");
   freeRowBtn.type = "button";
@@ -3786,10 +3812,36 @@ async function renderHudWorkoutDropdown() {
   freeRowBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     workoutEngine.stop();
+    workoutEngine.workout = null;
     pm5Hud.setWorkoutMode(null);
+    pm5Hud.showWorkoutBar(false);
+    pm5Hud.clearWorkoutCompliance();
     closeHudDropdowns();
+    pm5Hud.showNotice("Free Row Mode (No Target Intervals)");
   });
   container.appendChild(freeRowBtn);
+
+  // 1b. If an active workout is in progress, offer toggle for ribbon visibility
+  if (!isFreeRow) {
+    const workoutBar = document.getElementById("hud-workout-bar");
+    const isVisible = workoutBar && workoutBar.style.display !== "none";
+    const toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "hud-dropdown-item";
+    toggleBtn.innerHTML = `
+      <div class="item-title">${isVisible ? "Hide Workout Ribbon" : "Show Workout Ribbon"}</div>
+      <div class="item-meta">${isVisible ? "Use in-cell target chips only" : "Display interval timer & progress"}</div>
+    `;
+    toggleBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (workoutBar) {
+        workoutBar.style.display = isVisible ? "none" : "block";
+        pm5Hud.showNotice(isVisible ? "Workout ribbon hidden (in-cell chips active)" : "Workout ribbon visible", 2000);
+      }
+      closeHudDropdowns();
+    });
+    container.appendChild(toggleBtn);
+  }
 
   // 2. Divider
   const div = document.createElement("div");
@@ -4236,6 +4288,8 @@ async function initApp() {
     await loadLibraryUI();
     await loadTracksUI();
     await loadWorkoutsUI();
+    pm5Hud.setWorkoutMode(null);
+    pm5Hud.showWorkoutBar(false);
 
     // If there is a configured track, or a downloaded video, load it into cockpit
     if (cachedTracks && cachedTracks.length > 0) {

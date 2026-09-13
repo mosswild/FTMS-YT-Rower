@@ -452,6 +452,7 @@ export class WorkoutEngine {
   stop() {
     clearInterval(this.tickInterval);
     this.status = "idle";
+    this.workout = null;
     this.currentStepIndex = -1;
     this.stepElapsedSeconds = 0;
     this.stepDistanceMeters = 0;
