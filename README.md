@@ -328,6 +328,7 @@ PYTHONPATH=. .venv/bin/python tests/test_backend.py
   - [x] Fixed Nordic Minimalist and Cyberpunk cell transparency so all 6 metric cards remain uniformly translucent on mobile and small screens.
   - [x] Responsive navigation bar padding and font scaling across all themes prevents the header from overflowing or running past the screen edge on narrow viewports.
   - [x] Scaled target compliance chips and badges in the 2x3 mobile grid to guarantee they fit within metric cells without obscuring numeric readouts.
+- [x] **Cadence Audio Volume Modulation Dynamic Range Fix:** Rebalanced the volume modulation curve in `AudioEngine` so dynamic swells and dips are clearly audible across the full rowing spectrum. Centered nominal baseline (20 SPM) at 70% scale, allowing sprints (30–38 SPM) to swell up to 100% (+3.1 dB), recovery paddling (14 SPM) to dip down to ~44% (-4.0 dB), and resting / stopped (0 SPM) to drop down to a quiet 20% ambient floor (-10.9 dB), expanding perceptible dynamic range from ~1.2 dB up to ~14 dB without digital clipping.
 - [ ] **Live GitHub Pages Demo:** Client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and simulator directly in the browser with bundled lightweight sample media.
 
 ### Recent Milestones

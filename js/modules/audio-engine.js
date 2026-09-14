@@ -338,6 +338,9 @@ export class AudioEngine {
       this.baselineSpm = baseline;
       if (this.cadenceVolumeModulation && !this.isAmbient) {
         this.targetCadenceScale = this.calculateCadenceVolumeScale(this.lastCadenceSpm);
+        if (this.isPlaying) {
+          this.startVolumeRamping();
+        }
       }
     }
   }
@@ -357,20 +360,29 @@ export class AudioEngine {
 
   calculateCadenceVolumeScale(spm) {
     const sens = this.volumeSensitivity !== undefined ? this.volumeSensitivity : 1.0;
+    const baselineNominalScale = 0.70;
+    const minActiveScale = 0.40;
+    const restScale = 0.20;
+
     if (spm <= 0) {
-      // Resting / auto-paused volume: baseline drop scaled by sensitivity
-      return Math.max(0.05, 1.0 - 0.45 * sens);
+      // Resting / auto-paused volume: drop down to quiet ambient floor (~0.20 at sens=1.0)
+      const restDrop = (baselineNominalScale - restScale) * sens;
+      return Math.max(0.05, Math.min(1.0, baselineNominalScale - restDrop));
     }
+
     const ratio = spm / this.baselineSpm;
     if (ratio <= 1.0) {
-      // Rate of decrease below baseline
-      const drop = 0.45 * (1.0 - ratio) * sens;
-      return Math.max(0.05, 1.0 - drop);
+      // Sub-baseline rowing (e.g. 12-20 SPM):
+      // Normalizing sub-baseline drop: maps 20 SPM -> 0.70, ~14 SPM -> ~0.44
+      const subRatio = Math.min(1.0, (1.0 - ratio) / 0.35);
+      const drop = (baselineNominalScale - minActiveScale) * subRatio * sens;
+      return Math.max(restScale, baselineNominalScale - drop);
     } else {
-      // Rate of increase above baseline
+      // Surge / sprint rowing (above baseline 20 SPM up to 30-36 SPM):
+      // Swell from 0.70 up to 1.00 (+43% boost / +3.1 dB above cruise baseline)
       const surgeRatio = Math.min(1.0, (ratio - 1.0) / 0.5);
-      const boost = 0.20 * surgeRatio * sens;
-      return 1.00 + boost;
+      const boost = (1.00 - baselineNominalScale) * surgeRatio * sens;
+      return Math.min(1.00, baselineNominalScale + boost);
     }
   }
 
@@ -421,13 +433,16 @@ export class AudioEngine {
         return;
       }
       const diff = this.targetCadenceScale - this.currentCadenceScale;
-      if (Math.abs(diff) < 0.01) {
+      if (Math.abs(diff) < 0.005) {
         this.currentCadenceScale = this.targetCadenceScale;
+        this.applyEffectiveVolume();
+        this.stopVolumeRamping();
+        return;
       } else {
         const rateFactor = 0.12 * Math.max(0.75, Math.min(1.5, Math.sqrt(this.volumeSensitivity || 1.0)));
         this.currentCadenceScale += diff * rateFactor;
+        this.applyEffectiveVolume();
       }
-      this.applyEffectiveVolume();
     }, 100);
   }
 
