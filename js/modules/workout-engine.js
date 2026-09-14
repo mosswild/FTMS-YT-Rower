@@ -224,6 +224,7 @@ export class WorkoutEngine {
     this.stepStrokes = 0;
     this.lastBeepSecond = null;
     this.triggeredCues.clear();
+    this._lastComplianceKey = null;
 
     const telem = (telemetry && (telemetry.distanceMeters !== undefined || telemetry.elapsedSeconds !== undefined))
       ? telemetry
@@ -503,6 +504,9 @@ export class WorkoutEngine {
       }
     }
 
+    const compKey = JSON.stringify(compliance);
+    if (this._lastComplianceKey === compKey) return;
+    this._lastComplianceKey = compKey;
     this.options.onCompliance(compliance);
   }
 

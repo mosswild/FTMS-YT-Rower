@@ -1,14 +1,14 @@
 import { RowerBLE } from "./modules/ble-rower.js?v=res-and-metric-reset-v19";
 import { HeartRateBLE } from "./modules/ble-heartrate.js?v=res-and-metric-reset-v19";
 import { RateController } from "./modules/rate-controller.js?v=paused-bottom-right-v34";
-import { AudioEngine } from "./modules/audio-engine.js?v=res-and-metric-reset-v19";
-import { PM5Hud } from "./modules/hud.js?v=paused-bottom-right-v34";
+import { AudioEngine } from "./modules/audio-engine.js?v=perf-compositor-opt-v40";
+import { PM5Hud } from "./modules/hud.js?v=perf-compositor-opt-v40";
 import { SessionTracker } from "./modules/session-tracker.js?v=interval-export-garmin-strava-v39";
 import { VirtualRowerSimulator } from "./modules/simulator.js?v=decoupled-sim-program-v37";
 import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=countdown-zero-and-pause-iso-v38";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=perf-compositor-opt-v40";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");

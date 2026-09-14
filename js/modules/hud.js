@@ -488,10 +488,16 @@ export class PM5Hud {
 
   updateWorkoutProgress(progress) {
     if (this.elements.workoutCountdown && progress.remainingText) {
-      this.elements.workoutCountdown.textContent = progress.remainingText;
+      if (this.elements.workoutCountdown.textContent !== progress.remainingText) {
+        this.elements.workoutCountdown.textContent = progress.remainingText;
+      }
     }
     if (this.elements.workoutProgressFill && progress.percent !== undefined) {
-      this.elements.workoutProgressFill.style.width = `${progress.percent}%`;
+      const scaleVal = Math.min(1, Math.max(0, (progress.percent || 0) / 100));
+      const transformStr = `scaleX(${scaleVal})`;
+      if (this.elements.workoutProgressFill.style.transform !== transformStr) {
+        this.elements.workoutProgressFill.style.transform = transformStr;
+      }
     }
   }
 
@@ -515,24 +521,52 @@ export class PM5Hud {
   updateTargetChip(chipEl, comp) {
     if (!chipEl) return;
     if (!comp) {
-      chipEl.style.display = "none";
+      if (chipEl.style.display !== "none") {
+        chipEl.style.display = "none";
+        chipEl._lastStatus = null;
+        chipEl._lastTarget = null;
+        chipEl._lastPaused = null;
+      }
       return;
     }
-    chipEl.style.display = "inline-flex";
-    chipEl.className = `pm5-target-chip ${comp.status}${comp.isPaused ? " paused" : ""}`;
-    chipEl.title = comp.isPaused ? `Paused — Out of Target (${comp.target})` : `Target: ${comp.target}`;
-    if (comp.status === "in-target") {
-      chipEl.innerHTML = `● ${comp.target}`;
-    } else if (comp.status === "under-target") {
-      chipEl.innerHTML = comp.isPaused ? `⏸ ▲ ${comp.target}` : `▲ ${comp.target}`;
-    } else if (comp.status === "over-target") {
-      chipEl.innerHTML = `▼ ${comp.target}`;
+    const status = comp.status;
+    const target = comp.target;
+    const isPaused = !!comp.isPaused;
+
+    if (chipEl._lastStatus === status && chipEl._lastTarget === target && chipEl._lastPaused === isPaused && chipEl.style.display === "inline-flex") {
+      return;
+    }
+    chipEl._lastStatus = status;
+    chipEl._lastTarget = target;
+    chipEl._lastPaused = isPaused;
+
+    if (chipEl.style.display !== "inline-flex") {
+      chipEl.style.display = "inline-flex";
+    }
+    const nextClass = `pm5-target-chip ${status}${isPaused ? " paused" : ""}`;
+    if (chipEl.className !== nextClass) {
+      chipEl.className = nextClass;
+    }
+    const nextTitle = isPaused ? `Paused — Out of Target (${target})` : `Target: ${target}`;
+    if (chipEl.title !== nextTitle) {
+      chipEl.title = nextTitle;
+    }
+    const nextContent = status === "in-target"
+      ? `● ${target}`
+      : (status === "under-target" ? (isPaused ? `⏸ ▲ ${target}` : `▲ ${target}`) : `▼ ${target}`);
+    if (chipEl.innerHTML !== nextContent) {
+      chipEl.innerHTML = nextContent;
     }
   }
 
   clearWorkoutCompliance() {
     [this.elements.targetSpm, this.elements.targetSplit, this.elements.targetWatts, this.elements.targetHr].forEach(chip => {
-      if (chip) chip.style.display = "none";
+      if (chip) {
+        chip.style.display = "none";
+        chip._lastStatus = null;
+        chip._lastTarget = null;
+        chip._lastPaused = null;
+      }
     });
   }
 }
