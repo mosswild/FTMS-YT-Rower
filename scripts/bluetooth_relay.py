@@ -824,10 +824,10 @@ async def handle_interactive_scan_rower(state: RelayState, coordinator: BLEDisco
     """Interactively scans for rowers, presents a numbered menu, and allows picking one."""
     hud.clear()
     print("\n-------------------------------------------------------")
-    print(" Scan & Select Rowing Machine (Scanning 4s...)")
+    print(" Scan & Select Rowing Machine (Scanning 6s...)")
     print("-------------------------------------------------------")
 
-    items = await coordinator.discover(timeout=4.0, force_refresh=True)
+    items = await coordinator.discover(timeout=6.0, force_refresh=True)
     candidates = []
     saved = load_saved_devices().get("rower", {})
 
@@ -915,10 +915,10 @@ async def handle_interactive_scan_hr(state: RelayState, coordinator: BLEDiscover
     """Interactively scans for HR monitors, presents a numbered menu, and enables HR pairing."""
     hud.clear()
     print("\n-------------------------------------------------------")
-    print(" Scan & Select Heart Rate Monitor (Scanning 4s...)")
+    print(" Scan & Select Heart Rate Monitor (Scanning 6s...)")
     print("-------------------------------------------------------")
 
-    items = await coordinator.discover(timeout=4.0, force_refresh=True)
+    items = await coordinator.discover(timeout=6.0, force_refresh=True)
     candidates = []
     saved = load_saved_devices().get("hr", {})
 
