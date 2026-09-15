@@ -830,10 +830,10 @@ async def handle_interactive_scan_rower(state: RelayState, coordinator: BLEDisco
         hud.clear()
         scan_label = "All Bluetooth Devices" if show_all else "Rowing Machines (FTMS)"
         print("\n-------------------------------------------------------")
-        print(f" Scanning for {scan_label} (6s)...")
+        print(f" Scanning for {scan_label} (4s)...")
         print("-------------------------------------------------------")
 
-        items = await coordinator.discover(timeout=6.0, force_refresh=True)
+        items = await coordinator.discover(timeout=4.0, force_refresh=True)
         candidates = []
 
         for d, adv in items:
@@ -941,10 +941,10 @@ async def handle_interactive_scan_hr(state: RelayState, coordinator: BLEDiscover
         hud.clear()
         scan_label = "All Bluetooth Devices" if show_all else "Heart Rate Monitors (0x180D)"
         print("\n-------------------------------------------------------")
-        print(f" Scanning for {scan_label} (6s)...")
+        print(f" Scanning for {scan_label} (4s)...")
         print("-------------------------------------------------------")
 
-        items = await coordinator.discover(timeout=6.0, force_refresh=True)
+        items = await coordinator.discover(timeout=4.0, force_refresh=True)
         candidates = []
 
         for d, adv in items:
