@@ -821,183 +821,223 @@ async def hr_loop(
 # Interactive Terminal Controls (Cross-Platform)
 # ---------------------------------------------------------------------------
 async def handle_interactive_scan_rower(state: RelayState, coordinator: BLEDiscoveryCoordinator, hud: ConsoleHUD):
-    """Interactively scans for rowers, presents a numbered menu, and allows picking one."""
-    hud.clear()
-    print("\n-------------------------------------------------------")
-    print(" Scan & Select Rowing Machine (Scanning 6s...)")
-    print("-------------------------------------------------------")
-
-    items = await coordinator.discover(timeout=6.0, force_refresh=True)
-    candidates = []
+    """Interactively scans for rowers, presents a numbered menu, and allows picking or rescanning."""
+    show_all = False
     saved = load_saved_devices().get("rower", {})
+    loop = asyncio.get_running_loop()
 
-    for d, adv in items:
-        name, uuids = extract_device_info(d, adv)
-        name_lower = name.lower()
-        is_ftms = any("1826" in u for u in uuids) or any(k in name_lower for k in [
-            "merach", "mr-", "mrk", "q1", "rower", "pm5", "concept2", "waterrower", "iconsole", "ftms", "hydrow", "erg"
-        ])
-        if is_ftms:
-            candidates.append((d, name, uuids))
+    while not state.stop_event.is_set():
+        hud.clear()
+        scan_label = "All Bluetooth Devices" if show_all else "Rowing Machines (FTMS)"
+        print("\n-------------------------------------------------------")
+        print(f" Scanning for {scan_label} (6s)...")
+        print("-------------------------------------------------------")
 
-    if not candidates:
-        print(" [!] No rowing machines detected advertising FTMS service (0x1826).")
-        print(" Tips:")
-        print("   1. Pull the rower handle or tap the monitor to wake it up.")
-        print("   2. Disconnect/close any phone apps paired to the rower.")
-        print("\n  [a] Show all nearby Bluetooth devices anyway")
+        items = await coordinator.discover(timeout=6.0, force_refresh=True)
+        candidates = []
+
+        for d, adv in items:
+            name, uuids = extract_device_info(d, adv)
+            name_lower = name.lower()
+            is_ftms = any("1826" in u for u in uuids) or any(k in name_lower for k in [
+                "merach", "mr-", "mrk", "q1", "rower", "pm5", "concept2", "waterrower", "iconsole", "ftms", "hydrow", "erg"
+            ])
+            if show_all:
+                if name and name != "Unknown":
+                    candidates.append((d, name, uuids, is_ftms))
+            else:
+                if is_ftms:
+                    candidates.append((d, name, uuids, True))
+
+        if not candidates:
+            if not show_all:
+                print(" [!] No rowing machines detected advertising FTMS service (0x1826).")
+                print(" Tips:")
+                print("   1. Pull the rower handle or tap the monitor to wake it up.")
+                print("   2. Disconnect/close any phone apps paired to the rower.")
+                print("\n  [r] Rescan nearby devices")
+                print("  [a] Show all nearby Bluetooth devices anyway")
+                print("  [c] Cancel")
+                prompt_str = "\nChoice [r, a, c]: "
+            else:
+                print(" [!] No Bluetooth devices with names were found nearby.")
+                print("\n  [r] Rescan nearby devices")
+                print("  [a] Switch back to FTMS rower filter")
+                print("  [c] Cancel")
+                prompt_str = "\nChoice [r, a, c]: "
+
+            try:
+                choice = await loop.run_in_executor(None, input, prompt_str)
+                choice = choice.strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                return
+
+            if choice in ("r", "s"):
+                continue
+            elif choice == "a":
+                show_all = not show_all
+                continue
+            else:
+                print("Cancelled.")
+                return
+
+        # Candidates found
+        title = "All Discovered Bluetooth Devices" if show_all else "Discovered Rowing Machines"
+        print(f"\n{title}:")
+        for idx, (dev, name, uuids, is_ftms) in enumerate(candidates, 1):
+            prev = " [Previously Paired]" if saved.get("address") == dev.address else ""
+            ftms_tag = " [FTMS]" if is_ftms and show_all else ""
+            print(f"  [{idx}] {name:<26} ({dev.address}){ftms_tag}{prev}")
+
+        toggle_label = "Filter FTMS rowers only" if show_all else "Show all nearby Bluetooth devices"
+        print("  [r] Rescan nearby devices")
+        print(f"  [a] {toggle_label}")
         print("  [c] Cancel")
 
-        loop = asyncio.get_running_loop()
         try:
-            choice = await loop.run_in_executor(None, input, "\nChoice [a, c]: ")
+            choice = await loop.run_in_executor(None, input, f"\nSelect rower [1-{len(candidates)}, r, a, c]: ")
             choice = choice.strip().lower()
         except (EOFError, KeyboardInterrupt):
             return
 
-        if choice == "a":
-            for d, adv in items:
-                name, uuids = extract_device_info(d, adv)
-                if name and name != "Unknown":
-                    candidates.append((d, name, uuids))
-        else:
+        if choice in ("r", "s"):
+            continue
+        elif choice == "a":
+            show_all = not show_all
+            continue
+        elif choice == "c" or not choice:
             print("Cancelled.")
             return
 
-    if not candidates:
-        print("No devices found.")
-        return
+        selected_dev = None
+        if choice.isdigit() and 1 <= int(choice) <= len(candidates):
+            idx = int(choice) - 1
+            selected_dev = candidates[idx][0]
+            selected_name = candidates[idx][1]
+        else:
+            print("Invalid selection.")
+            continue
 
-    print("\nDiscovered Devices:")
-    for idx, (dev, name, uuids) in enumerate(candidates, 1):
-        prev = " [Previously Paired]" if saved.get("address") == dev.address else ""
-        print(f"  [{idx}] {name:<26} ({dev.address}){prev}")
+        print(f"[OK] Selected Rower: {selected_name} ({selected_dev.address})")
+        state.rower_target_address = selected_dev.address
+        state.rower_target_name = selected_name
+        state.rower_enabled = True
+        state.rower_paused = False
+        state.rower_enable_event.set()
+        save_saved_device("rower", selected_name, selected_dev.address)
 
-    print("  [a] Auto-connect first discovered")
-    print("  [c] Cancel")
-
-    loop = asyncio.get_running_loop()
-    try:
-        choice = await loop.run_in_executor(None, input, f"\nSelect rower [1-{len(candidates)}, a, c]: ")
-        choice = choice.strip().lower()
-    except (EOFError, KeyboardInterrupt):
-        return
-
-    if choice == "c" or not choice:
-        print("Cancelled.")
-        return
-
-    selected_dev = None
-    if choice == "a":
-        selected_dev = candidates[0][0]
-        selected_name = candidates[0][1]
-    elif choice.isdigit() and 1 <= int(choice) <= len(candidates):
-        idx = int(choice) - 1
-        selected_dev = candidates[idx][0]
-        selected_name = candidates[idx][1]
-    else:
-        print("Invalid selection.")
-        return
-
-    print(f"[OK] Selected: {selected_name} ({selected_dev.address})")
-    state.rower_target_address = selected_dev.address
-    state.rower_target_name = selected_name
-    state.rower_enabled = True
-    state.rower_paused = False
-    state.rower_enable_event.set()
-    save_saved_device("rower", selected_name, selected_dev.address)
-
-    await state.disconnect_rower()
-    state.rower_reconnect_event.set()
+        await state.disconnect_rower()
+        state.rower_reconnect_event.set()
+        break
 
 
 async def handle_interactive_scan_hr(state: RelayState, coordinator: BLEDiscoveryCoordinator, hud: ConsoleHUD):
     """Interactively scans for HR monitors, presents a numbered menu, and enables HR pairing."""
-    hud.clear()
-    print("\n-------------------------------------------------------")
-    print(" Scan & Select Heart Rate Monitor (Scanning 6s...)")
-    print("-------------------------------------------------------")
-
-    items = await coordinator.discover(timeout=6.0, force_refresh=True)
-    candidates = []
+    show_all = False
     saved = load_saved_devices().get("hr", {})
+    loop = asyncio.get_running_loop()
 
-    for d, adv in items:
-        name, uuids = extract_device_info(d, adv)
-        name_lower = name.lower()
-        is_hr = any("180d" in u for u in uuids) or any(k in name_lower for k in [
-            "hr", "polar", "garmin", "wahoo", "heart", "tickr", "coospo", "hrm", "scosche"
-        ])
-        if is_hr:
-            candidates.append((d, name, uuids))
+    while not state.stop_event.is_set():
+        hud.clear()
+        scan_label = "All Bluetooth Devices" if show_all else "Heart Rate Monitors (0x180D)"
+        print("\n-------------------------------------------------------")
+        print(f" Scanning for {scan_label} (6s)...")
+        print("-------------------------------------------------------")
 
-    if not candidates:
-        print(" [!] No BLE heart rate monitors detected advertising HR service (0x180D).")
-        print(" Tips: Ensure the strap/armband is turned on and moist/worn.")
-        print("\n  [a] Show all nearby Bluetooth devices anyway")
+        items = await coordinator.discover(timeout=6.0, force_refresh=True)
+        candidates = []
+
+        for d, adv in items:
+            name, uuids = extract_device_info(d, adv)
+            name_lower = name.lower()
+            is_hr = any("180d" in u for u in uuids) or any(k in name_lower for k in [
+                "hr", "polar", "garmin", "wahoo", "heart", "tickr", "coospo", "hrm", "scosche"
+            ])
+            if show_all:
+                if name and name != "Unknown":
+                    candidates.append((d, name, uuids, is_hr))
+            else:
+                if is_hr:
+                    candidates.append((d, name, uuids, True))
+
+        if not candidates:
+            if not show_all:
+                print(" [!] No BLE heart rate monitors detected advertising HR service (0x180D).")
+                print(" Tips: Ensure the strap/armband is turned on and moist/worn.")
+                print("\n  [r] Rescan nearby devices")
+                print("  [a] Show all nearby Bluetooth devices anyway")
+                print("  [c] Cancel")
+                prompt_str = "\nChoice [r, a, c]: "
+            else:
+                print(" [!] No Bluetooth devices with names were found nearby.")
+                print("\n  [r] Rescan nearby devices")
+                print("  [a] Switch back to Heart Rate filter")
+                print("  [c] Cancel")
+                prompt_str = "\nChoice [r, a, c]: "
+
+            try:
+                choice = await loop.run_in_executor(None, input, prompt_str)
+                choice = choice.strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                return
+
+            if choice in ("r", "s"):
+                continue
+            elif choice == "a":
+                show_all = not show_all
+                continue
+            else:
+                print("Cancelled.")
+                return
+
+        # Candidates found
+        title = "All Discovered Bluetooth Devices" if show_all else "Discovered Heart Rate Monitors"
+        print(f"\n{title}:")
+        for idx, (dev, name, uuids, is_hr) in enumerate(candidates, 1):
+            prev = " [Previously Paired]" if saved.get("address") == dev.address else ""
+            hr_tag = " [HR Monitor]" if is_hr and show_all else ""
+            print(f"  [{idx}] {name:<26} ({dev.address}){hr_tag}{prev}")
+
+        toggle_label = "Filter Heart Rate monitors only" if show_all else "Show all nearby Bluetooth devices"
+        print("  [r] Rescan nearby devices")
+        print(f"  [a] {toggle_label}")
         print("  [c] Cancel")
 
-        loop = asyncio.get_running_loop()
         try:
-            choice = await loop.run_in_executor(None, input, "\nChoice [a, c]: ")
+            choice = await loop.run_in_executor(None, input, f"\nSelect HR monitor [1-{len(candidates)}, r, a, c]: ")
             choice = choice.strip().lower()
         except (EOFError, KeyboardInterrupt):
             return
 
-        if choice == "a":
-            for d, adv in items:
-                name, uuids = extract_device_info(d, adv)
-                if name and name != "Unknown":
-                    candidates.append((d, name, uuids))
-        else:
+        if choice in ("r", "s"):
+            continue
+        elif choice == "a":
+            show_all = not show_all
+            continue
+        elif choice == "c" or not choice:
             print("Cancelled.")
             return
 
-    if not candidates:
-        print("No devices found.")
-        return
+        selected_dev = None
+        if choice.isdigit() and 1 <= int(choice) <= len(candidates):
+            idx = int(choice) - 1
+            selected_dev = candidates[idx][0]
+            selected_name = candidates[idx][1]
+        else:
+            print("Invalid selection.")
+            continue
 
-    print("\nDiscovered HR Devices:")
-    for idx, (dev, name, uuids) in enumerate(candidates, 1):
-        prev = " [Previously Paired]" if saved.get("address") == dev.address else ""
-        print(f"  [{idx}] {name:<26} ({dev.address}){prev}")
+        print(f"[OK] Selected HR Monitor: {selected_name} ({selected_dev.address})")
+        state.hr_target_address = selected_dev.address
+        state.hr_target_name = selected_name
+        state.hr_enabled = True
+        state.hr_paused = False
+        state.hr_enable_event.set()
+        save_saved_device("hr", selected_name, selected_dev.address)
 
-    print("  [a] Auto-connect first discovered")
-    print("  [c] Cancel")
-
-    loop = asyncio.get_running_loop()
-    try:
-        choice = await loop.run_in_executor(None, input, f"\nSelect HR monitor [1-{len(candidates)}, a, c]: ")
-        choice = choice.strip().lower()
-    except (EOFError, KeyboardInterrupt):
-        return
-
-    if choice == "c" or not choice:
-        print("Cancelled.")
-        return
-
-    selected_dev = None
-    if choice == "a":
-        selected_dev = candidates[0][0]
-        selected_name = candidates[0][1]
-    elif choice.isdigit() and 1 <= int(choice) <= len(candidates):
-        idx = int(choice) - 1
-        selected_dev = candidates[idx][0]
-        selected_name = candidates[idx][1]
-    else:
-        print("Invalid selection.")
-        return
-
-    print(f"[OK] Selected HR Monitor: {selected_name} ({selected_dev.address})")
-    state.hr_target_address = selected_dev.address
-    state.hr_target_name = selected_name
-    state.hr_enabled = True
-    state.hr_paused = False
-    state.hr_enable_event.set()
-    save_saved_device("hr", selected_name, selected_dev.address)
-
-    await state.disconnect_hr()
-    state.hr_reconnect_event.set()
+        await state.disconnect_hr()
+        state.hr_reconnect_event.set()
+        break
 
 
 async def handle_interactive_disconnect(state: RelayState, publisher: RelayPublisher, hud: ConsoleHUD):

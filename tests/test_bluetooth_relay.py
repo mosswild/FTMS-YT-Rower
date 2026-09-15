@@ -363,7 +363,53 @@ class TestBluetoothRelay(unittest.TestCase):
         self.assertTrue(state.rower_reconnect_event.is_set())
         self.assertTrue(state.hr_reconnect_event.is_set())
 
+    def test_handle_interactive_scan_rower_rescan(self):
+        """Test handle_interactive_scan_rower rescans when user types 'r'."""
+        import asyncio
+        from unittest.mock import patch, AsyncMock
+        from scripts.bluetooth_relay import handle_interactive_scan_rower
+
+        import argparse
+        args = argparse.Namespace(
+            server="http://localhost:8000",
+            address=None,
+            name=None,
+            hr=False,
+            hr_name=None,
+            hr_address=None,
+            forget=True,
+            idle_timeout=300,
+            silence_window=480,
+            no_interactive=False,
+            auto=False,
+            verbose=False,
+        )
+        state = RelayState(args)
+
+        mock_dev = MagicMock()
+        mock_dev.address = "11:22:33:44:55:66"
+        mock_dev.name = "MRK-CRYDN-2CEE"
+        mock_adv = MagicMock()
+        mock_adv.local_name = "MRK-CRYDN-2CEE"
+        mock_adv.service_uuids = ["00001826-0000-1000-8000-00805f9b34fb"]
+
+        coordinator = MagicMock()
+        coordinator.discover = AsyncMock(return_value=[(mock_dev, mock_adv)])
+        hud = MagicMock()
+
+        async def run_test():
+            # First input 'r' (rescan), second input '1' (select first)
+            with patch("builtins.input", side_effect=["r", "1"]):
+                await handle_interactive_scan_rower(state, coordinator, hud)
+
+            self.assertEqual(coordinator.discover.call_count, 2)
+            self.assertTrue(state.rower_enabled)
+            self.assertEqual(state.rower_target_name, "MRK-CRYDN-2CEE")
+
+        asyncio.run(run_test())
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
