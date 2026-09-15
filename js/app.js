@@ -556,6 +556,10 @@ let relayActive = false;
 let relayDeviceName = null;
 let relayTimeout = null;
 
+let relayHrActive = false;
+let relayHrDeviceName = null;
+let relayHrTimeout = null;
+
 const wsTelemetry = new WebSocketTelemetry(
   (data) => {
     // Explicit relay connection lifecycle events from bluetooth_relay.py
@@ -578,6 +582,25 @@ const wsTelemetry = new WebSocketTelemetry(
       return;
     }
 
+    if (data.event === "hr_connected") {
+      relayHrActive = true;
+      relayHrDeviceName = data.deviceName || "HR Monitor";
+      if (!hrBle.isConnected) {
+        updateHrStatus(true, `${relayHrDeviceName} (Relay)`, "relay", relayHrDeviceName);
+      }
+      return;
+    }
+
+    if (data.event === "hr_disconnected") {
+      relayHrActive = false;
+      relayHrDeviceName = null;
+      if (relayHrTimeout) clearTimeout(relayHrTimeout);
+      if (!hrBle.isConnected) {
+        updateHrStatus(false, "Relay HR Disconnected");
+      }
+      return;
+    }
+
     // If local BLE rower is not actively connected and simulator is not running, relay drives the cockpit
     if (!rowerBle.isConnected && !simulator.isRunning) {
       handleTelemetryPacket(data);
@@ -590,7 +613,16 @@ const wsTelemetry = new WebSocketTelemetry(
         updateRowerStatus(true, `${relayDeviceName} (Relay)`, "relay", relayDeviceName);
       }
       if (data.heartRate !== undefined && !hrBle.isConnected) {
-        updateHrStatus(true, "HR (Relay)", "relay", "Relay");
+        relayHrActive = true;
+        relayHrDeviceName = data.hrDeviceName || relayHrDeviceName || "HR";
+        updateHrStatus(true, `${relayHrDeviceName} (Relay)`, "relay", relayHrDeviceName);
+        if (relayHrTimeout) clearTimeout(relayHrTimeout);
+        relayHrTimeout = setTimeout(() => {
+          relayHrActive = false;
+          if (!hrBle.isConnected) {
+            updateHrStatus(false, "Relay HR Idle");
+          }
+        }, 10000);
       }
       if (relayTimeout) clearTimeout(relayTimeout);
       relayTimeout = setTimeout(() => {
@@ -599,14 +631,39 @@ const wsTelemetry = new WebSocketTelemetry(
           updateRowerStatus(false, "Relay Idle");
         }
       }, 10000);
+    } else if (!hrBle.isConnected && data.heartRate !== undefined) {
+      // Decoupled Mixed-Mode: Rower is connected locally (or simulated), but relay provides Heart Rate!
+      pm5Hud.updateMetrics({ heartRate: data.heartRate });
+      sessionTracker.updateTelemetry({ heartRate: data.heartRate });
+      if (workoutEngine && workoutEngine.isRunning) {
+        workoutEngine.onTelemetry({ heartRate: data.heartRate });
+      }
+      relayHrActive = true;
+      relayHrDeviceName = data.hrDeviceName || relayHrDeviceName || "HR";
+      updateHrStatus(true, `${relayHrDeviceName} (Relay)`, "relay", relayHrDeviceName);
+      if (relayHrTimeout) clearTimeout(relayHrTimeout);
+      relayHrTimeout = setTimeout(() => {
+        relayHrActive = false;
+        if (!hrBle.isConnected) {
+          updateHrStatus(false, "Relay HR Idle");
+        }
+      }, 10000);
     }
   },
   (connected, text) => {
     console.log("[WS Gateway]", connected, text);
-    if (!connected && relayActive) {
-      relayActive = false;
-      if (!rowerBle.isConnected && !simulator.isRunning) {
-        updateRowerStatus(false, "Relay Offline");
+    if (!connected) {
+      if (relayActive) {
+        relayActive = false;
+        if (!rowerBle.isConnected && !simulator.isRunning) {
+          updateRowerStatus(false, "Relay Offline");
+        }
+      }
+      if (relayHrActive) {
+        relayHrActive = false;
+        if (!hrBle.isConnected) {
+          updateHrStatus(false, "Relay Offline");
+        }
       }
     }
   }

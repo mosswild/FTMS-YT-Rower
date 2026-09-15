@@ -34,6 +34,12 @@ export class WebSocketTelemetry {
     if (raw.device_name !== undefined) clean.deviceName = raw.device_name;
     else if (raw.deviceName !== undefined) clean.deviceName = raw.deviceName;
 
+    if (raw.device_type !== undefined) clean.deviceType = raw.device_type;
+    else if (raw.deviceType !== undefined) clean.deviceType = raw.deviceType;
+
+    if (raw.hr_device_name !== undefined) clean.hrDeviceName = raw.hr_device_name;
+    else if (raw.hrDeviceName !== undefined) clean.hrDeviceName = raw.hrDeviceName;
+
     if (raw.strokeRate !== undefined) clean.strokeRate = raw.strokeRate;
     else if (raw.stroke_rate !== undefined) clean.strokeRate = raw.stroke_rate;
 
