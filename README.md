@@ -368,6 +368,16 @@ PYTHONPATH=. .venv/bin/python tests/test_backend.py
   - [x] Responsive navigation bar padding and font scaling across all themes prevents the header from overflowing or running past the screen edge on narrow viewports.
   - [x] Scaled target compliance chips and badges in the 2x3 mobile grid to guarantee they fit within metric cells without obscuring numeric readouts.
 - [x] **Cadence Audio Volume Modulation Dynamic Range Fix:** Rebalanced the volume modulation curve in `AudioEngine` so dynamic swells and dips are clearly audible across the full rowing spectrum. Centered nominal baseline (20 SPM) at 70% scale, allowing sprints (30–38 SPM) to swell up to 100% (+3.1 dB), recovery paddling (14 SPM) to dip down to ~44% (-4.0 dB), and resting / stopped (0 SPM) to drop down to a quiet 20% ambient floor (-10.9 dB), expanding perceptible dynamic range from ~1.2 dB up to ~14 dB without digital clipping.
+- [ ] **Dual-Device BLE Relay (Concurrent Rower + Heart Rate Monitor):**
+  - **Problem Statement:** Most commercial smart rowing machines (such as the Merach Q1S, MRK-2CEE, or Concept2 without an external ANT+ bridge) broadcast FTMS rower telemetry (`0x1826` / `0x2AD1`) but do not broadcast heart rate data. Devices lacking Web Bluetooth (e.g. iOS Safari over local Wi-Fi) rely on the Python bridge (`scripts/bluetooth_relay.py`), which currently only maintains a single `BleakClient` connection to the rower.
+  - **Proposed Architecture & Implementation:**
+    - **Concurrent Connection Loop:** Upgrade `run_relay()` in `scripts/bluetooth_relay.py` to manage two independent, concurrent asyncio tasks via `asyncio.gather()`:
+      1. *Rower Task:* Connects to the FTMS rower (`0x1826` / `0x2AD1`), decodes cadence/power/split/distance/resistance, handles stroke wakeups, and enforces idle sleep battery conservation (`--idle-timeout`, `--silence-window`).
+      2. *Heart Rate Task:* Discovers and connects to standard BLE Heart Rate monitors (`0x180D` / `0x2A37` — Polar H10/H9, Garmin HRM-Dual, Wahoo TICKR, CooSpo, Apple Watch BLE broadcast, chest straps, or armbands).
+    - **CLI Interface:** Add `--hr` (auto-pair first discovered BLE HR strap), `--hr-name <str>` (device name filter), and `--hr-address <addr>` flags.
+    - **Telemetry Fusion:** Stream HR measurements from the existing `parse_hr_measurement()` directly into the shared `composite_metrics["hr"]` object. All merged packets publish over the single HTTP/WebSocket `/api/telemetry/publish` channel.
+    - **Console HUD Readout:** Update the live single-line status bar to display both Rower connection state and HR monitor connection state simultaneously (e.g., `[MRK-2CEE | Polar H10] 24 SPM | 185W | 2:05/500m | 142bpm`).
+    - **Web App Decoupling:** Update `js/app.js` so relay-delivered HR packets update the PM5 HUD and session metrics even if a user happens to connect their rower directly via browser Web Bluetooth, ensuring flexible mix-and-match configurations.
 - [ ] **Live GitHub Pages Demo:** Client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and simulator directly in the browser with bundled lightweight sample media.
 
 ### Recent Milestones
