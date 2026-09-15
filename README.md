@@ -49,10 +49,10 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
 ### 1. 🎧 Decoupled Audio Pipeline & Cadence-Proportional Volume
 - **Muted Scenic Video:** The video element is strictly muted so its playback rate can fluctuate dynamically ($0.3\times \dots 2.5\times$) without pitch distortion, chipmunking, or WebKit Phase Vocoder DSP overhead.
 - **Fixed-Rate Soundtrack at 1.0×:** A decoupled HTML5 `<audio>` pipeline streams soundtracks at natural $1.0\times$ speed with pristine acoustic clarity.
-- **Dynamic Cadence Volume Modulation:** Ambient soundtrack volume smoothly mirrors stroke cadence—lowering to **0.55×** during rests or glides, and swelling up to **1.20×** during high-cadence sprints.
+- **Dynamic Cadence Volume Modulation:** Ambient soundtrack volume smoothly mirrors stroke cadence across an expanded ~14 dB dynamic range—dipping to an ambient **0.20×** floor during rests or glides, resting at a clean **0.70×** cruising baseline (20 SPM), and swelling up to **1.00×** (+3.1 dB) during high-cadence sprints without digital clipping.
   - *Automatic Activation:* Active by default on cadence-locked tracks; bypassed on Fixed 1.0× Ambient tracks.
   - *Adjustable Dynamics ($0.25\times \dots 2.50\times$):* Tune modulation intensity from subtle ($0.5\times$) to high-contrast swells ($2.0\times$) in Settings.
-  - *Smooth Exponential Ramping:* 100ms low-pass filter transitions volume over ~1.2s to eliminate sudden jumps.
+  - *Smooth Exponential Ramping:* Low-pass filter transitions volume smoothly to eliminate sudden jumps or clicks.
   - *Quick Toggles:* Toggle on/off instantly via the Cockpit Audio dropdown or Settings modal.
 - **Dynamic Auto-Pause:** Pauses video playback when rowing halts while audio continues seamlessly (or auto-pauses based on user preference).
 - **Autoplay Compliance:** Single-tap un-mute prompts satisfy modern browser media autoplay restrictions.
@@ -115,16 +115,55 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   <em>Left: Neon Cyberpunk theme on ambient route. Right: Modern Slate (default dark theme) during a high-cadence sprint.</em>
 </p>
 
-### 6. 🔌 Dual-Source Telemetry & Virtual Simulator
+### 6. ⏱️ Structured Training Programs & Real-Time Interval Pacing
+- **Curated Program Library:** Preloaded routines designed for diverse training goals:
+  - *Endurance & Aerobic Base:* 30-Minute Zone 2 Aerobic Base, 4 × 1000m Aerobic Threshold, 5K Negative Split & Rate Ladder.
+  - *Intervals & HIIT:* 5 × 500m Power Intervals, Tabata Rowing Sprints (8 cycles of 20s work / 10s rest).
+  - *Pyramids:* Sprint Distance Pyramid (250m $\to$ 500m $\to$ 750m $\to$ 500m $\to$ 250m).
+- **Human-Readable YAML Schema:** Easily create, modify, import, and export structured routines in YAML (`.yaml` / `.yml`) or JSON with time-based (`duration: "5m"`), distance-based (`distance: 1000`), or stroke-based (`strokes: 30`) triggers and repeat loops (see [YAML Schema Guide](docs/WORKOUT_SCHEMA.md)).
+- **Docked Workout Interval Ribbon:** Sleek translucent HUD bar anchored directly above the PM5 metrics grid displaying:
+  - Interval type badges (`WARMUP`, `WORK`, `REST`, `COOLDOWN`) and step titles.
+  - Real-time remaining countdown timer (`MM:SS left` or meters left).
+  - High-performance GPU-composited progress fill bar (`scaleX`).
+  - Interval controls: Skip backward (`⏮`), skip forward (`⏭`), pause/resume (`⏸` / `▶`), and exit (`✕`).
+- **Live Target Compliance Chips:** Real-time visual feedback badges embedded directly in PM5 metric cards:
+  - `● [target]` — In target zone (steady green dot).
+  - `▲ [target]` — Under target; stroke rate, power, or pace increase needed.
+  - `▼ [target]` — Over target; ease off pace to stay in specified recovery or target zone.
+  - `⏸ ▲ [target]` — Indicates paused state compliance.
+- **Synthesized Audio Coaching Cues & Beeps:** Web Audio 3-2-1 transition countdown beeps and interval completion chimes guide transitions without requiring visual attention on the screen. Floating coaching cue banners deliver technique reminders at interval start or midpoint.
+- **Adaptive HUD Density:** When HUD scale is set to Auto/Adaptive, the telemetry grid automatically condenses into compact density when the workout ribbon is visible, preserving maximum scenic video viewport space.
+- **Session Pause Isolation & Countdown Auto-Zero:**
+  - 5-second countdown lead-in automatically zeros Distance (`0m`) and Elapsed Time (`00:00`) at the exact start of Interval 1.
+  - Pausing a program holds distance and elapsed time with an amber `PAUSED` badge while live stroke telemetry continues to stream. Paused strokes and meters are strictly isolated and excluded from session summary averages.
+
+<p align="center">
+  <img src="docs/screenshots/programs-library.png" alt="Training Programs Library" width="100%">
+</p>
+<p align="center">
+  <em>Training Programs Library: Built-in routines, category filter chips (Endurance, Intervals, Pyramids, Custom), step timelines, and YAML import/export.</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/cockpit-workout-bar.png" alt="Cockpit HUD with Docked Workout Interval Ribbon" width="100%">
+</p>
+<p align="center">
+  <em>Cockpit HUD during an active structured workout: Docked interval ribbon with step countdown, GPU-composited progress bar, real-time target compliance chips (SPM and HR), and Concept2 PM5 theme.</em>
+</p>
+
+### 7. 🔌 Dual-Source Telemetry & Virtual Simulator
 - **Web Bluetooth FTMS:** Direct connection to FTMS rowers (`0x2AD1`) including Merach Q1S, Concept2 PM5, WaterRower ComModule, and standard BLE Heart Rate monitors (`0x180D`).
 - **Dynamic Workout Simulator:** Built-in simulator featuring:
   - **Dynamic Program:** Automatically cycles through Warmup, Surge, Sprint, Paddle Down, Rest (testing auto-pause), and Recovery.
+  - **Structured Program Following:** Automatically drives stroke rate, watts, and recovery phases matching the active workout program.
+  - **Decoupled HR Monitor:** Independent Polar H10 Heart Rate simulation loop with manual BPM slider.
   - **Manual Slider:** Fine-tune target SPM ($14 \dots 38$) with live split and watt calculations.
   - **Instant Pause / Resume:** Test boat glide decay and auto-pause behavior instantly.
 
-### 7. 💾 Session History & Garmin TCX Export
-- Workouts and per-second trackpoint telemetry are stored locally in SQLite (`data/sessions.db`).
-- Export workouts individually or in bulk to standard **Garmin Training Center XML (`.TCX`)** format compatible with Strava, Garmin Connect, and TrainingPeaks.
+### 8. 💾 Session History & Multi-Lap TCX Export (Garmin & Strava)
+- **Local Persistence:** Workouts and per-second trackpoint telemetry are stored locally in SQLite (`data/sessions.db`).
+- **Interval-by-Interval Lap Breakdown:** Structured program sessions record discrete `<Lap>` blocks with `Active`/`Resting` intensity classifications, average watts (`<LX><AvgWatts>`), cadence, and heart rate for automatic interval breakdown in Garmin Connect and Strava Workout Analysis.
+- **Batch Export & Management:** Export workouts individually or in bulk (`.zip`) to standard **Garmin Training Center XML (`.TCX`)** format, with multi-session selection and batch deletion.
 
 ---
 
