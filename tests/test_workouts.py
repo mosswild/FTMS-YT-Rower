@@ -38,6 +38,7 @@ class TestWorkoutFramework(unittest.TestCase):
         self.assertIn("5k-rate-ladder", ids)
         self.assertIn("tabata-sprints", ids)
         self.assertIn("30m-zone2-aerobic-base", ids)
+        self.assertIn("15m-calorie-burner-hiit", ids)
 
     def test_zone2_heart_rate_workout(self):
         w = workout_mgr.get_workout("30m-zone2-aerobic-base")

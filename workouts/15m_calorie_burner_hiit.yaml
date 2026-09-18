@@ -1,0 +1,68 @@
+schema: "1.0"
+id: "15m-calorie-burner-hiit"
+title: "15-Minute Calorie Burner HIIT"
+description: "High-metabolic-rate interval workout maximizing calorie burn and EPOC (afterburn effect) in a condensed 15-minute session with 5 rounds of high-power work and active recovery."
+author: "FTMS Rower Coaching"
+category: "intervals"
+difficulty: "intermediate"
+tags: ["calories", "hiit", "fat_burn", "intervals", "15min"]
+
+settings:
+  default_speed_mode: "cadence_zones"
+  audio_modulation: true
+  sound_alerts: true
+  countdown_seconds: 5
+
+segments:
+  - type: "warmup"
+    title: "Progressive Warmup"
+    exit:
+      duration: "3m"
+    targets:
+      spm: [18, 22]
+      hr_zone: 2
+      watts: [120, 160]
+    cues:
+      on_start: "Start with relaxed, rhythmic strokes to elevate core temperature."
+      at_midpoint: "Gradually build stroke rate to 22 SPM. Prepare for the first work interval."
+
+  - type: "block"
+    title: "Calorie Burn Intervals"
+    repeat: 5
+    steps:
+      - type: "work"
+        title: "1m High-Power Burn"
+        exit:
+          duration: "1m"
+        targets:
+          spm: [26, 30]
+          watts: [190, 270]
+          hr_zone: 4
+          split: ["1:50", "2:02"]
+        cues:
+          on_start: "Drive hard through the heels! Maximize leg drive for peak caloric burn."
+          at_midpoint: "30 seconds left! Maintain strong posture and quick hands at the release."
+
+      - type: "rest"
+        title: "1m Active Recovery"
+        mode: "active"
+        auto_pause_video: false
+        exit:
+          duration: "1m"
+        targets:
+          spm: [18, 20]
+          hr_zone: 2
+        cues:
+          on_start: "Keep moving! Light paddle strokes to flush lactic acid and lower heart rate."
+
+  - type: "cooldown"
+    title: "Flush Cooldown"
+    exit:
+      duration: "2m"
+    targets:
+      spm: [16, 18]
+      hr_zone: 1
+      watts: [80, 120]
+    cues:
+      on_start: "Light, relaxed strokes to recover. Great high-intensity session!"
+      at_midpoint: "Focus on deep nasal breathing and full recovery."
