@@ -126,5 +126,12 @@ segments:
         self.assertEqual(res_del.status_code, 400)
         self.assertIn("Built-in workouts are read-only", res_del.json()["detail"])
 
+    def test_dockerfile_copies_workouts(self):
+        dockerfile_path = os.path.join(os.path.dirname(__file__), "..", "Dockerfile")
+        self.assertTrue(os.path.exists(dockerfile_path))
+        with open(dockerfile_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("COPY workouts/ ./workouts/", content)
+
 if __name__ == "__main__":
     unittest.main()

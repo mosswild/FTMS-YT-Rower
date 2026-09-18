@@ -10,7 +10,7 @@ DATA_DIR=${DATA_DIR:-/config/data}
 MEDIA_DIR=${MEDIA_DIR:-/config/media}
 
 # Ensure destination directories exist
-mkdir -p "$DATA_DIR" "$MEDIA_DIR/videos" "$MEDIA_DIR/audio"
+mkdir -p "$DATA_DIR/workouts" "$MEDIA_DIR/videos" "$MEDIA_DIR/audio"
 
 # Handle Group Creation / Resolution
 GROUP_NAME="rower"

@@ -25,6 +25,7 @@ COPY backend/ ./backend/
 COPY css/ ./css/
 COPY js/ ./js/
 COPY scripts/ ./scripts/
+COPY workouts/ ./workouts/
 COPY index.html manifest.json apple-touch-icon*.png icon-*.png favicon.png ./
 
 # Environment defaults matching centrd / LinuxServer convention
