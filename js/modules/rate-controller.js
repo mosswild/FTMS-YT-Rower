@@ -112,8 +112,8 @@ export class RateController {
       this.lastStrokeTime = Date.now();
       if (this.isFixedSpeed || this.speedMode === "ambient") {
         this.applyHardwareRate(1.0, true);
-        this.resumeVideo();
       }
+      this.resumeVideo();
     } else {
       this.pauseVideo(true);
     }
@@ -131,7 +131,9 @@ export class RateController {
     if (this.isFixedSpeed) {
       this.smoothedRate = 1.0;
       this.targetRate = 1.0;
-      this.applyHardwareRate(1.0, true);
+      if (this.isWorkoutLive) {
+        this.applyHardwareRate(1.0, true);
+      }
       if (this.onRateChange) this.onRateChange(1.0, "Ambient", 1.0);
       if (this.isWorkoutLive && (this.isAutoPaused || (this.video && this.video.paused))) {
         this.resumeVideo();
@@ -171,7 +173,7 @@ export class RateController {
       }
     }
 
-    if (this.isAutoPaused || this.video.paused) {
+    if (this.isWorkoutLive && (this.isAutoPaused || this.video.paused)) {
       this.resumeVideo();
     }
   }
@@ -213,7 +215,7 @@ export class RateController {
       }
     }
 
-    if (this.isAutoPaused || this.video.paused) {
+    if (this.isWorkoutLive && (this.isAutoPaused || this.video.paused)) {
       this.resumeVideo();
     }
   }
@@ -225,7 +227,9 @@ export class RateController {
     }
     if (this.isFixedSpeed || this.speedMode === "ambient") {
       this.lastStrokeTime = Date.now();
-      this.applyHardwareRate(1.0, false);
+      if (this.isWorkoutLive) {
+        this.applyHardwareRate(1.0, false);
+      }
       if (this.onRateChange) this.onRateChange(1.0, "Ambient", 1.0);
       if (this.isWorkoutLive && (this.isAutoPaused || (this.video && this.video.paused))) {
         this.resumeVideo();
@@ -245,10 +249,10 @@ export class RateController {
             this.pendingZoneRate = 0.85;
             this.pendingZoneStartTime = now;
           } else if (now - this.pendingZoneStartTime >= this.zoneDwellMs && this.appliedRate !== 0.85) {
-            this.applyHardwareRate(0.85);
+            if (this.isWorkoutLive) this.applyHardwareRate(0.85);
           }
         } else {
-          this.applyRate(roundedRate, false);
+          if (this.isWorkoutLive) this.applyRate(roundedRate, false);
         }
       }
       return;
@@ -270,27 +274,33 @@ export class RateController {
         this.onRateChange(continuousRate, zone.name, zone.rate);
       }
 
-      // Hysteresis & Dwell time checking for hardware video playback rate:
-      // Only switch zone if sustained for zoneDwellMs (default 3000ms)
-      if (zone.rate !== this.pendingZoneRate) {
-        this.pendingZoneRate = zone.rate;
-        this.pendingZoneStartTime = now;
-      } else if (now - this.pendingZoneStartTime >= this.zoneDwellMs && this.appliedRate !== zone.rate) {
-        this.applyHardwareRate(zone.rate);
-      }
+      if (this.isWorkoutLive) {
+        // Hysteresis & Dwell time checking for hardware video playback rate:
+        // Only switch zone if sustained for zoneDwellMs (default 3000ms)
+        if (zone.rate !== this.pendingZoneRate) {
+          this.pendingZoneRate = zone.rate;
+          this.pendingZoneStartTime = now;
+        } else if (now - this.pendingZoneStartTime >= this.zoneDwellMs && this.appliedRate !== zone.rate) {
+          this.applyHardwareRate(zone.rate);
+        }
 
-      if (this.isAutoPaused || (this.video && this.video.paused)) {
-        this.resumeVideo();
+        if (this.isAutoPaused || (this.video && this.video.paused)) {
+          this.resumeVideo();
+        }
       }
       return;
     }
 
     // Continuous mode
-    this.applyRate(continuousRate, false);
+    if (this.isWorkoutLive) {
+      this.applyRate(continuousRate, false);
+    } else if (this.onRateChange) {
+      this.onRateChange(continuousRate, "Continuous", continuousRate);
+    }
   }
 
   resumeVideo() {
-    if (this.isProgramPaused) return;
+    if (!this.isWorkoutLive || this.isProgramPaused) return;
     this.isAutoPaused = false;
     if (this.video && this.video.paused) {
       this.video.play().catch(e => console.warn("[RateController] Autoplay error:", e));
@@ -320,9 +330,9 @@ export class RateController {
       const now = Date.now();
 
       // iOS WebKit AVPlayer stall watchdog:
-      // If video is supposed to be playing (unpaused & not auto-paused) during active rowing,
+      // If video is supposed to be playing (unpaused & not auto-paused) during active workout,
       // verify that video.currentTime is actually advancing.
-      if (this.video && !this.video.paused && !this.isAutoPaused && !this.isProgramPaused) {
+      if (this.isWorkoutLive && this.video && !this.video.paused && !this.isAutoPaused && !this.isProgramPaused) {
         const ct = this.video.currentTime;
         if (ct > this.lastPlayingCurrentTime + 0.01) {
           this.lastPlayingCurrentTime = ct;

@@ -9,6 +9,7 @@ import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-
 import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
 import { WorkoutEngine } from "./modules/workout-engine.js?v=perf-compositor-opt-v40";
+import { KeepAwake } from "./modules/keep-awake.js?v=ios-keep-awake-v1";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -165,101 +166,25 @@ const trackController = new TrackController(videoEl, {
 });
 
 // ----------------- Screen Wake Lock & iOS Keep-Alive (Keep Display Awake) -----------------
-let wakeLockSentinel = null;
-let keepAliveAudioEl = null;
+const keepAwake = new KeepAwake();
 
-function getKeepAliveAudio() {
-  if (!keepAliveAudioEl) {
-    keepAliveAudioEl = document.createElement("audio");
-    keepAliveAudioEl.setAttribute("playsinline", "true");
-    keepAliveAudioEl.setAttribute("loop", "true");
-    // 0.1s silent WAV data URI to maintain active media playback on iOS WebKit / Safari PWA
-    keepAliveAudioEl.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
-    keepAliveAudioEl.volume = 0.01;
-    document.body.appendChild(keepAliveAudioEl);
-  }
-  return keepAliveAudioEl;
+function requestScreenWakeLock() {
+  keepAwake.enable();
 }
 
-async function requestScreenWakeLock() {
-  // 1. Standard Screen Wake Lock API (Desktop Chrome, Edge, Safari 16.4+)
-  if ("wakeLock" in navigator && !wakeLockSentinel) {
-    try {
-      wakeLockSentinel = await navigator.wakeLock.request("screen");
-      wakeLockSentinel.addEventListener("release", () => {
-        wakeLockSentinel = null;
-        console.log("[WakeLock] Screen wake lock released by OS/browser");
-        // Re-acquire immediately if session or video is still active (e.g. after iOS idle timeout)
-        const isSessionActive = sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused");
-        const isVideoActive = videoEl && !videoEl.paused;
-        if ((isSessionActive || isVideoActive) && document.visibilityState === "visible") {
-          setTimeout(() => requestScreenWakeLock(), 1000);
-        }
-      });
-      console.log("[WakeLock] Screen wake lock acquired");
-    } catch (err) {
-      console.warn("[WakeLock] Could not acquire screen wake lock:", err);
-    }
-  }
-
-  // 2. iOS Safari Standalone WebApp (PWA) Media Keep-Alive:
-  // In iOS WebKit standalone mode, muted <video> does not prevent display sleep.
-  // Playing a silent looping media element ensures AVFoundation keeps the screen active.
-  try {
-    const audio = getKeepAliveAudio();
-    if (audio && audio.paused) {
-      const p = audio.play();
-      if (p && typeof p.catch === "function") {
-        p.catch(() => {});
-      }
-    }
-  } catch (e) {}
+function releaseScreenWakeLock() {
+  keepAwake.disable();
 }
-
-async function releaseScreenWakeLock() {
-  if (wakeLockSentinel) {
-    try {
-      await wakeLockSentinel.release();
-      wakeLockSentinel = null;
-      console.log("[WakeLock] Screen wake lock released by request");
-    } catch (err) {
-      console.warn("[WakeLock] Error releasing screen wake lock:", err);
-    }
-  }
-  if (keepAliveAudioEl && !keepAliveAudioEl.paused) {
-    try {
-      keepAliveAudioEl.pause();
-    } catch (e) {}
-  }
-}
-
-// Re-acquire wake lock if user switches back to the app while workout or video is active
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") {
-    if (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) {
-      requestScreenWakeLock();
-    } else if (videoEl && !videoEl.paused) {
-      requestScreenWakeLock();
-    }
-  }
-});
-
-// Periodic heartbeat: ensures wake lock remains acquired during long workouts without screen touches
-setInterval(() => {
-  const isSessionActive = sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused");
-  const isVideoActive = videoEl && !videoEl.paused;
-  if ((isSessionActive || isVideoActive) && document.visibilityState === "visible" && !wakeLockSentinel) {
-    requestScreenWakeLock();
-  }
-}, 25000);
 
 if (videoEl) {
   videoEl.addEventListener("play", () => {
-    requestScreenWakeLock();
+    if (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) {
+      keepAwake.enable();
+    }
   });
   videoEl.addEventListener("pause", () => {
     if (!sessionTracker || (sessionTracker.state !== "active" && sessionTracker.state !== "paused")) {
-      releaseScreenWakeLock();
+      keepAwake.disable();
     }
   });
 }
@@ -270,7 +195,7 @@ const sessionTracker = new SessionTracker({
   onStateChange: (state, prevState) => {
     const workoutBtn = document.getElementById("btn-toggle-workout");
     if (state === "active") {
-      requestScreenWakeLock();
+      keepAwake.enable();
       if (workoutBtn) {
         workoutBtn.textContent = "Finish Workout";
         workoutBtn.className = "btn btn-danger";
@@ -282,8 +207,10 @@ const sessionTracker = new SessionTracker({
         pm5Hud.resetOffsets();
       }
       rateController.setWorkoutLive(true);
-      if (videoEl && videoEl.paused && (rateController.isFixedSpeed || rateController.smoothedRate > 0)) {
+      if (videoEl && videoEl.paused) {
         rateController.resumeVideo();
+      }
+      if (audioEngine.mode !== "mute" && !audioEngine.isPlaying) {
         audioEngine.play();
       }
     } else if (state === "paused") {
@@ -298,7 +225,7 @@ const sessionTracker = new SessionTracker({
         audioEngine.pause();
       }
     } else {
-      releaseScreenWakeLock();
+      keepAwake.disable();
       if (workoutBtn) {
         workoutBtn.textContent = "Start Workout";
         workoutBtn.className = "btn btn-success";
@@ -310,6 +237,7 @@ const sessionTracker = new SessionTracker({
     }
   }
 });
+
 
 // ----------------- Metric Reset Confirmation Handlers -----------------
 const modalConfirmReset = document.getElementById("modal-confirm-reset");
@@ -489,8 +417,8 @@ function handleTelemetryPacket(data) {
     workoutEngine.onTelemetry(data);
   }
 
-  // Auto-sync: ensure soundtrack plays if video is actively playing and audio is not muted
-  if (videoEl && !videoEl.paused && !audioEngine.isPlaying && audioEngine.mode !== "mute") {
+  // Auto-sync: ensure soundtrack plays if workout is live, video is actively playing, and audio is not muted
+  if (rateController.isWorkoutLive && videoEl && !videoEl.paused && !audioEngine.isPlaying && audioEngine.mode !== "mute") {
     audioEngine.play();
   }
 }
@@ -1066,7 +994,8 @@ function loadVideoIntoCockpit(videoId, title, autoPlay = false, isTrack = false)
   videoEl.src = `/api/media/video/${videoId}`;
   videoEl.load();
   pm5Hud.setVideoTitle(title);
-  audioEngine.setScenicVideo(videoId, title, 0, 0, autoPlay);
+  const shouldAutoPlay = autoPlay && rateController && rateController.isWorkoutLive;
+  audioEngine.setScenicVideo(videoId, title, 0, 0, shouldAutoPlay);
   sessionTracker.setMeta(videoId, audioEngine.mode);
   if (!isTrack) {
     trackController.clearTrack();
@@ -1075,7 +1004,7 @@ function loadVideoIntoCockpit(videoId, title, autoPlay = false, isTrack = false)
     updateAudioTrackDropdown("original", null);
   }
 
-  if (autoPlay) {
+  if (shouldAutoPlay) {
     videoEl.play().catch(e => console.warn(e));
   }
 }
@@ -3378,6 +3307,7 @@ if (toggleWorkoutBtn) {
         alert("Workout saved successfully! View in History.");
       }
     } else {
+      keepAwake.preArm();
       sessionTracker.start();
       if (workoutEngine && workoutEngine.workout && !workoutEngine.isRunning) {
         startActiveWorkout();

@@ -337,8 +337,9 @@ PYTHONPATH=. .venv/bin/python tests/test_backend.py
 
 ## 🐛 Known Issues & Troubleshooting
 
+- [x] **Scenic Video Autoplay on Relay Connect:** Resolved. Strictly gated video and soundtrack playback behind live workout status (`isWorkoutLive`). When the app opens and the rower connects via the Bluetooth relay or BLE, telemetry streams to the HUD while the scenic video remains paused until "Start Workout" is activated or the staged program is pulled to start.
+- [x] **iOS Safari & Standalone WebApp (PWA) Screen Sleep During Workouts:** Resolved. Implemented a dual-tier keep-awake engine combining W3C `navigator.wakeLock` (with automatic re-acquisition) and an invisible inline NoSleep MP4 loop with silent AAC audio pre-armed on user touch. Because iOS WebKit ignores muted video for sleep prevention, this active media assertion ensures Apple's AVPlayer suppresses display sleep throughout live workouts.
 - [x] **Scenic Video Freeze on Initial Workout Launch (iOS Safari / WebKit):** Resolved. Added buffer readiness checks (`readyState >= 2`), a pending playback rate queue, and an internal WebKit stall recovery watchdog in `RateController` that soft-recovers decoder stalls if `video.currentTime` fails to advance after 1.5s of telemetry.
-- [x] **iOS Safari Standalone WebApp (PWA) Screen Sleep:** Resolved. Implemented a dual Screen Wake Lock system: standard `navigator.wakeLock` with automatic re-acquisition on OS release / idle timeout, paired with a silent media keep-alive loop to prevent iOS WebKit from sleeping the display during workouts.
 - [x] **Compact Mode Minimal Pause Indicator:** Resolved. Refined `.hud-scale-compact` and mobile styles to replace wide text pills with a sleek, non-intrusive `⏸` icon badge and scaled center alert that prevents clutter in narrow cell layouts.
 
 ---
