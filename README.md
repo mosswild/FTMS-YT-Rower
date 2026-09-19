@@ -337,12 +337,9 @@ PYTHONPATH=. .venv/bin/python tests/test_backend.py
 
 ## 🐛 Known Issues & Troubleshooting
 
-- [ ] **Scenic Video Freeze on Initial Workout Launch (iOS Safari / WebKit):** When launching the app and starting a workout for the first time on iOS (Safari or PWA), scenic video can occasionally remain frozen on the initial frame while telemetry metrics, HUD numbers, and soundtrack audio function normally.
-  - *Root Cause:* In iOS WebKit, the underlying AVFoundation `AVPlayerItem` pipeline can stall if `video.playbackRate` is mutated or `video.play()` is triggered while `video.readyState < 2` (`HAVE_CURRENT_DATA` / `HAVE_FUTURE_DATA`) before initial keyframes are fully decoded.
-  - *Mitigations / Roadmap Fix:* 
-    1. Guard `video.playbackRate` assignments in `RateController`: defer non-1.0 rate changes until `video.readyState >= 2`.
-    2. Add a `pendingRate` queue that applies automatically once the video buffer signals ready.
-    3. Implement an internal watchdog to soft re-attach the video element if `video.paused === false` but `video.currentTime` fails to advance after ~1.5s of telemetry.
+- [x] **Scenic Video Freeze on Initial Workout Launch (iOS Safari / WebKit):** Resolved. Added buffer readiness checks (`readyState >= 2`), a pending playback rate queue, and an internal WebKit stall recovery watchdog in `RateController` that soft-recovers decoder stalls if `video.currentTime` fails to advance after 1.5s of telemetry.
+- [x] **iOS Safari Standalone WebApp (PWA) Screen Sleep:** Resolved. Implemented a dual Screen Wake Lock system: standard `navigator.wakeLock` with automatic re-acquisition on OS release / idle timeout, paired with a silent media keep-alive loop to prevent iOS WebKit from sleeping the display during workouts.
+- [x] **Compact Mode Minimal Pause Indicator:** Resolved. Refined `.hud-scale-compact` and mobile styles to replace wide text pills with a sleek, non-intrusive `⏸` icon badge and scaled center alert that prevents clutter in narrow cell layouts.
 
 ---
 

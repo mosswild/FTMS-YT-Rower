@@ -5409,6 +5409,52 @@ body[data-theme="nordic"],
   border-color: #f59e0b;
 }
 
+/* Minimal Pause Badge in Compact HUD Mode (avoids cramping in narrow cell columns) */
+.scenic-viewport-container.hud-scale-compact .pm5-target-chip.pm5-frozen-badge {
+  font-size: 0 !important;
+  padding: 1px 5px !important;
+  bottom: 2px !important;
+  right: 3px !important;
+  border-radius: 3px !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+}
+
+.scenic-viewport-container.hud-scale-compact .pm5-target-chip.pm5-frozen-badge::before {
+  content: "⏸" !important;
+  font-size: 0.65rem !important;
+  display: inline-block;
+  line-height: 1;
+}
+
+.scenic-viewport-container.hud-scale-compact #hud-autopause-badge {
+  padding: 0.35rem 0.75rem !important;
+  font-size: 0.75rem !important;
+  gap: 0.35rem !important;
+  border-radius: 6px !important;
+}
+
+.scenic-viewport-container.hud-scale-compact #hud-autopause-badge svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* Mobile viewport compact pause indicator */
+@media (max-width: 600px) {
+  .pm5-target-chip.pm5-frozen-badge {
+    font-size: 0 !important;
+    padding: 1px 4px !important;
+    bottom: 2px !important;
+    right: 2px !important;
+    border-radius: 3px !important;
+  }
+  .pm5-target-chip.pm5-frozen-badge::before {
+    content: "⏸" !important;
+    font-size: 0.6rem !important;
+    display: inline-block;
+  }
+}
+
 /* --------------------------------------------------------------------------
    Workout Ribbon Theme Adaptations (Nordic, Cyberpunk, Retro PM5)
    -------------------------------------------------------------------------- */

@@ -408,6 +408,37 @@ class TestBluetoothRelay(unittest.TestCase):
 
         asyncio.run(run_test())
 
+    def test_console_hud_deduplicates_repeated_updates(self):
+        """Test ConsoleHUD does not repeatedly re-write identical status lines."""
+        hud = ConsoleHUD(verbose=False)
+        with patch("sys.stdout.isatty", return_value=True):
+            with patch("sys.stdout.write") as mock_write:
+                hud.update("[Scanning] Searching for FTMS Rower...")
+                self.assertEqual(mock_write.call_count, 1)
+
+                # Calling update again with identical text should be a no-op
+                hud.update("[Scanning] Searching for FTMS Rower...")
+                self.assertEqual(mock_write.call_count, 1)
+
+                # Updating with new text should write
+                hud.update("[OK] Connected to FTMS Rower")
+                self.assertEqual(mock_write.call_count, 2)
+
+    def test_console_hud_in_place_formatting(self):
+        """Test ConsoleHUD uses carriage return and ANSI line clearing without padding overflow."""
+        hud = ConsoleHUD(verbose=False)
+        with patch("sys.stdout.isatty", return_value=True):
+            with patch("shutil.get_terminal_size") as mock_term:
+                mock_term.return_value = os.terminal_size((80, 24))
+                with patch("sys.stdout.write") as mock_write:
+                    long_text = "[Scanning] Searching for FTMS Rower... (Pull handle to wake | r: change | h: add hr)"
+                    hud.update(long_text)
+                    written = mock_write.call_args[0][0]
+                    self.assertTrue(written.startswith("\r\033[K"))
+                    # Must not exceed terminal columns - 2 to avoid edge-wrap waterfalling
+                    content = written[len("\r\033[K"):]
+                    self.assertLessEqual(len(content), 78)
+
 
 if __name__ == "__main__":
     unittest.main()

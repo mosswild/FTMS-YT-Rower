@@ -107,33 +107,55 @@ class ConsoleHUD:
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
         self.paused = False
+        self.last_text: str | None = None
 
     def update(self, text: str):
-        """Updates the single status line in-place using carriage return and width padding."""
+        """Updates the single status line in-place using carriage return and ANSI clear-line."""
         if self.paused:
             return
         if self.verbose:
-            logger.info(text)
+            if text != self.last_text:
+                logger.info(text)
+                self.last_text = text
             return
+
+        # Deduplicate consecutive identical status updates to prevent spamming output
+        if text == self.last_text:
+            return
+        self.last_text = text
+
+        if not sys.stdout.isatty():
+            # In non-interactive environments (Docker logs, pipes), \r does not overwrite lines.
+            # Only print state transitions cleanly as standard lines.
+            print(text)
+            sys.stdout.flush()
+            return
+
         try:
-            cols = max(40, shutil.get_terminal_size((80, 24)).columns - 1)
+            # Leave at least 2 columns of safety margin to prevent terminal auto-wrap
+            term_cols = shutil.get_terminal_size((80, 24)).columns
+            cols = max(20, term_cols - 2)
         except Exception:
-            cols = 79
+            cols = 78
+
+        # Truncate text so it NEVER reaches the right margin
         display_text = text[:cols]
-        padded = display_text.ljust(cols)
-        sys.stdout.write(f"\r{padded}\033[K")
+        # Return cursor to col 0, erase entire line with \033[K, then output text without trailing padding
+        sys.stdout.write(f"\r\033[K{display_text}")
         sys.stdout.flush()
 
     def log(self, text: str):
         """Prints a persistent event message on a fresh line, clearing the in-place status line first."""
-        if not self.verbose:
+        self.last_text = None
+        if not self.verbose and sys.stdout.isatty():
             sys.stdout.write("\r\033[K")
         print(text)
         sys.stdout.flush()
 
     def clear(self):
         """Clears the live status line completely."""
-        if not self.verbose:
+        self.last_text = None
+        if not self.verbose and sys.stdout.isatty():
             sys.stdout.write("\r\033[K")
             sys.stdout.flush()
 
@@ -226,29 +248,37 @@ def format_idle_status(state, interactive: bool = True) -> str:
 
     # Case 1: Neither device configured / active
     if not rower_is_active and not hr_is_active:
-        return "[Standby] No device configured. Press [r] to select rower | [h] for HR monitor"
+        if interactive:
+            return "[Standby] No device configured. Press [r] to select rower | [h] for HR monitor"
+        return "[Standby] No device configured."
 
     # Case 2: Only HR active
     if not rower_is_active and hr_is_active:
         if state.hr_connected:
             bpm = state.composite_metrics.get("hr", "--")
-            return f"[Standby | {state.hr_name} ({bpm}bpm)] Press [r] to select rower | [d] disconnect"
+            if interactive:
+                return f"[Standby | {state.hr_name} ({bpm}bpm)] Press [r] to select rower | [d] disconnect"
+            return f"[Standby | {state.hr_name} ({bpm}bpm)]"
         h_target = state.hr_target_name or state.hr_target_address or "HR monitor"
-        return f"[Scanning] Searching for {h_target}... (Turn on strap | r: add rower)"
+        suffix = " | r: add rower" if interactive else ""
+        return f"[Scanning] Searching for {h_target}... (Turn on strap{suffix})"
 
     # Case 3: Rower is active, HR not active
     if rower_is_active and not hr_is_active:
         if "Muted" in state.rower_status_line:
-            return f"[{state.rower_status_line}] (Rower sleeping to save battery | Press 'r' to wake)"
-        r_target = state.rower_target_name or state.rower_target_address or "FTMS rower"
-        return f"[Scanning] Searching for {r_target}... (Pull handle to wake | r: change | h: add hr)"
+            suffix = " | Press 'r' to wake" if interactive else ""
+            return f"[{state.rower_status_line}] (Rower sleeping to save battery{suffix})"
+        r_target = state.rower_target_name or state.rower_target_address or "FTMS Rower"
+        suffix = " | r: change | h: add hr" if interactive else ""
+        return f"[Scanning] Searching for {r_target}... (Pull handle to wake{suffix})"
 
     # Case 4: Both are active
     if "Muted" in state.rower_status_line:
+        suffix = " or press 'r' to wake rower" if interactive else ""
         if state.hr_connected:
             bpm = state.composite_metrics.get("hr", "--")
-            return f"[{state.rower_status_line} | {state.hr_name} ({bpm}bpm)] Pull handle or press 'r' to wake rower"
-        return f"[{state.rower_status_line} | HR Scanning] Press 'r' to wake rower"
+            return f"[{state.rower_status_line} | {state.hr_name} ({bpm}bpm)] Pull handle{suffix}"
+        return f"[{state.rower_status_line} | HR Scanning] Pull handle{suffix}"
 
     if state.hr_connected:
         bpm = state.composite_metrics.get("hr", "--")
@@ -257,7 +287,8 @@ def format_idle_status(state, interactive: bool = True) -> str:
 
     r_target = state.rower_target_name or state.rower_target_address or "Rower"
     h_target = state.hr_target_name or state.hr_target_address or "HR"
-    return f"[Scanning] Searching for {r_target} & {h_target}... (Pull handle to wake | r: rower | h: hr)"
+    suffix = " | r: rower | h: hr" if interactive else ""
+    return f"[Scanning] Searching for {r_target} & {h_target}... (Pull handle to wake{suffix})"
 
 
 # ---------------------------------------------------------------------------

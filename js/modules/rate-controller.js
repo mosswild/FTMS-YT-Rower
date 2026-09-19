@@ -41,6 +41,11 @@ export class RateController {
     this.watchdogInterval = null;
     this.pendingPlaybackRate = null;
 
+    // iOS WebKit AVPlayer stall watchdog tracking
+    this.lastPlayingCurrentTime = 0;
+    this.lastTimeAdvancedAt = 0;
+    this.stallRecoveryAttempts = 0;
+
     this.onRateChange = options.onRateChange || null;
     this.onAutoPauseState = options.onAutoPauseState || null;
 
@@ -312,11 +317,48 @@ export class RateController {
   startWatchdog() {
     if (this.watchdogInterval) clearInterval(this.watchdogInterval);
     this.watchdogInterval = setInterval(() => {
+      const now = Date.now();
+
+      // iOS WebKit AVPlayer stall watchdog:
+      // If video is supposed to be playing (unpaused & not auto-paused) during active rowing,
+      // verify that video.currentTime is actually advancing.
+      if (this.video && !this.video.paused && !this.isAutoPaused && !this.isProgramPaused) {
+        const ct = this.video.currentTime;
+        if (ct > this.lastPlayingCurrentTime + 0.01) {
+          this.lastPlayingCurrentTime = ct;
+          this.lastTimeAdvancedAt = now;
+          this.stallRecoveryAttempts = 0;
+        } else {
+          if (this.lastTimeAdvancedAt === 0) {
+            this.lastTimeAdvancedAt = now;
+            this.lastPlayingCurrentTime = ct;
+          } else if (now - this.lastTimeAdvancedAt >= 1500) {
+            const hasRecentStroke = (now - this.lastStrokeTime) < 3000;
+            if ((this.isWorkoutLive || hasRecentStroke) && this.stallRecoveryAttempts < 3) {
+              this.stallRecoveryAttempts++;
+              this.lastTimeAdvancedAt = now;
+              console.warn(`[RateController] iOS WebKit AVPlayer stall detected (currentTime=${ct.toFixed(2)}s). Soft-recovering decoder (attempt ${this.stallRecoveryAttempts}/3)...`);
+              try {
+                this.video.currentTime = ct + 0.05;
+                const p = this.video.play();
+                if (p && typeof p.catch === "function") {
+                  p.catch(() => {});
+                }
+              } catch (err) {
+                console.warn("[RateController] Decoder recovery error:", err);
+              }
+            }
+          }
+        }
+      } else {
+        this.lastTimeAdvancedAt = 0;
+      }
+
       // Ambient fixed speed: never auto-pause when rower pauses or stops
       if (this.isFixedSpeed) return;
 
       if (this.lastStrokeTime === 0) return;
-      const elapsedSinceStroke = Date.now() - this.lastStrokeTime;
+      const elapsedSinceStroke = now - this.lastStrokeTime;
       
       if (elapsedSinceStroke > this.autoPauseTimeoutMs && !this.isAutoPaused) {
         // No stroke notifications arrived for > 3.5 seconds

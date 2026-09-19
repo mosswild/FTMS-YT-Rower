@@ -164,22 +164,56 @@ const trackController = new TrackController(videoEl, {
   }
 });
 
-// ----------------- Screen Wake Lock (Keep Display Awake) -----------------
+// ----------------- Screen Wake Lock & iOS Keep-Alive (Keep Display Awake) -----------------
 let wakeLockSentinel = null;
+let keepAliveAudioEl = null;
+
+function getKeepAliveAudio() {
+  if (!keepAliveAudioEl) {
+    keepAliveAudioEl = document.createElement("audio");
+    keepAliveAudioEl.setAttribute("playsinline", "true");
+    keepAliveAudioEl.setAttribute("loop", "true");
+    // 0.1s silent WAV data URI to maintain active media playback on iOS WebKit / Safari PWA
+    keepAliveAudioEl.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+    keepAliveAudioEl.volume = 0.01;
+    document.body.appendChild(keepAliveAudioEl);
+  }
+  return keepAliveAudioEl;
+}
 
 async function requestScreenWakeLock() {
+  // 1. Standard Screen Wake Lock API (Desktop Chrome, Edge, Safari 16.4+)
   if ("wakeLock" in navigator && !wakeLockSentinel) {
     try {
       wakeLockSentinel = await navigator.wakeLock.request("screen");
       wakeLockSentinel.addEventListener("release", () => {
         wakeLockSentinel = null;
         console.log("[WakeLock] Screen wake lock released by OS/browser");
+        // Re-acquire immediately if session or video is still active (e.g. after iOS idle timeout)
+        const isSessionActive = sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused");
+        const isVideoActive = videoEl && !videoEl.paused;
+        if ((isSessionActive || isVideoActive) && document.visibilityState === "visible") {
+          setTimeout(() => requestScreenWakeLock(), 1000);
+        }
       });
       console.log("[WakeLock] Screen wake lock acquired");
     } catch (err) {
       console.warn("[WakeLock] Could not acquire screen wake lock:", err);
     }
   }
+
+  // 2. iOS Safari Standalone WebApp (PWA) Media Keep-Alive:
+  // In iOS WebKit standalone mode, muted <video> does not prevent display sleep.
+  // Playing a silent looping media element ensures AVFoundation keeps the screen active.
+  try {
+    const audio = getKeepAliveAudio();
+    if (audio && audio.paused) {
+      const p = audio.play();
+      if (p && typeof p.catch === "function") {
+        p.catch(() => {});
+      }
+    }
+  } catch (e) {}
 }
 
 async function releaseScreenWakeLock() {
@@ -191,6 +225,11 @@ async function releaseScreenWakeLock() {
     } catch (err) {
       console.warn("[WakeLock] Error releasing screen wake lock:", err);
     }
+  }
+  if (keepAliveAudioEl && !keepAliveAudioEl.paused) {
+    try {
+      keepAliveAudioEl.pause();
+    } catch (e) {}
   }
 }
 
@@ -204,6 +243,15 @@ document.addEventListener("visibilitychange", () => {
     }
   }
 });
+
+// Periodic heartbeat: ensures wake lock remains acquired during long workouts without screen touches
+setInterval(() => {
+  const isSessionActive = sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused");
+  const isVideoActive = videoEl && !videoEl.paused;
+  if ((isSessionActive || isVideoActive) && document.visibilityState === "visible" && !wakeLockSentinel) {
+    requestScreenWakeLock();
+  }
+}, 25000);
 
 if (videoEl) {
   videoEl.addEventListener("play", () => {
