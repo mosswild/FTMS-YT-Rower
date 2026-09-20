@@ -46,6 +46,12 @@ import time
 import urllib.error
 import urllib.request
 
+try:
+    from bleak import BleakClient, BleakScanner
+except ImportError:
+    BleakClient = None
+    BleakScanner = None
+
 # FTMS & Heart Rate Bluetooth SIG UUIDs
 FTMS_SERVICE_UUID = "00001826-0000-1000-8000-00805f9b34fb"
 ROWER_DATA_CHAR_UUID = "00002ad1-0000-1000-8000-00805f9b34fb"
@@ -643,8 +649,6 @@ async def rower_loop(
                 continue
 
             state.rower_name = target_device.name or "FTMS Rower"
-            save_saved_device("rower", state.rower_name, target_device.address)
-
             hud.log(f"-> Discovered {state.rower_name} ({target_device.address})! Connecting...")
 
             async with BleakClient(target_device) as client:
@@ -654,6 +658,7 @@ async def rower_loop(
                 state.last_active_time = time.time()
                 t_str = state.last_connected_dt.strftime("%I:%M:%S %p")
                 hud.log(f"[OK] Connected to Rower {state.rower_name} at {t_str}! Streaming telemetry...")
+                save_saved_device("rower", state.rower_name, target_device.address)
 
                 publisher.publish({
                     "event": "connected",
@@ -747,8 +752,9 @@ async def rower_loop(
         except Exception as err:
             state.rower_connected = False
             state.active_rower_client = None
-            if args.verbose:
-                logger.warning(f"Rower connection notice: {err}. Retrying in 4 seconds...")
+            err_msg = str(err).strip() or type(err).__name__
+            hud.log(f"[!] Rower connection notice: {err_msg}. Retrying in 4s...")
+            logger.warning(f"Rower connection error: {err}")
             await asyncio.sleep(3.5)
 
 
@@ -762,8 +768,6 @@ async def hr_loop(
     hud: ConsoleHUD,
     args
 ):
-    from bleak import BleakClient
-
     def hr_notification_handler(sender, data: bytearray):
         parsed = parse_hr_measurement(data)
         if "hr" in parsed:
@@ -831,14 +835,13 @@ async def hr_loop(
                 continue
 
             state.hr_name = target_device.name or "HR Monitor"
-            save_saved_device("hr", state.hr_name, target_device.address)
-
             hud.log(f"-> Discovered HR Monitor {state.hr_name} ({target_device.address})! Connecting...")
 
             async with BleakClient(target_device) as client:
                 state.active_hr_client = client
                 state.hr_connected = True
                 hud.log(f"[OK] Connected to HR Monitor {state.hr_name}! Streaming heart rate...")
+                save_saved_device("hr", state.hr_name, target_device.address)
 
                 publisher.publish({
                     "event": "hr_connected",
@@ -870,8 +873,9 @@ async def hr_loop(
         except Exception as err:
             state.hr_connected = False
             state.active_hr_client = None
-            if args.verbose:
-                logger.warning(f"HR monitor connection notice: {err}. Retrying in 4 seconds...")
+            err_msg = str(err).strip() or type(err).__name__
+            hud.log(f"[!] HR monitor connection notice: {err_msg}. Retrying in 4s...")
+            logger.warning(f"HR monitor connection error: {err}")
             await asyncio.sleep(3.5)
 
 
