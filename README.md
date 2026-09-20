@@ -341,6 +341,8 @@ PYTHONPATH=. .venv/bin/python tests/test_backend.py
 - [x] **iOS Safari & Standalone WebApp (PWA) Screen Sleep During Workouts:** Resolved. Implemented a dual-tier keep-awake engine combining W3C `navigator.wakeLock` (with automatic re-acquisition) and an invisible inline NoSleep MP4 loop with silent AAC audio pre-armed on user touch. Because iOS WebKit ignores muted video for sleep prevention, this active media assertion ensures Apple's AVPlayer suppresses display sleep throughout live workouts.
 - [x] **Scenic Video Freeze on Initial Workout Launch (iOS Safari / WebKit):** Resolved. Added buffer readiness checks (`readyState >= 2`), a pending playback rate queue, and an internal WebKit stall recovery watchdog in `RateController` that soft-recovers decoder stalls if `video.currentTime` fails to advance after 1.5s of telemetry.
 - [x] **Compact Mode Minimal Pause Indicator:** Resolved. Refined `.hud-scale-compact` and mobile styles to replace wide text pills with a sleek, non-intrusive `⏸` icon badge and scaled center alert that prevents clutter in narrow cell layouts.
+- [x] **Compact & Mobile Pause Indicator Badge:** Resolved. Replaced wide text labels inside metric cards on smaller resolutions, mobile landscape (`max-height: 520px`), and compact views with a sleek, non-intrusive minimal `⏸` icon badge that fits seamlessly without crowding readouts.
+- [x] **Auto-Pause Latch & Seamless Resume:** Resolved. Removed incorrect `isWorkoutLive = false` assignment during session pause in `js/app.js` and added proactive pull-detection in `handleTelemetryPacket` so that subsequent strokes instantly unpause the HUD, resume video playback, and continue session distance and elapsed time tracking across all simulator and real-world rowing phases.
 
 ---
 

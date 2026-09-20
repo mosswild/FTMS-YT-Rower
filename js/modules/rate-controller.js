@@ -302,6 +302,7 @@ export class RateController {
   resumeVideo() {
     if (!this.isWorkoutLive || this.isProgramPaused) return;
     this.isAutoPaused = false;
+    this.lastStrokeTime = Date.now();
     if (this.video && this.video.paused) {
       this.video.play().catch(e => console.warn("[RateController] Autoplay error:", e));
     }

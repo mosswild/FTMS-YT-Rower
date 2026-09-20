@@ -178,8 +178,20 @@ function releaseScreenWakeLock() {
 
 if (videoEl) {
   videoEl.addEventListener("play", () => {
-    if (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) {
+    const isLive = (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) ||
+                   (typeof simulator !== "undefined" && simulator && simulator.isRunning);
+    if (isLive) {
       keepAwake.enable();
+      if (typeof rateController !== "undefined" && rateController) {
+        rateController.isAutoPaused = false;
+        rateController.lastStrokeTime = Date.now();
+      }
+      if (typeof pm5Hud !== "undefined" && pm5Hud) {
+        pm5Hud.setAutoPause(false);
+      }
+      if (sessionTracker && sessionTracker.state === "paused") {
+        sessionTracker.resume();
+      }
     }
   });
   videoEl.addEventListener("pause", () => {
@@ -219,7 +231,7 @@ const sessionTracker = new SessionTracker({
         workoutBtn.className = "btn btn-danger";
       }
       pm5Hud.pauseSession();
-      rateController.setWorkoutLive(false);
+      // Keep rateController.isWorkoutLive = true so that subsequent strokes automatically resume the session
       if (videoEl && !videoEl.paused) {
         videoEl.pause();
         audioEngine.pause();
@@ -402,6 +414,31 @@ function handleTelemetryPacket(data) {
   if (data.strokeRate !== undefined) {
     rateController.updateCadence(data.strokeRate);
     audioEngine.updateCadence(data.strokeRate);
+  }
+
+  // Auto-resume session and HUD if currently auto-paused and strokes are detected
+  if (data.strokeRate !== undefined && data.strokeRate > 0) {
+    if (sessionTracker && sessionTracker.state === "paused") {
+      const isProgramExplicitlyPaused = (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.status === "paused") ||
+                                       (typeof rateController !== "undefined" && rateController && rateController.isProgramPaused);
+      if (!isProgramExplicitlyPaused) {
+        if (typeof rateController !== "undefined" && rateController) {
+          rateController.isAutoPaused = false;
+          rateController.lastStrokeTime = Date.now();
+          if (rateController.isWorkoutLive && videoEl && videoEl.paused) {
+            rateController.resumeVideo();
+          }
+        }
+        if (typeof pm5Hud !== "undefined" && pm5Hud) {
+          pm5Hud.setAutoPause(false);
+          pm5Hud.resumeSession();
+        }
+        sessionTracker.resume();
+        if (typeof workoutEngine !== "undefined" && workoutEngine && workoutEngine.isRunning) {
+          workoutEngine.onRowerResumed();
+        }
+      }
+    }
   }
 
   // Auto-start staged program on first meaningful pull if in ready state
@@ -994,10 +1031,12 @@ function loadVideoIntoCockpit(videoId, title, autoPlay = false, isTrack = false)
   videoEl.src = `/api/media/video/${videoId}`;
   videoEl.load();
   pm5Hud.setVideoTitle(title);
-  const shouldAutoPlay = autoPlay && rateController && rateController.isWorkoutLive;
-  audioEngine.setScenicVideo(videoId, title, 0, 0, shouldAutoPlay);
-  sessionTracker.setMeta(videoId, audioEngine.mode);
+  const isWorkoutLive = (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) ||
+                        (typeof simulator !== "undefined" && simulator && simulator.isRunning);
+  const shouldAutoPlay = (autoPlay || isWorkoutLive) && isWorkoutLive;
   if (!isTrack) {
+    audioEngine.setScenicVideo(videoId, title, 0, 0, shouldAutoPlay);
+    sessionTracker.setMeta(videoId, audioEngine.mode);
     trackController.clearTrack();
     rateController.setFixedSpeed(false);
     audioEngine.setAmbientMode(rateController && rateController.speedMode === "ambient");
@@ -1005,7 +1044,19 @@ function loadVideoIntoCockpit(videoId, title, autoPlay = false, isTrack = false)
   }
 
   if (shouldAutoPlay) {
-    videoEl.play().catch(e => console.warn(e));
+    rateController.setWorkoutLive(true);
+    rateController.lastStrokeTime = Date.now();
+    rateController.isAutoPaused = false;
+    pm5Hud.setAutoPause(false);
+
+    const playAttempt = () => {
+      videoEl.play().catch(e => console.warn("[Cockpit] Play video error:", e));
+    };
+    if (videoEl.readyState >= 2) {
+      playAttempt();
+    } else {
+      videoEl.addEventListener("canplay", playAttempt, { once: true });
+    }
   }
 }
 
@@ -1060,7 +1111,9 @@ async function loadTracksUI() {
         btn.addEventListener("click", () => {
           const track = cachedTracks.find(t => t.id === btn.dataset.id);
           if (track) {
-            loadTrackIntoCockpit(track, false);
+            const isLive = (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) ||
+                           (typeof simulator !== "undefined" && simulator && simulator.isRunning);
+            loadTrackIntoCockpit(track, isLive);
             switchView("cockpit");
           }
         });
@@ -1105,8 +1158,13 @@ async function loadTracksUI() {
 }
 
 function loadTrackIntoCockpit(track, autoPlay = false) {
-  loadVideoIntoCockpit(track.video_id, track.name, false, true);
+  const isWorkoutLive = (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) ||
+                        (typeof simulator !== "undefined" && simulator && simulator.isRunning);
+  const shouldAutoPlay = autoPlay || isWorkoutLive;
+
+  loadVideoIntoCockpit(track.video_id, track.name, shouldAutoPlay, true);
   trackController.loadTrack(track);
+  sessionTracker.setMeta(track.video_id, track.default_audio || audioEngine.mode);
   const isAmbient = !!track.fixed_speed || (rateController && rateController.speedMode === "ambient");
   rateController.setFixedSpeed(!!track.fixed_speed);
   audioEngine.setAmbientMode(isAmbient);
@@ -1116,8 +1174,8 @@ function loadTrackIntoCockpit(track, autoPlay = false) {
     const videoObj = cachedLibrary.videos ? cachedLibrary.videos.find(v => v.id === track.video_id) : null;
     const vStart = track.start_time !== undefined ? track.start_time : (videoObj ? videoObj.start_time : 0);
     const vEnd = track.end_time !== undefined ? track.end_time : (videoObj ? videoObj.end_time : 0);
-    audioEngine.setScenicVideo(track.video_id, track.name, vStart, vEnd);
-    audioEngine.setMode("original", false);
+    audioEngine.setScenicVideo(track.video_id, track.name, vStart, vEnd, shouldAutoPlay);
+    audioEngine.setMode("original", shouldAutoPlay);
     updateAudioTrackDropdown("original", track.allowed_audios);
   } else if (track.default_audio === "mute") {
     audioEngine.setMode("mute", false);
@@ -1127,20 +1185,21 @@ function loadTrackIntoCockpit(track, autoPlay = false) {
     const audioObj = cachedLibrary.audio ? cachedLibrary.audio.find(a => a.id === track.default_audio) : null;
     const startT = audioObj ? (audioObj.start_time || 0) : 0;
     const endT = audioObj ? (audioObj.end_time || 0) : 0;
-    audioEngine.setCustomAudio(audioUrl, audioObj ? audioObj.title : "Track Soundtrack", startT, endT, false);
+    audioEngine.setCustomAudio(audioUrl, audioObj ? audioObj.title : "Track Soundtrack", startT, endT, shouldAutoPlay);
     updateAudioTrackDropdown(audioUrl, track.allowed_audios);
   }
 
-  const isWorkoutLive = (sessionTracker.state === "active" || sessionTracker.state === "paused") || (simulator && simulator.isRunning);
   rateController.setWorkoutLive(isWorkoutLive);
 
   if (track.fixed_speed) {
     // Ambient video mode: plays steadily at 1.0x without pausing when rower pauses, but ONLY when workout is live
     pm5Hud.updateSpeedMultiplier(1.0, true);
-    if (isWorkoutLive || autoPlay) {
+    if (shouldAutoPlay) {
       rateController.setWorkoutLive(true);
-      rateController.resumeVideo();
+      rateController.lastStrokeTime = Date.now();
+      rateController.isAutoPaused = false;
       pm5Hud.setAutoPause(false);
+      rateController.resumeVideo();
       audioEngine.play();
     } else {
       rateController.pauseVideo(true);
@@ -1148,16 +1207,23 @@ function loadTrackIntoCockpit(track, autoPlay = false) {
       audioEngine.pause();
     }
   } else {
-    // Cadence dynamic mode: start paused waiting for strokes
-    rateController.pauseVideo(true);
-    rateController.smoothedRate = rateController.minRate;
-    pm5Hud.updateSpeedMultiplier(0, false);
-    pm5Hud.setAutoPause(true);
-    audioEngine.pause();
-
-    if (isWorkoutLive && autoPlay) {
+    // Cadence dynamic mode
+    if (shouldAutoPlay) {
+      rateController.setWorkoutLive(true);
+      rateController.lastStrokeTime = Date.now();
+      rateController.isAutoPaused = false;
+      pm5Hud.setAutoPause(false);
       rateController.resumeVideo();
-      audioEngine.play();
+      if (audioEngine.mode !== "mute") {
+        audioEngine.play();
+      }
+    } else {
+      // Start paused waiting for strokes
+      rateController.pauseVideo(true);
+      rateController.smoothedRate = rateController.minRate;
+      pm5Hud.updateSpeedMultiplier(0, false);
+      pm5Hud.setAutoPause(true);
+      audioEngine.pause();
     }
   }
 }
@@ -3040,7 +3106,7 @@ if (simBtn) {
       pm5Hud.updateMetrics({ strokeRate: 0, instantaneousPace: 0, watts: 0 });
       syncSimHrButtons();
 
-      if (sessionTracker.state === "active") {
+      if (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) {
         sessionTracker.finish();
       }
       if (workoutEngine && workoutEngine.isRunning) {
@@ -3644,7 +3710,9 @@ function renderHudTrackDropdown() {
       const id = item.dataset.id;
       const track = cachedTracks ? cachedTracks.find(t => t.id === id) : null;
       if (track) {
-        loadTrackIntoCockpit(track, false);
+        const isLive = (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) ||
+                       (typeof simulator !== "undefined" && simulator && simulator.isRunning);
+        loadTrackIntoCockpit(track, isLive);
         showHudToast(`Track: ${track.name}`);
       }
       closeHudDropdowns();

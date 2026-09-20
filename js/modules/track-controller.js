@@ -38,8 +38,16 @@ export class TrackController {
     };
 
     if (this.video) {
-      // Seek to start position immediately
-      this.video.currentTime = this.activeTrack.startTime;
+      const seekStart = () => {
+        try {
+          this.video.currentTime = this.activeTrack.startTime;
+        } catch (e) {}
+      };
+      if (this.video.readyState >= 1) {
+        seekStart();
+      } else {
+        this.video.addEventListener("loadedmetadata", seekStart, { once: true });
+      }
     }
 
     if (this.onTrackChange) {
