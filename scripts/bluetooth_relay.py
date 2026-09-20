@@ -39,6 +39,7 @@ import json
 import logging
 import os
 import shutil
+import signal
 import sys
 import threading
 import time
@@ -499,6 +500,8 @@ class RelayState:
         self.active_rower_client = None
         self.rower_paused = False
         self.rower_reconnect_event = asyncio.Event()
+        self.rower_muted = False
+        self.rower_silence_skip_event = asyncio.Event()
 
         self.hr_connected = False
         self.hr_name = "HR Monitor"
@@ -527,6 +530,7 @@ class RelayState:
         self.hr_enable_event.set()
         self.rower_reconnect_event.set()
         self.hr_reconnect_event.set()
+        self.rower_silence_skip_event.set()
 
     async def disconnect_rower(self):
         """Disconnects the currently connected rower."""
@@ -688,32 +692,49 @@ async def rower_loop(
                 })
 
                 if idle_disconnected:
-                    cooldown_sec = getattr(args, "silence_window", 480)
+                    cooldown_sec = getattr(args, "silence_window", 360)
                     cooldown_start = time.time()
                     m_silence = round(cooldown_sec / 60, 1)
                     m_silence_str = f"{int(m_silence)}" if m_silence.is_integer() else f"{m_silence}"
 
+                    state.rower_muted = True
+                    state.rower_silence_skip_event.clear()
+
                     hud.log(f"[Idle] Rower disconnected at {disconnect_time} to save battery.")
-                    hud.log(f"       Entering {m_silence_str}m radio silence so rower powers off. Press [r] to resume early.")
+                    hud.log(f"       Entering {m_silence_str}m radio silence so rower powers off. Press [r] to resume, [q] to exit.")
 
-                    while True:
-                        if state.rower_paused or state.stop_event.is_set():
-                            break
+                    try:
+                        while True:
+                            if state.rower_paused or state.stop_event.is_set() or state.rower_reconnect_event.is_set():
+                                break
 
-                        elapsed = int(time.time() - cooldown_start)
-                        if elapsed >= cooldown_sec:
-                            hud.log(f"[OK] {m_silence_str}m radio silence complete. Rower should now be powered off.")
-                            hud.log("     Battery conserved! Pull handle or press dial to wake.")
-                            break
+                            if state.rower_silence_skip_event.is_set():
+                                hud.log("[Resume] Radio silence exited early by user. Resuming rower connection...")
+                                break
 
-                        remaining = max(0, cooldown_sec - elapsed)
-                        rem_m = remaining // 60
-                        rem_s = remaining % 60
-                        state.rower_status_line = f"Rower Muted {rem_m:02d}:{rem_s:02d}"
+                            elapsed = int(time.time() - cooldown_start)
+                            if elapsed >= cooldown_sec:
+                                hud.log(f"[OK] {m_silence_str}m radio silence complete. Rower should now be powered off.")
+                                hud.log("     Battery conserved! Pull handle or press dial to wake.")
+                                break
 
-                        if not state.interactive_mode and not state.hr_connected:
-                            hud.update(f"[Radio Silence] Muted for {rem_m:02d}:{rem_s:02d} to let rower sleep... (Press 'r' to resume)")
-                        await asyncio.sleep(1.0)
+                            remaining = max(0, cooldown_sec - elapsed)
+                            rem_m = remaining // 60
+                            rem_s = remaining % 60
+                            state.rower_status_line = f"Rower Muted {rem_m:02d}:{rem_s:02d}"
+
+                            if not state.interactive_mode and not state.hr_connected:
+                                hud.update(f"[Radio Silence] Muted for {rem_m:02d}:{rem_s:02d} to let rower sleep... (Press 'r' to resume early, 'q' to exit)")
+
+                            try:
+                                await asyncio.wait_for(state.rower_silence_skip_event.wait(), timeout=1.0)
+                                hud.log("[Resume] Radio silence exited early by user. Resuming rower connection...")
+                                break
+                            except asyncio.TimeoutError:
+                                pass
+                    finally:
+                        state.rower_muted = False
+                        state.rower_silence_skip_event.clear()
                 else:
                     hud.log(f"! Rower disconnected at {disconnect_time}. Resuming search...")
 
@@ -1192,6 +1213,21 @@ async def interactive_terminal_task(
     """Processes interactive commands dispatched from the background keyboard listener."""
     while not state.stop_event.is_set():
         cmd = await cmd_queue.get()
+
+        # Immediate exit on quit commands
+        if cmd in ("q", "x"):
+            hud.log("\n[Quit] Exiting relay bridge...")
+            state.rower_silence_skip_event.set()
+            state.stop()
+            await state.disconnect_rower()
+            await state.disconnect_hr()
+            break
+
+        # If muted, resuming via 'r', space, or Enter should wake up rower_loop immediately without opening scanner
+        if state.rower_muted and cmd in ("r", " ", "\r", "\n"):
+            state.rower_silence_skip_event.set()
+            continue
+
         state.interactive_mode = True
         state.keyboard_pause_event.set()
         hud.paused = True
@@ -1206,6 +1242,8 @@ async def interactive_terminal_task(
             elif cmd == "h":
                 await handle_interactive_scan_hr(state, coordinator, hud)
             elif cmd == "d":
+                if state.rower_muted:
+                    state.rower_silence_skip_event.set()
                 await handle_interactive_disconnect(state, publisher, hud)
             elif cmd == "c":
                 clear_saved_devices()
@@ -1218,12 +1256,6 @@ async def interactive_terminal_task(
                 hud.log("[OK] Cleared remembered devices configuration.")
             elif cmd in ("m", "?"):
                 print_interactive_help()
-            elif cmd == "q":
-                hud.log("\n[Quit] Exiting relay bridge...")
-                await state.disconnect_rower()
-                await state.disconnect_hr()
-                state.stop()
-                break
         except Exception as e:
             logger.debug(f"Interactive command exception: {e}")
         finally:
@@ -1273,8 +1305,20 @@ def start_keyboard_thread(loop: asyncio.AbstractEventLoop, cmd_queue: asyncio.Qu
                         continue
 
                 if ch and not state.keyboard_pause_event.is_set():
+                    # Check for Ctrl+C (\x03) or Ctrl+D (\x04) directly when in raw/cbreak mode
+                    if ch in ("\x03", "\x04"):
+                        if terminal_mgr:
+                            terminal_mgr.restore_cooked()
+                        state.rower_silence_skip_event.set()
+                        state.stop()
+                        try:
+                            os.kill(os.getpid(), signal.SIGINT)
+                        except Exception:
+                            pass
+                        break
+
                     c = ch.lower()
-                    if c in ("r", "h", "d", "c", "m", "?", "q"):
+                    if c in ("r", "h", "d", "c", "m", "?", "q", "x", " ", "\r", "\n"):
                         loop.call_soon_threadsafe(cmd_queue.put_nowait, c)
             except Exception:
                 time.sleep(0.2)
@@ -1444,7 +1488,7 @@ def main():
     parser.add_argument("--no-interactive", action="store_true", help="Disable interactive terminal hotkeys (for headless/docker/daemon execution)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose multi-line scrolling logs instead of single-line HUD")
     parser.add_argument("--idle-timeout", type=int, default=300, help="Inactivity timeout in seconds before disconnecting rower (default: 300 / 5 min; 0 to disable)")
-    parser.add_argument("--silence-window", type=int, default=480, help="Duration in seconds of radio silence allowing rower to power off (default: 480 / 8 min)")
+    parser.add_argument("--silence-window", type=int, default=360, help="Duration in seconds of radio silence allowing rower to power off (default: 360 / 6 min)")
     parser.add_argument("--spm-multiplier", type=float, default=0.5, help="FTMS Stroke Rate resolution multiplier (default: 0.5 per FTMS v1.0 standard; use 1.0 for non-standard direct SPM rowers)")
 
     args = parser.parse_args()

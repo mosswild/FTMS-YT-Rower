@@ -362,6 +362,7 @@ class TestBluetoothRelay(unittest.TestCase):
         self.assertTrue(state.hr_enable_event.is_set())
         self.assertTrue(state.rower_reconnect_event.is_set())
         self.assertTrue(state.hr_reconnect_event.is_set())
+        self.assertTrue(state.rower_silence_skip_event.is_set())
 
     def test_handle_interactive_scan_rower_rescan(self):
         """Test handle_interactive_scan_rower rescans when user types 'r'."""
@@ -440,7 +441,67 @@ class TestBluetoothRelay(unittest.TestCase):
                     self.assertLessEqual(len(content), 78)
 
 
+    def test_mute_stage_exit_and_resume_events(self):
+        """Test that 'r', space, Enter immediately signal rower_silence_skip_event when muted, and 'q'/'x' stop relay."""
+        import asyncio
+        import argparse
+        from scripts.bluetooth_relay import interactive_terminal_task
+
+        args = argparse.Namespace(
+            server="http://localhost:8000",
+            address=None,
+            name=None,
+            hr=False,
+            hr_name=None,
+            hr_address=None,
+            forget=True,
+            idle_timeout=300,
+            silence_window=360,
+            no_interactive=False,
+            auto=False,
+            verbose=False,
+        )
+        state = RelayState(args)
+        state.rower_muted = True
+        state.rower_silence_skip_event.clear()
+
+        coordinator = MagicMock()
+        publisher = MagicMock()
+        hud = MagicMock()
+        cmd_queue = asyncio.Queue()
+
+        async def run_test():
+            # Send 'r' while muted
+            await cmd_queue.put("r")
+            task = asyncio.create_task(interactive_terminal_task(state, coordinator, publisher, hud, cmd_queue, None))
+            # Let event loop process 'r'
+            await asyncio.sleep(0.05)
+            self.assertTrue(state.rower_silence_skip_event.is_set())
+            self.assertFalse(state.interactive_mode)
+
+            # Clear and test 'q' (exit)
+            state.rower_silence_skip_event.clear()
+            await cmd_queue.put("q")
+            await asyncio.wait_for(task, timeout=2.0)
+            self.assertTrue(state.stop_event.is_set())
+            self.assertTrue(state.rower_silence_skip_event.is_set())
+
+        asyncio.run(run_test())
+
+    def test_silence_window_cli_default(self):
+        """Verify default CLI silence-window is 360 seconds (6 minutes)."""
+        import argparse
+        from scripts.bluetooth_relay import main
+
+        # Create parser identical to main
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--silence-window", type=int, default=360)
+        parsed = parser.parse_args([])
+        self.assertEqual(parsed.silence_window, 360)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 

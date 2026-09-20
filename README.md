@@ -311,7 +311,7 @@ FTMS-Rower supports both **Direct Web Bluetooth** and **Wi-Fi WebSocket Relay** 
 2. **Wi-Fi WebSocket Relay Bridge:**
    - Host machine pairs to the rower via `bleak` ([scripts/bluetooth_relay.py](scripts/bluetooth_relay.py) or `run_relay_windows.bat`) and broadcasts telemetry over WebSockets.
    - **Real-Time Live Console HUD:** Single-line terminal dashboard showing composite metrics (`[09:35:14 PM] [MRK-CRYDN-2CEE] 24 SPM | 145W | 2:12/500m | 1,240m | 05:42`) with automatic packet merging and live timestamps.
-   - **Battery Conservation Sleep:** Automatically disconnects after 5 minutes of inactivity (`--idle-timeout 300`) and enters an 8-minute radio silence window (`--silence-window 480`). Zero scan packets are sent, allowing rower hardware (e.g. Merach Q1) to power down its console and LCD screen.
+   - **Battery Conservation Sleep:** Automatically disconnects after 5 minutes of inactivity (`--idle-timeout 300`) and enters a 6-minute radio silence window (`--silence-window 360`). Zero scan packets are sent, allowing rower hardware (e.g. Merach Q1) to power down its console and LCD screen. Pressing `[r]`, space, or Enter exits the mute stage early and resumes connection search, while `[q]`, `[x]`, or `Ctrl+C` immediately terminates the relay.
    - **Zero Browser Restrictions:** All devices (Safari, Firefox, Smart TVs) connect over plain HTTP without browser flags or certificates.
 
 ---
