@@ -90,13 +90,10 @@ export class RowerBLE {
     // Flag Bit 0: More Data
     // 0 = Stroke Rate (uint8, 0.5 resolution) and Stroke Count (uint16) present
     if ((flags & (1 << 0)) === 0 && byteIndex < value.byteLength) {
-      let rawSpm = value.getUint8(byteIndex);
+      const rawSpm = value.getUint8(byteIndex);
       byteIndex += 1;
-      
-      // FTMS standard spec defines Stroke Rate as 0.5 stroke/min units (e.g. 48 = 24 SPM).
-      // However, some rowers (e.g. Merach Q1S) directly transmit raw SPM (e.g. 24).
-      // Normal rowing stroke rates are 14-40 SPM. If raw > 50, it's 0.5 resolution.
-      data.strokeRate = (rawSpm > 50) ? Math.round(rawSpm * 0.5) : rawSpm;
+      // Bluetooth SIG FTMS v1.0 Section 4.8.1.1: Stroke Rate is uint8 in 0.5 stroke/min units (e.g. 48 = 24 SPM)
+      data.strokeRate = Math.round(rawSpm * 0.5);
 
       if (byteIndex + 1 < value.byteLength) {
         data.strokeCount = value.getUint16(byteIndex, true);
@@ -106,9 +103,9 @@ export class RowerBLE {
 
     // Flag Bit 1: Average Stroke Rate (uint8, 0.5 resolution)
     if ((flags & (1 << 1)) !== 0 && byteIndex < value.byteLength) {
-      let rawAvgSpm = value.getUint8(byteIndex);
+      const rawAvgSpm = value.getUint8(byteIndex);
       byteIndex += 1;
-      data.avgStrokeRate = (rawAvgSpm > 50) ? Math.round(rawAvgSpm * 0.5) : rawAvgSpm;
+      data.avgStrokeRate = Math.round(rawAvgSpm * 0.5);
     }
 
     // Flag Bit 2: Total Distance (uint24) in meters

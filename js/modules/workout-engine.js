@@ -16,7 +16,9 @@ export class WorkoutEngine {
     }, options);
 
     this.workout = null;
+    this.rawSteps = [];
     this.steps = [];
+    this.baselineSpm = options.baselineSpm || 20;
     this.currentStepIndex = -1;
     this.status = "idle"; // "idle" | "countdown" | "running" | "paused" | "completed"
 
@@ -56,6 +58,58 @@ export class WorkoutEngine {
     this.soundAlerts = true;
   }
 
+  setBaselineSpm(spm) {
+    if (spm && spm >= 14 && spm <= 40) {
+      this.baselineSpm = spm;
+      if (this.workout && this.rawSteps.length > 0) {
+        this.parameterizeSteps();
+        if (this.currentStepIndex >= 0 && this.currentStepIndex < this.steps.length) {
+          const curStep = this.steps[this.currentStepIndex];
+          this.options.onStepChange(curStep, this.currentStepIndex, this.steps.length);
+          this.evaluateCompliance(this.lastTelemetry);
+          this.updateProgress();
+        }
+      }
+    }
+  }
+
+  parameterizeSteps() {
+    if (!this.rawSteps || this.rawSteps.length === 0) {
+      this.steps = [];
+      return;
+    }
+
+    const refBase = (this.workout && this.workout.settings && this.workout.settings.baseline_spm)
+      ? this.workout.settings.baseline_spm
+      : 20;
+    const delta = this.baselineSpm - refBase;
+
+    this.steps = this.rawSteps.map((origStep) => {
+      const step = JSON.parse(JSON.stringify(origStep));
+      if (step.targets && step.targets.spm !== undefined) {
+        if (Array.isArray(step.targets.spm)) {
+          const min = step.targets.spm[0];
+          const max = step.targets.spm[1] !== undefined ? step.targets.spm[1] : min;
+          // If step is a passive rest step with target <= 0, do not offset
+          if (min <= 0 && max <= 0) {
+            step.targets.spm = [0, 0];
+          } else {
+            const adjMin = Math.max(12, Math.min(50, Math.round(min + delta)));
+            const adjMax = Math.max(adjMin, Math.min(50, Math.round(max + delta)));
+            step.targets.spm = [adjMin, adjMax];
+          }
+        } else if (typeof step.targets.spm === "number") {
+          if (step.targets.spm <= 0) {
+            step.targets.spm = 0;
+          } else {
+            step.targets.spm = Math.max(12, Math.min(50, Math.round(step.targets.spm + delta)));
+          }
+        }
+      }
+      return step;
+    });
+  }
+
   get isRunning() {
     return this.status === "running" || this.status === "countdown" || this.status === "paused";
   }
@@ -79,7 +133,7 @@ export class WorkoutEngine {
     }
   }
 
-  playBeep(freq = 440, duration = 0.08, type = "sine") {
+  playBeep(freq = 440, durationSec = 0.08) {
     if (!this.soundAlerts) return;
     try {
       this.initAudio();
@@ -88,20 +142,18 @@ export class WorkoutEngine {
       const osc = this.audioCtx.createOscillator();
       const gain = this.audioCtx.createGain();
 
-      osc.type = type;
+      osc.type = "sine";
       osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
 
-      gain.gain.setValueAtTime(0.15, this.audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + duration);
+      gain.gain.setValueAtTime(0.25, this.audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + durationSec);
 
       osc.connect(gain);
       gain.connect(this.audioCtx.destination);
 
       osc.start();
-      osc.stop(this.audioCtx.currentTime + duration);
-    } catch (e) {
-      // Audio autoplay policy or device restrictions
-    }
+      osc.stop(this.audioCtx.currentTime + durationSec);
+    } catch (e) {}
   }
 
   playTransitionChime() {
@@ -133,7 +185,8 @@ export class WorkoutEngine {
   loadWorkout(workoutData) {
     clearInterval(this.tickInterval);
     this.workout = workoutData;
-    this.steps = workoutData.expanded_steps || [];
+    this.rawSteps = workoutData.expanded_steps || [];
+    this.parameterizeSteps();
     this.soundAlerts = workoutData.settings ? workoutData.settings.sound_alerts !== false : true;
     this.currentStepIndex = 0;
     this.status = "ready";

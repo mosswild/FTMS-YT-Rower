@@ -56,6 +56,18 @@ export class VirtualRowerSimulator {
 
     this.currentPhaseIndex = 0;
     this.phaseElapsed = 0;
+    this.baselineSpm = options.baselineSpm || 20;
+  }
+
+  setBaselineSpm(spm) {
+    if (spm && spm >= 14 && spm <= 40) {
+      this.baselineSpm = spm;
+      if (this.mode === "dynamic") {
+        this.applyCurrentPhase();
+      } else if (this.mode === "workout") {
+        this.applyWorkoutStepTarget();
+      }
+    }
   }
 
   setMode(mode) {
@@ -85,13 +97,18 @@ export class VirtualRowerSimulator {
 
   applyCurrentPhase() {
     const phase = this.dynamicPhases[this.currentPhaseIndex];
-    this.targetSpm = phase.targetSpm;
+    const delta = (this.baselineSpm || 20) - 20;
+    if (phase.targetSpm <= 0 || !phase.isRowing) {
+      this.targetSpm = 0;
+    } else {
+      this.targetSpm = Math.max(14, Math.min(50, Math.round(phase.targetSpm + delta)));
+    }
     this.isRowing = phase.isRowing;
     this.targetSplitSeconds = null;
     this.targetWatts = null;
     this.targetHr = null;
     if (this.onPhaseChange) {
-      this.onPhaseChange(phase.name, phase.targetSpm);
+      this.onPhaseChange(phase.name, this.targetSpm);
     }
   }
 

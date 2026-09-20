@@ -294,8 +294,8 @@ def format_idle_status(state, interactive: bool = True) -> str:
 # ---------------------------------------------------------------------------
 # Packet Decoders
 # ---------------------------------------------------------------------------
-def parse_ftms_rower_data(data: bytearray) -> dict:
-    """Decodes Bluetooth SIG FTMS Rower Data (0x2AD1) packet."""
+def parse_ftms_rower_data(data: bytearray, spm_multiplier: float = 0.5) -> dict:
+    """Decodes Bluetooth SIG FTMS Rower Data (0x2AD1) packet per v1.0 specification."""
     if len(data) < 2:
         return {}
 
@@ -307,15 +307,17 @@ def parse_ftms_rower_data(data: bytearray) -> dict:
     }
 
     # Bit 0: More Data (0 = Stroke Rate & Stroke Count present)
+    # Bluetooth SIG FTMS v1.0 Section 4.8.1.1: Stroke Rate is uint8 in 0.5 stroke/min units
     if not (flags & (1 << 0)) and idx + 3 <= len(data):
         raw_spm = data[idx]
-        parsed["stroke_rate"] = round(raw_spm * 0.5) if raw_spm > 50 else raw_spm
+        parsed["stroke_rate"] = round(raw_spm * spm_multiplier)
         idx += 1
         parsed["total_strokes"] = int.from_bytes(data[idx:idx+2], byteorder="little")
         idx += 2
 
-    # Bit 1: Average Stroke Rate present
+    # Bit 1: Average Stroke Rate present (uint8 in 0.5 resolution)
     if (flags & (1 << 1)) and idx + 1 <= len(data):
+        parsed["avg_stroke_rate"] = round(data[idx] * spm_multiplier)
         idx += 1
 
     # Bit 2: Total Distance present (uint24 in meters)
@@ -555,10 +557,10 @@ async def rower_loop(
     hud: ConsoleHUD,
     args
 ):
-    from bleak import BleakClient
+    spm_mult = getattr(args, "spm_multiplier", 0.5) if args else 0.5
 
     def rower_notification_handler(sender, data: bytearray):
-        parsed = parse_ftms_rower_data(data)
+        parsed = parse_ftms_rower_data(data, spm_multiplier=spm_mult)
         if any(k in parsed for k in ("stroke_rate", "watts", "distance", "split_seconds", "resistance", "hr")):
             if (parsed.get("stroke_rate") or 0) > 0 or (parsed.get("watts") or 0) > 0:
                 state.last_active_time = time.time()
@@ -1443,6 +1445,7 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose multi-line scrolling logs instead of single-line HUD")
     parser.add_argument("--idle-timeout", type=int, default=300, help="Inactivity timeout in seconds before disconnecting rower (default: 300 / 5 min; 0 to disable)")
     parser.add_argument("--silence-window", type=int, default=480, help="Duration in seconds of radio silence allowing rower to power off (default: 480 / 8 min)")
+    parser.add_argument("--spm-multiplier", type=float, default=0.5, help="FTMS Stroke Rate resolution multiplier (default: 0.5 per FTMS v1.0 standard; use 1.0 for non-standard direct SPM rowers)")
 
     args = parser.parse_args()
 

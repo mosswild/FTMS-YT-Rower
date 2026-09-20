@@ -66,10 +66,18 @@ try {
   }
 } catch (e) {}
 
-// Check if initial speed mode is ambient
+// Check if initial speed mode is ambient and baseline SPM
 let initialIsAmbient = false;
+let savedBaselineSpm = 20;
 try {
   initialIsAmbient = (localStorage.getItem("ftms_speed_mode") === "ambient");
+  const storedBase = localStorage.getItem("ftms_baseline_spm");
+  if (storedBase) {
+    const parsed = parseInt(storedBase, 10);
+    if (!isNaN(parsed) && parsed >= 14 && parsed <= 40) {
+      savedBaselineSpm = parsed;
+    }
+  }
 } catch (e) {}
 
 // Initialize Audio Engine with status callback
@@ -77,7 +85,7 @@ const audioEngine = new AudioEngine(videoEl, audioEl, {
   cadenceVolumeModulation: initialCadenceAudioVol,
   volumeSensitivity: initialCadenceAudioSensitivity,
   isAmbient: initialIsAmbient,
-  baselineSpm: 20,
+  baselineSpm: savedBaselineSpm,
   onStatusChange: (status) => {
     updateAudioUI(status);
   }
@@ -114,7 +122,7 @@ function updateAudioUI(status) {
 // Initialize Rate Controller
 const savedSpeedMode = localStorage.getItem("ftms_speed_mode") || "zones";
 const rateController = new RateController(videoEl, {
-  baselineSpm: 20,
+  baselineSpm: savedBaselineSpm,
   alpha: 0.25,
   speedMode: savedSpeedMode,
   autoPauseTimeoutMs: 3500,
@@ -341,6 +349,7 @@ function syncWorkoutPauseButton() {
 
 // Initialize Workout Engine
 const workoutEngine = new WorkoutEngine({
+  baselineSpm: savedBaselineSpm,
   onStatusChange: (status, meta) => {
     if (typeof simulator !== "undefined" && simulator) {
       simulator.onWorkoutStatusChange(status, meta);
@@ -464,6 +473,7 @@ function handleTelemetryPacket(data) {
 const simulator = new VirtualRowerSimulator((data) => {
   handleTelemetryPacket(data);
 }, {
+  baselineSpm: savedBaselineSpm,
   onPhaseChange: (phaseName, targetSpm) => {
     if (simPhaseBadge) {
       simPhaseBadge.textContent = `Phase: ${phaseName} (${targetSpm} SPM)`;
@@ -3398,11 +3408,18 @@ document.getElementById("btn-close-settings").addEventListener("click", () => {
 const settingBaselineSpm = document.getElementById("setting-baseline-spm");
 const settingBaselineSpmVal = document.getElementById("setting-baseline-spm-val");
 if (settingBaselineSpm) {
+  settingBaselineSpm.value = savedBaselineSpm;
+  if (settingBaselineSpmVal) settingBaselineSpmVal.textContent = savedBaselineSpm;
   settingBaselineSpm.addEventListener("input", (e) => {
     const val = parseInt(e.target.value, 10);
-    settingBaselineSpmVal.textContent = val;
+    if (settingBaselineSpmVal) settingBaselineSpmVal.textContent = val;
+    try {
+      localStorage.setItem("ftms_baseline_spm", val.toString());
+    } catch (e) {}
     rateController.setBaselineSpm(val);
     audioEngine.setBaselineSpm(val);
+    workoutEngine.setBaselineSpm(val);
+    simulator.setBaselineSpm(val);
   });
 }
 

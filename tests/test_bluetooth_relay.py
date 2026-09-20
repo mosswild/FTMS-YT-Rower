@@ -34,7 +34,7 @@ class TestBluetoothRelay(unittest.TestCase):
         flags = (1 << 2) | (1 << 3) | (1 << 5) | (1 << 7) | (1 << 11)
         data = bytearray()
         data.extend(flags.to_bytes(2, "little"))
-        data.append(28)  # Stroke rate 28 SPM
+        data.append(56)  # Stroke rate 28 SPM (56 * 0.5 = 28 per FTMS standard)
         data.extend((120).to_bytes(2, "little"))  # 120 total strokes
         data.extend((1500).to_bytes(3, "little"))  # 1500m distance
         data.extend((125).to_bytes(2, "little"))  # 125s (2:05) split
