@@ -700,6 +700,16 @@
         <p class="form-hint">Lower values prevent visual stutter; higher values respond faster to surges.</p>
       </div>
 
+      <div class="form-group" style="margin-top: 1.25rem;">
+        <label class="form-label">FTMS SPM Multiplier (Cadence Calibration)</label>
+        <select id="setting-spm-multiplier" style="width: 100%; padding: 0.55rem 0.75rem; background: rgba(0, 0, 0, 0.4); color: var(--text-main, #f8fafc); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; font-size: 0.9rem; margin-top: 0.25rem;">
+          <option value="0.5">0.5× (Standard FTMS 0.5 SPM resolution - recommended)</option>
+          <option value="0.25">0.25× (Quarter Scale - for rowers reporting doubled cadence/half-strokes)</option>
+          <option value="1.0">1.0× (Direct 1.0 SPM integer resolution)</option>
+        </select>
+        <p class="form-hint">If your rower reports ~40 SPM during slow 20 SPM pulls, select 0.25×.</p>
+      </div>
+
       <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 1.5rem;">
         <div>
           <label class="form-label" style="margin-bottom: 0;">Pause Audio on Stroke Stop</label>
@@ -1087,6 +1097,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=perf-compositor-opt-v40"></script>
+  <script type="module" src="js/app.js?v=spm-cal-v41"></script>
 </body>
 </html>

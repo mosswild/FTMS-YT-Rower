@@ -499,6 +499,79 @@ class TestBluetoothRelay(unittest.TestCase):
         parsed = parser.parse_args([])
         self.assertEqual(parsed.silence_window, 360)
 
+    def test_parse_ftms_rower_data_multipliers(self):
+        """Test FTMS cadence decoding with standard (0.5x), quarter (0.25x), and direct (1.0x) multipliers."""
+        flags = 0  # Bit 0 = 0 (stroke rate present)
+        data = bytearray()
+        data.extend(flags.to_bytes(2, "little"))
+        data.append(80)  # Raw 80 from rower
+        data.extend((50).to_bytes(2, "little"))
+
+        # Standard 0.5x multiplier: 80 * 0.5 = 40 SPM
+        parsed_std = parse_ftms_rower_data(data, spm_multiplier=0.5)
+        self.assertEqual(parsed_std["stroke_rate"], 40)
+
+        # Quarter 0.25x multiplier (doubled-pulse / slow-pull fix): 80 * 0.25 = 20 SPM
+        parsed_quarter = parse_ftms_rower_data(data, spm_multiplier=0.25)
+        self.assertEqual(parsed_quarter["stroke_rate"], 20)
+
+        # Direct 1.0x multiplier: 80 * 1.0 = 80 SPM
+        parsed_direct = parse_ftms_rower_data(data, spm_multiplier=1.0)
+        self.assertEqual(parsed_direct["stroke_rate"], 80)
+
+    def test_interactive_cycle_spm_multiplier(self):
+        """Test that pressing 's' in interactive mode cycles SPM multiplier: 0.5 -> 0.25 -> 1.0 -> 0.5."""
+        import argparse
+        import asyncio
+        from scripts.bluetooth_relay import interactive_terminal_task
+
+        args = argparse.Namespace(
+            server="http://localhost:8000",
+            address=None,
+            name=None,
+            hr=False,
+            hr_name=None,
+            hr_address=None,
+            forget=True,
+            idle_timeout=300,
+            silence_window=360,
+            spm_multiplier=0.5,
+            no_interactive=False,
+            auto=False,
+            verbose=False,
+        )
+        state = RelayState(args)
+        self.assertAlmostEqual(state.spm_multiplier, 0.5)
+
+        coordinator = MagicMock()
+        publisher = MagicMock()
+        hud = MagicMock()
+        cmd_queue = asyncio.Queue()
+
+        async def run_test():
+            task = asyncio.create_task(interactive_terminal_task(state, coordinator, publisher, hud, cmd_queue, None))
+
+            # Send 's' -> cycles to 0.25
+            await cmd_queue.put("s")
+            await asyncio.sleep(0.05)
+            self.assertAlmostEqual(state.spm_multiplier, 0.25)
+
+            # Send 's' -> cycles to 1.0
+            await cmd_queue.put("s")
+            await asyncio.sleep(0.05)
+            self.assertAlmostEqual(state.spm_multiplier, 1.0)
+
+            # Send 's' -> cycles back to 0.5
+            await cmd_queue.put("s")
+            await asyncio.sleep(0.05)
+            self.assertAlmostEqual(state.spm_multiplier, 0.5)
+
+            # Clean exit
+            await cmd_queue.put("q")
+            await asyncio.wait_for(task, timeout=2.0)
+
+        asyncio.run(run_test())
+
 
 if __name__ == "__main__":
     unittest.main()

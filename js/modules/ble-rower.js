@@ -14,6 +14,15 @@ export class RowerBLE {
     this.server = null;
     this.characteristic = null;
     this.isConnected = false;
+    this.spmMultiplier = 0.5;
+  }
+
+  setSpmMultiplier(multiplier) {
+    const val = parseFloat(multiplier);
+    if (!isNaN(val) && val > 0) {
+      this.spmMultiplier = val;
+      console.log(`[BLE Rower] SPM Multiplier set to ${this.spmMultiplier}x`);
+    }
   }
 
   isSupported() {
@@ -93,7 +102,8 @@ export class RowerBLE {
       const rawSpm = value.getUint8(byteIndex);
       byteIndex += 1;
       // Bluetooth SIG FTMS v1.0 Section 4.8.1.1: Stroke Rate is uint8 in 0.5 stroke/min units (e.g. 48 = 24 SPM)
-      data.strokeRate = Math.round(rawSpm * 0.5);
+      data.strokeRate = Math.round(rawSpm * this.spmMultiplier);
+      console.debug(`[BLE Rower] Raw SPM byte: ${rawSpm} * ${this.spmMultiplier}x -> ${data.strokeRate} SPM`);
 
       if (byteIndex + 1 < value.byteLength) {
         data.strokeCount = value.getUint16(byteIndex, true);
@@ -105,7 +115,7 @@ export class RowerBLE {
     if ((flags & (1 << 1)) !== 0 && byteIndex < value.byteLength) {
       const rawAvgSpm = value.getUint8(byteIndex);
       byteIndex += 1;
-      data.avgStrokeRate = Math.round(rawAvgSpm * 0.5);
+      data.avgStrokeRate = Math.round(rawAvgSpm * this.spmMultiplier);
     }
 
     // Flag Bit 2: Total Distance (uint24) in meters

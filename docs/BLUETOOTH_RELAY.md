@@ -29,6 +29,7 @@ The relay script ([scripts/bluetooth_relay.py](../scripts/bluetooth_relay.py)) i
    - **`[r]`** - **Scan & Select Rower:** Scans nearby devices for 4 seconds, presents a numbered list, and connects to your choice.
    - **`[h]`** - **Scan & Select HR Monitor:** Scans for heart rate monitors, presents a numbered list, and enables concurrent HR telemetry.
    - **`[d]`** - **Disconnect Device:** Disconnect Rower, HR monitor, or Both on demand.
+   - **`[s]`** - **Cycle SPM Multiplier:** Instant toggle between standard 0.5× resolution, 0.25× quarter resolution (for rowers reporting doubled cadence/half-strokes), and 1.0× direct integer resolution.
    - **`[c]`** - **Clear Saved Devices:** Clears remembered device memory.
    - **`[m]` / `[?]`** - **Help:** Prints the interactive hotkey reference guide.
    - **`[q]`** - **Quit:** Cleanly disconnects all active BLE sessions and exits.
@@ -171,4 +172,5 @@ If your Linux host has native Bluetooth hardware and BlueZ installed, the contai
 | `--no-interactive` | Disable interactive terminal hotkeys (for headless/docker/daemon execution) | `python scripts/bluetooth_relay.py --no-interactive` |
 | `-v`, `--verbose`| Enable verbose multi-line scrolling logs instead of single-line HUD | `python scripts/bluetooth_relay.py -v` |
 | `--idle-timeout <SEC>`| Inactivity timeout in seconds before auto-disconnecting rower (default: 300 / 5 min; 0 to disable) | `python scripts/bluetooth_relay.py --idle-timeout 600` |
-| `--silence-window <SEC>`| Radio silence window in seconds after idle disconnect allowing rower to sleep (default: 480 / 8 min) | `python scripts/bluetooth_relay.py --silence-window 600` |
+| `--silence-window <SEC>`| Radio silence window in seconds after idle disconnect allowing rower to sleep (default: 360 / 6 min) | `python scripts/bluetooth_relay.py --silence-window 360` |
+| `--spm-multiplier <FLOAT>`| FTMS Stroke Rate resolution multiplier (default: 0.5; 0.25 for rowers with doubled pulses; 1.0 direct) | `python scripts/bluetooth_relay.py --spm-multiplier 0.25` |

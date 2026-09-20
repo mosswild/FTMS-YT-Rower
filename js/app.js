@@ -1,15 +1,15 @@
-import { RowerBLE } from "./modules/ble-rower.js?v=res-and-metric-reset-v19";
-import { HeartRateBLE } from "./modules/ble-heartrate.js?v=res-and-metric-reset-v19";
-import { RateController } from "./modules/rate-controller.js?v=paused-bottom-right-v34";
-import { AudioEngine } from "./modules/audio-engine.js?v=perf-compositor-opt-v40";
-import { PM5Hud } from "./modules/hud.js?v=perf-compositor-opt-v40";
-import { SessionTracker } from "./modules/session-tracker.js?v=interval-export-garmin-strava-v39";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=decoupled-sim-program-v37";
-import { MediaManager } from "./modules/media-manager.js?v=res-and-metric-reset-v19";
-import { TrackController } from "./modules/track-controller.js?v=res-and-metric-reset-v19";
-import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=res-and-metric-reset-v19";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=perf-compositor-opt-v40";
-import { KeepAwake } from "./modules/keep-awake.js?v=ios-keep-awake-v1";
+import { RowerBLE } from "./modules/ble-rower.js?v=spm-cal-v41";
+import { HeartRateBLE } from "./modules/ble-heartrate.js?v=spm-cal-v41";
+import { RateController } from "./modules/rate-controller.js?v=spm-cal-v41";
+import { AudioEngine } from "./modules/audio-engine.js?v=spm-cal-v41";
+import { PM5Hud } from "./modules/hud.js?v=spm-cal-v41";
+import { SessionTracker } from "./modules/session-tracker.js?v=spm-cal-v41";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=spm-cal-v41";
+import { MediaManager } from "./modules/media-manager.js?v=spm-cal-v41";
+import { TrackController } from "./modules/track-controller.js?v=spm-cal-v41";
+import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=spm-cal-v41";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=spm-cal-v41";
+import { KeepAwake } from "./modules/keep-awake.js?v=spm-cal-v41";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -495,6 +495,8 @@ const rowerBle = new RowerBLE(
     updateRowerStatus(false, "Disconnected");
   }
 );
+const savedFtmsSpmMultiplier = parseFloat(localStorage.getItem("ftms_spm_multiplier") || "0.5");
+rowerBle.setSpmMultiplier(savedFtmsSpmMultiplier);
 
 const hrBle = new HeartRateBLE(
   (bpm) => {
@@ -3430,6 +3432,19 @@ if (settingAlpha) {
     const val = parseFloat(e.target.value);
     settingAlphaVal.textContent = val.toFixed(2);
     rateController.setAlpha(val);
+  });
+}
+
+const settingSpmMultiplier = document.getElementById("setting-spm-multiplier");
+if (settingSpmMultiplier) {
+  const currentMultiplier = localStorage.getItem("ftms_spm_multiplier") || "0.5";
+  settingSpmMultiplier.value = currentMultiplier;
+  settingSpmMultiplier.addEventListener("change", (e) => {
+    const val = parseFloat(e.target.value);
+    try {
+      localStorage.setItem("ftms_spm_multiplier", val.toString());
+    } catch (err) {}
+    rowerBle.setSpmMultiplier(val);
   });
 }
 

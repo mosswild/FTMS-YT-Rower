@@ -502,6 +502,7 @@ class RelayState:
         self.rower_reconnect_event = asyncio.Event()
         self.rower_muted = False
         self.rower_silence_skip_event = asyncio.Event()
+        self.spm_multiplier = getattr(args, "spm_multiplier", 0.5) if args else 0.5
 
         self.hr_connected = False
         self.hr_name = "HR Monitor"
@@ -561,9 +562,8 @@ async def rower_loop(
     hud: ConsoleHUD,
     args
 ):
-    spm_mult = getattr(args, "spm_multiplier", 0.5) if args else 0.5
-
     def rower_notification_handler(sender, data: bytearray):
+        spm_mult = getattr(state, "spm_multiplier", 0.5)
         parsed = parse_ftms_rower_data(data, spm_multiplier=spm_mult)
         if any(k in parsed for k in ("stroke_rate", "watts", "distance", "split_seconds", "resistance", "hr")):
             if (parsed.get("stroke_rate") or 0) > 0 or (parsed.get("watts") or 0) > 0:
@@ -580,6 +580,10 @@ async def rower_loop(
                 state.composite_metrics["hr_device_name"] = state.hr_name
 
             publisher.publish(state.composite_metrics)
+
+            if getattr(args, "verbose", False):
+                raw_spm = data[2] if len(data) > 2 else "N/A"
+                logger.info(f"FTMS byte2 (raw): {raw_spm} * {spm_mult}x = {parsed.get('stroke_rate')} SPM | Watts: {parsed.get('watts')} | Hex: {data.hex()}")
 
             if not state.interactive_mode:
                 hr_tag = state.hr_name if state.hr_connected else (state.hr_status_line if state.hr_enabled else None)
@@ -1143,7 +1147,7 @@ def print_interactive_help():
     print("  [r]  Scan & select rowing machine from list")
     print("  [h]  Scan & select heart rate monitor from list")
     print("  [d]  Disconnect device (Rower / HR Monitor / Both)")
-    print("  [c]  Clear remembered devices from disk")
+    print("  [s]  Cycle SPM Multiplier (0.5x standard -> 0.25x half-rate -> 1.0x direct)")
     print("  [m]  Show this command menu")
     print("  [q]  Quit relay bridge cleanly")
     print("-------------------------------------------------------\n")
@@ -1226,6 +1230,17 @@ async def interactive_terminal_task(
         # If muted, resuming via 'r', space, or Enter should wake up rower_loop immediately without opening scanner
         if state.rower_muted and cmd in ("r", " ", "\r", "\n"):
             state.rower_silence_skip_event.set()
+            continue
+
+        # Instant hotkey to cycle SPM multiplier without entering interactive prompts
+        if cmd == "s":
+            if abs(state.spm_multiplier - 0.5) < 0.01:
+                state.spm_multiplier = 0.25
+            elif abs(state.spm_multiplier - 0.25) < 0.01:
+                state.spm_multiplier = 1.0
+            else:
+                state.spm_multiplier = 0.5
+            hud.log(f"[SPM Multiplier] Cadence resolution set to: {state.spm_multiplier}x")
             continue
 
         state.interactive_mode = True
@@ -1318,7 +1333,7 @@ def start_keyboard_thread(loop: asyncio.AbstractEventLoop, cmd_queue: asyncio.Qu
                         break
 
                     c = ch.lower()
-                    if c in ("r", "h", "d", "c", "m", "?", "q", "x", " ", "\r", "\n"):
+                    if c in ("r", "h", "d", "s", "c", "m", "?", "q", "x", " ", "\r", "\n"):
                         loop.call_soon_threadsafe(cmd_queue.put_nowait, c)
             except Exception:
                 time.sleep(0.2)
@@ -1489,7 +1504,7 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose multi-line scrolling logs instead of single-line HUD")
     parser.add_argument("--idle-timeout", type=int, default=300, help="Inactivity timeout in seconds before disconnecting rower (default: 300 / 5 min; 0 to disable)")
     parser.add_argument("--silence-window", type=int, default=360, help="Duration in seconds of radio silence allowing rower to power off (default: 360 / 6 min)")
-    parser.add_argument("--spm-multiplier", type=float, default=0.5, help="FTMS Stroke Rate resolution multiplier (default: 0.5 per FTMS v1.0 standard; use 1.0 for non-standard direct SPM rowers)")
+    parser.add_argument("--spm-multiplier", type=float, default=0.5, help="FTMS Stroke Rate resolution multiplier (default: 0.5 per FTMS v1.0 standard; 0.25 for rowers reporting doubled cadence/half-strokes; 1.0 for non-standard direct SPM rowers)")
 
     args = parser.parse_args()
 
