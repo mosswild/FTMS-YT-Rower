@@ -40,6 +40,7 @@ import logging
 import os
 import shutil
 import signal
+import ssl
 import sys
 import threading
 import time
@@ -418,7 +419,13 @@ class RelayPublisher:
                 data=req_data,
                 headers={"Content-Type": "application/json"}
             )
-            with urllib.request.urlopen(req, timeout=1.5) as resp:
+            ssl_ctx = None
+            if self.endpoint.startswith("https://"):
+                ssl_ctx = ssl.create_default_context()
+                ssl_ctx.check_hostname = False
+                ssl_ctx.verify_mode = ssl.CERT_NONE
+
+            with urllib.request.urlopen(req, timeout=1.5, context=ssl_ctx) as resp:
                 pass
         except Exception as e:
             logger.debug(f"Publish failed: {e}")

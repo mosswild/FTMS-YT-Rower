@@ -560,8 +560,46 @@ app.mount("/", StaticFiles(directory=ROOT_DIR, html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn
+    import subprocess
+    import socket
+
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "0.0.0.0")
     ssl_cert = os.getenv("SSL_CERTFILE")
     ssl_key = os.getenv("SSL_KEYFILE")
+
+    # Auto-detect local SSL certs if AUTO_HTTPS=true or if certs exist in ssl/ directory
+    if not ssl_cert or not ssl_key:
+        default_ssl_dir = os.path.join(ROOT_DIR, "ssl")
+        default_cert = os.path.join(default_ssl_dir, "cert.pem")
+        default_key = os.path.join(default_ssl_dir, "key.pem")
+
+        auto_https_requested = os.getenv("AUTO_HTTPS", "").lower() in ("true", "1", "yes")
+        certs_exist = os.path.exists(default_cert) and os.path.exists(default_key)
+
+        if auto_https_requested or certs_exist:
+            if not certs_exist:
+                os.makedirs(default_ssl_dir, exist_ok=True)
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(("8.8.8.8", 80))
+                    local_ip = s.getsockname()[0]
+                    s.close()
+                except Exception:
+                    local_ip = "127.0.0.1"
+
+                san_ext = f"subjectAltName=DNS:localhost,IP:127.0.0.1,IP:{local_ip}"
+                print(f"[HTTPS] Generating self-signed SSL certificate with SAN: {san_ext}...")
+                subprocess.run([
+                    "openssl", "req", "-x509", "-nodes", "-days", "365", "-newkey", "rsa:2048",
+                    "-keyout", default_key, "-out", default_cert,
+                    "-subj", "/CN=FTMS-Rower",
+                    "-addext", san_ext
+                ], check=True)
+
+            if os.path.exists(default_cert) and os.path.exists(default_key):
+                ssl_cert = default_cert
+                ssl_key = default_key
+                print(f"[HTTPS] Serving with SSL certificates:\n  Cert: {ssl_cert}\n  Key:  {ssl_key}")
+
     uvicorn.run("backend.main:app", host=host, port=port, reload=True, ssl_certfile=ssl_cert, ssl_keyfile=ssl_key)
