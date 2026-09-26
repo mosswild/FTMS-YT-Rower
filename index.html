@@ -7,10 +7,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="FTMS Rower">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
-  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon-precomposed.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
+  <link rel="manifest" href="/manifest.json">
   <title>FTMS Rower | Scenic Dashboard & Telemetry HUD</title>
   <!-- Google Fonts: Inter, JetBrains Mono, Orbitron, Outfit, Share Tech Mono, VT323 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -812,6 +813,20 @@
             </div>
           </button>
         </div>
+      </div>
+
+      <!-- iOS / Mobile SSL Certificate Install Helper -->
+      <div class="form-group" style="margin-top: 1.5rem; padding: 0.85rem 1rem; background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue, #38bdf8)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span style="font-weight: 600; font-size: 0.88rem; color: var(--text-main, #f8fafc);">iOS HTTPS Certificate</span>
+          </div>
+          <a href="/cert.crt" download="ftms-rower-cert.crt" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.65rem; color: var(--accent-blue, #38bdf8); border-color: rgba(56,189,248,0.4);">
+            Download Profile
+          </a>
+        </div>
+        <p class="form-hint" style="margin-bottom: 0; font-size: 0.78rem;">Download and install this profile on your iPhone to trust HTTPS, enable native Screen Wake Lock, and display the custom app icon on your Home Screen.</p>
       </div>
 
       <!-- App Branding Footer Card -->

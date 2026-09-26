@@ -549,6 +549,39 @@ async def delete_single_workout(workout_id: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+def find_ssl_cert_path() -> Optional[str]:
+    candidates = [
+        os.getenv("SSL_CERTFILE"),
+        "/config/ssl/cert.pem",
+        os.path.join(ROOT_DIR, "config", "ssl", "cert.pem"),
+        os.path.join(ROOT_DIR, "ssl", "cert.pem"),
+    ]
+    for p in candidates:
+        if p and os.path.exists(p) and os.path.isfile(p):
+            return p
+    return None
+
+@app.api_route("/cert.pem", methods=["GET", "HEAD"])
+@app.api_route("/cert.crt", methods=["GET", "HEAD"])
+@app.api_route("/config/ssl/cert.pem", methods=["GET", "HEAD"])
+@app.api_route("/ssl/cert.pem", methods=["GET", "HEAD"])
+@app.api_route("/api/ssl/cert", methods=["GET", "HEAD"])
+@app.api_route("/api/ssl/download", methods=["GET", "HEAD"])
+async def download_ssl_cert():
+    cert_path = find_ssl_cert_path()
+    if not cert_path:
+        raise HTTPException(
+            status_code=404,
+            detail="SSL certificate file not found on server. Ensure AUTO_HTTPS=true is set in Docker or run ./scripts/generate_ssl.sh"
+        )
+    return FileResponse(
+        cert_path,
+        media_type="application/x-x509-ca-cert",
+        filename="ftms-rower-cert.crt",
+        headers={"Content-Disposition": 'attachment; filename="ftms-rower-cert.crt"'}
+    )
+
+
 # ----------------- Static Frontend Mounting -----------------
 app.mount("/ftms-rower/css", StaticFiles(directory=os.path.join(ROOT_DIR, "css")), name="ftms_rower_css")
 app.mount("/ftms-rower/js", StaticFiles(directory=os.path.join(ROOT_DIR, "js")), name="ftms_rower_js")
