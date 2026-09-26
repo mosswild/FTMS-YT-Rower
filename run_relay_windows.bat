@@ -23,8 +23,25 @@ if %ERRORLEVEL% neq 0 (
 )
 
 set SERVER_URL=http://localhost:8000
+
+rem Auto-detect if HTTPS is enabled via .env or generated certificates
+if exist "config\ssl\cert.pem" (
+    set SERVER_URL=https://localhost:8000
+)
+if exist ".env" (
+    findstr /I /C:"AUTO_HTTPS=true" .env >nul 2>nul
+    if %ERRORLEVEL% equ 0 (
+        set SERVER_URL=https://localhost:8000
+    )
+)
+
+rem Explicit CLI flags override auto-detection
 if "%1"=="--https" (
     set SERVER_URL=https://localhost:8000
+    shift
+)
+if "%1"=="--http" (
+    set SERVER_URL=http://localhost:8000
     shift
 )
 
