@@ -22,11 +22,17 @@ if %ERRORLEVEL% neq 0 (
     pip install bleak
 )
 
+set SERVER_URL=http://localhost:8000
+if "%1"=="--https" (
+    set SERVER_URL=https://localhost:8000
+    shift
+)
+
 echo.
-echo Starting Bluetooth Bridge to Docker server (http://localhost:8000)...
+echo Starting Bluetooth Bridge to Docker server (%SERVER_URL%)...
 echo Ensure your PM5 or FTMS rower monitor is ON and awake.
 echo.
-python scripts\bluetooth_relay.py --server http://localhost:8000 %*
+python scripts\bluetooth_relay.py --server %SERVER_URL% %1 %2 %3 %4 %5 %6 %7 %8 %9
 
 if %ERRORLEVEL% neq 0 (
     echo.

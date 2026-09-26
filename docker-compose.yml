@@ -18,6 +18,10 @@ services:
       - PORT=${PORT:-8000}
       - DATA_DIR=/config/data
       - MEDIA_DIR=/config/media
+      - AUTO_HTTPS=${AUTO_HTTPS:-false}
+      - SSL_CERTFILE=${SSL_CERTFILE:-}
+      - SSL_KEYFILE=${SSL_KEYFILE:-}
+      - SSL_SAN=${SSL_SAN:-}
       # Embedded Bluetooth Relay Bridge:
       # - ENABLE_BLUETOOTH_RELAY=true
       # - BLE_DEVICE_NAME=Concept2

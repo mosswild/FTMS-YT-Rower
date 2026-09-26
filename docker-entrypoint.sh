@@ -43,6 +43,11 @@ if [ "$1" = "start" ]; then
         mkdir -p "$SSL_DIR"
         if [ ! -f "$SSL_DIR/cert.pem" ] || [ ! -f "$SSL_DIR/key.pem" ]; then
             echo "Generating self-signed SSL certificate for HTTPS in $SSL_DIR..."
+            SAN="subjectAltName=DNS:localhost,DNS:*.local,IP:127.0.0.1"
+            if [ -n "$SSL_SAN" ]; then
+                SAN="$SAN,$SSL_SAN"
+            fi
+            openssl req -x509 -newkey rsa:2048 -keyout "$SSL_DIR/key.pem" -out "$SSL_DIR/cert.pem" -days 365 -nodes -subj "/CN=ftms-rower" -addext "$SAN" 2>/dev/null || \
             openssl req -x509 -newkey rsa:2048 -keyout "$SSL_DIR/key.pem" -out "$SSL_DIR/cert.pem" -days 365 -nodes -subj "/CN=ftms-rower" 2>/dev/null || true
             chown -R "$PUID:$PGID" "$SSL_DIR" 2>/dev/null || true
         fi
