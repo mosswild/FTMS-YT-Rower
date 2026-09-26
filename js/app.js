@@ -9,7 +9,7 @@ import { MediaManager } from "./modules/media-manager.js?v=spm-cal-v41";
 import { TrackController } from "./modules/track-controller.js?v=spm-cal-v41";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=spm-cal-v41";
 import { WorkoutEngine } from "./modules/workout-engine.js?v=spm-cal-v41";
-import { KeepAwake } from "./modules/keep-awake.js?v=spm-cal-v41";
+import { KeepAwake } from "./modules/keep-awake.js?v=nosleep-v42";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -4656,6 +4656,7 @@ if (btnClosePreviewWorkout) btnClosePreviewWorkout.addEventListener("click", clo
 if (btnClosePreviewBtn) btnClosePreviewBtn.addEventListener("click", closeWorkoutPreviewModal);
 if (btnStartPreviewWorkout) {
   btnStartPreviewWorkout.addEventListener("click", () => {
+    keepAwake.preArm();
     if (previewWorkoutData) {
       const id = previewWorkoutData.id;
       closeWorkoutPreviewModal();
