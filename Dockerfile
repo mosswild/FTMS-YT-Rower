@@ -42,7 +42,7 @@ VOLUME ["/config"]
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://127.0.0.1:${PORT}/ || exit 1
+    CMD curl -k -f http://127.0.0.1:${PORT}/ || curl -k -f https://127.0.0.1:${PORT}/ || exit 1
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["start"]

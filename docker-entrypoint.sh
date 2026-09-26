@@ -50,6 +50,8 @@ if [ "$1" = "start" ]; then
             openssl req -x509 -newkey rsa:2048 -keyout "$SSL_DIR/key.pem" -out "$SSL_DIR/cert.pem" -days 365 -nodes -subj "/CN=ftms-rower" -addext "$SAN" 2>/dev/null || \
             openssl req -x509 -newkey rsa:2048 -keyout "$SSL_DIR/key.pem" -out "$SSL_DIR/cert.pem" -days 365 -nodes -subj "/CN=ftms-rower" 2>/dev/null || true
             chown -R "$PUID:$PGID" "$SSL_DIR" 2>/dev/null || true
+            chmod 755 "$SSL_DIR" 2>/dev/null || true
+            chmod 644 "$SSL_DIR/cert.pem" "$SSL_DIR/key.pem" 2>/dev/null || true
         fi
         if [ -f "$SSL_DIR/cert.pem" ] && [ -f "$SSL_DIR/key.pem" ]; then
             echo "Enabling HTTPS with self-signed certificate on port ${PORT:-8000}"
