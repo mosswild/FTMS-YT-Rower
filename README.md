@@ -36,6 +36,7 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   - [Step 1: Identify Server IP](#step-1-identify-server-ip)
   - [Step 2: Connect from Client Devices](#step-2-connect-from-client-devices)
   - [Step 3: Bluetooth on Client Devices](#step-3-bluetooth-on-client-devices)
+  - [Step 4: HTTPS & iOS Screen Sleep Prevention](#step-4-https--ios-screen-sleep-prevention-essential-for-iphoneipad)
 - [Device & Browser Compatibility](#-device--browser-compatibility)
 - [Running Automated Tests](#-running-automated-tests)
 - [Known Issues & Troubleshooting](#-known-issues--troubleshooting)
@@ -288,6 +289,73 @@ Once running, open standard iOS Safari at `http://<SERVER-IP>:8000`. Telemetry c
 
 ---
 
+### Step 4: HTTPS & iOS Screen Sleep Prevention (Essential for iPhone/iPad)
+
+If you use an iPhone or iPad mounted on your rowing machine, **serving over HTTPS is strongly recommended** to prevent the display from turning off mid-workout.
+
+#### 🔒 Why HTTPS is Required for iOS Display Keep-Awake
+1. **Legacy Video Hacks Patched:** In modern WebKit (iOS 16.4+, iOS 17, and iOS 18), Apple patched the dummy background video trick (vanilla `NoSleep.js`). WebKit's AVFoundation power daemon categorizes silent or looping background videos as ambient graphics and dismisses display power assertions after your device's Auto-Lock timer (typically 2 to 5 minutes).
+2. **Native W3C Screen Wake Lock Requires Secure Context:** The only 100% reliable mechanism to prevent iOS from sleeping is the native W3C **Screen Wake Lock API (`navigator.wakeLock`)**.
+3. **Strict WebKit Security Policy:** Apple restricts `navigator.wakeLock` strictly to **Secure Contexts (`https://` or `localhost`)**. When connecting over plain `http://192.168.x.x:8000`, Safari **blocks** the wake lock unconditionally. Serving over HTTPS unlocks native wake lock support on iOS.
+
+---
+
+#### 🚀 Enabling Built-In HTTPS
+
+FTMS-Rower includes built-in zero-dependency SSL certificate generation with Subject Alternative Names (SAN) for local IPs and hostnames:
+
+1. **Docker Compose (Windows / Linux / NAS):**
+   In your `.env` file (or `docker-compose.yml`), set:
+   ```ini
+   AUTO_HTTPS=true
+   # Optional: Add your server machine's local IP or hostname:
+   # SSL_SAN=IP:192.168.1.150,DNS:rower.local
+   ```
+   Restart the container:
+   ```bash
+   docker compose down && docker compose up -d --build
+   ```
+   The container automatically generates `./config/ssl/cert.pem` and `./config/ssl/key.pem` and starts Uvicorn with SSL on port 8000.
+
+2. **Local Python Setup:**
+   Run the certificate generator helper:
+   ```bash
+   ./scripts/generate_ssl.sh
+   AUTO_HTTPS=true .venv/bin/python3 -m backend.main
+   ```
+
+3. **Windows Bluetooth Relay with HTTPS:**
+   When the server runs with HTTPS, the relay bridge auto-detects `AUTO_HTTPS=true` and `config\ssl\cert.pem`, or you can launch it explicitly:
+   ```cmd
+   run_relay_windows.bat --https
+   ```
+
+---
+
+#### 📱 Connecting from iPhone & Installing Certificate Profile
+
+Once HTTPS is enabled, navigate in Safari to:
+```text
+https://<YOUR-SERVER-IP>:8000/ftms-rower
+```
+
+> [!TIP]
+> **Fixing the Home Screen App Icon on iOS:**
+> When you tap "visit this website" past the self-signed warning, Safari lets you use the app. However, when you tap **Share &rarr; Add to Home Screen**, iOS's background icon daemon (`webbookmarksd`) rejects untrusted certificates and falls back to an ugly page screenshot instead of the custom app icon.
+> 
+> To get a trusted green padlock, crisp Home Screen icon, and reliable Screen Wake Lock:
+> 1. **Download Profile:** Open `https://<YOUR-SERVER-IP>:8000/cert.crt` in Safari (or open the app's **⚙ Settings** modal and tap **"Download Profile"**). Tap **Allow** when prompted.
+> 2. **Install Profile:** Go to iPhone **Settings &rarr; Profile Downloaded** (or **Settings &rarr; General &rarr; VPN & Device Management**), tap **Install**, and enter your passcode.
+> 3. **Enable Full Trust (Crucial Step):** Go to **Settings &rarr; General &rarr; About &rarr; Certificate Trust Settings** (at the very bottom). Under *"Enable full trust for root certificates"*, toggle the switch **ON** for **FTMS-Rower**.
+> 4. Refresh Safari or tap **Share &rarr; Add to Home Screen**. The app icon and wake lock will work seamlessly!
+
+> [!NOTE]
+> **Local Router DNS vs. Direct LAN IP on iPhone:**
+> If you use a custom internal domain name on your router (e.g. `rower.local` or `my-server.lan`), iOS often routes DNS lookups to Apple's public cloud resolvers due to **iCloud Private Relay** / **"Limit IP Address Tracking"**, returning *"server can't be found"*. 
+> Using the direct local LAN IP (e.g. `https://192.168.1.150:8000/ftms-rower`) bypasses DNS lookups completely and is the most reliable way to connect at home.
+
+---
+
 ## 🌐 Device & Browser Compatibility
 
 FTMS-Rower supports both **Direct Web Bluetooth** and **Wi-Fi WebSocket Relay** modes, allowing it to run on virtually any modern device.
@@ -345,6 +413,8 @@ PYTHONPATH=. .venv/bin/python tests/test_backend.py
 - [x] **FTMS Stroke Rate (SPM) Calibration & Multiplier:** Resolved. Eliminated the flawed `rawSpm > 50` threshold heuristic in `js/modules/ble-rower.js` and `scripts/bluetooth_relay.py`. Standardized decoding to the Bluetooth SIG FTMS v1.0 specification (0.5 stroke/minute units), and introduced hardware cadence calibration (`0.5×` standard, `0.25×` quarter-scale for machines broadcasting doubled flywheel pulses/half-strokes, and `1.0×` direct). Configurable via terminal hotkey `[s]`, `--spm-multiplier`, or the web app Settings modal with persistent `localStorage`.
 - [x] **Base SPM Parameterization Across Workout Programs & Simulator:** Resolved. Connected the Settings **Baseline SPM** slider to `WorkoutEngine`, `VirtualRowerSimulator`, and persistent `localStorage` (`ftms_baseline_spm`). When an athlete configures a custom Base SPM (e.g. 24 SPM instead of nominal 20 SPM), all structured workout intervals and simulator phases dynamically scale their target SPM ranges by `baseSpm - 20` in real time while preserving 0 SPM rest periods.
 - [x] **Display Sleep Prevention (NoSleep.js Architecture & WebKit Sleep Assertion):** Resolved. Integrated the proven architecture from [NoSleep.js](https://github.com/richtr/NoSleep.js) into `js/modules/keep-awake.js`. Addressed root causes where iOS Safari / WebKit was still sleeping: (1) eliminated asynchronous `await` boundaries ahead of media playback so WebKit user-activation tokens remain valid on user touch/click gestures; (2) embedded both NoSleep WebM and MP4 media sources with silent AAC audio; (3) removed `loop="true"` on the MP4 in favor of NoSleep's `timeupdate` jitter seek (`currentTime > 0.5s -> 0-0.3s`) so WebKit does not categorize playback as ambient animation and cancel the power assertion; (4) applied in-viewport non-culling fixed styling (`z-index: 9999`, positive dimensions) so WebKit compositor doesn't cull the layer; and (5) paired synchronous media assertion with concurrent background W3C Screen Wake Lock requests.
+- [ ] We now have the NoSleep working as long as we use HTTPS, but the issue is that I can't use my DNS on my iPhone even with "Limit IP Address Tracking" turned off. Maybe not fully needed since I will only use it at home but just wanted to note this.
+- [ ] At some point enable OrangeTheory-like calibration of heart rate zones based on user's max heart rate (make sure to do research into how OrangeTheory does it). This will require persistent user profiles to be stored.
 
 ---
 
