@@ -1,9 +1,9 @@
 /**
- * OrangeTheory-Style Heart Rate Zones & Adaptive Calibration Engine (Client-Side).
+ * Adaptive Heart Rate Zones & Dynamic Calibration Engine (Client-Side).
  *
  * Implements:
- * 1. 5 metabolic zones (Gray, Blue, Green, Orange, Red) computed as exact % of HRmax.
- * 2. OrangeTheory Splat Points: 1 point earned per cumulative 60s in Orange (84-91%) or Red (92-100%).
+ * 1. 5 metabolic zones (Zone 1 - Zone 5) computed as exact % of HRmax.
+ * 2. High Intensity Points: 1 point earned per cumulative 60s in Zone 4 (84-91%) or Zone 5 (92-100%).
  * 3. Synchronization with backend SQLite user profile and automatic calibration status.
  * 4. Resolving zone targets for structured workouts (e.g. target hr_zone: 2 -> [minBpm, maxBpm]).
  */
@@ -39,11 +39,11 @@ class HrZonesManager {
   _generateDefaultZones(maxHr) {
     const hr = Math.max(130, Math.min(225, Math.round(maxHr || 187)));
     return {
-      "1": { zone: 1, name: "Gray", label: "Warm-up / Recovery", min_pct: 50, max_pct: 60, min_bpm: Math.round(hr * 0.50), max_bpm: Math.round(hr * 0.60), color: "#94a3b8", bg_color: "rgba(148, 163, 184, 0.2)", earns_splats: false },
-      "2": { zone: 2, name: "Blue", label: "Light Aerobic", min_pct: 61, max_pct: 70, min_bpm: Math.round(hr * 0.61), max_bpm: Math.round(hr * 0.70), color: "#38bdf8", bg_color: "rgba(56, 189, 248, 0.2)", earns_splats: false },
-      "3": { zone: 3, name: "Green", label: "Aerobic Base Pace", min_pct: 71, max_pct: 83, min_bpm: Math.round(hr * 0.71), max_bpm: Math.round(hr * 0.83), color: "#10b981", bg_color: "rgba(16, 185, 129, 0.2)", earns_splats: false },
-      "4": { zone: 4, name: "Orange", label: "Push Pace", min_pct: 84, max_pct: 91, min_bpm: Math.round(hr * 0.84), max_bpm: Math.round(hr * 0.91), color: "#f97316", bg_color: "rgba(249, 115, 22, 0.2)", earns_splats: true },
-      "5": { zone: 5, name: "Red", label: "All-Out Maximum", min_pct: 92, max_pct: 100, min_bpm: Math.round(hr * 0.92), max_bpm: hr, color: "#ef4444", bg_color: "rgba(239, 68, 68, 0.2)", earns_splats: true },
+      "1": { zone: 1, name: "Zone 1", label: "Active Recovery", min_pct: 50, max_pct: 60, min_bpm: Math.round(hr * 0.50), max_bpm: Math.round(hr * 0.60), color: "#94a3b8", bg_color: "rgba(148, 163, 184, 0.2)", earns_points: false, earns_splats: false },
+      "2": { zone: 2, name: "Zone 2", label: "Light Aerobic", min_pct: 61, max_pct: 70, min_bpm: Math.round(hr * 0.61), max_bpm: Math.round(hr * 0.70), color: "#38bdf8", bg_color: "rgba(56, 189, 248, 0.2)", earns_points: false, earns_splats: false },
+      "3": { zone: 3, name: "Zone 3", label: "Aerobic Tempo", min_pct: 71, max_pct: 83, min_bpm: Math.round(hr * 0.71), max_bpm: Math.round(hr * 0.83), color: "#10b981", bg_color: "rgba(16, 185, 129, 0.2)", earns_points: false, earns_splats: false },
+      "4": { zone: 4, name: "Zone 4", label: "Threshold", min_pct: 84, max_pct: 91, min_bpm: Math.round(hr * 0.84), max_bpm: Math.round(hr * 0.91), color: "#f97316", bg_color: "rgba(249, 115, 22, 0.2)", earns_points: true, earns_splats: true },
+      "5": { zone: 5, name: "Zone 5", label: "Peak Effort", min_pct: 92, max_pct: 100, min_bpm: Math.round(hr * 0.92), max_bpm: hr, color: "#ef4444", bg_color: "rgba(239, 68, 68, 0.2)", earns_points: true, earns_splats: true },
     };
   }
 
@@ -127,6 +127,7 @@ class HrZonesManager {
         pct,
         color: "#64748b",
         bg_color: "rgba(100, 116, 139, 0.2)",
+        earns_points: false,
         earns_splats: false,
         min_bpm: 0,
         max_bpm: this.zones["1"] ? this.zones["1"].min_bpm - 1 : 90,
@@ -136,6 +137,7 @@ class HrZonesManager {
     for (const zNum of [5, 4, 3, 2, 1]) {
       const z = this.zones[String(zNum)];
       if (z && val >= z.min_bpm) {
+        const earnsPts = Boolean(z.earns_points !== undefined ? z.earns_points : z.earns_splats);
         return {
           zone: z.zone,
           name: z.name,
@@ -143,7 +145,8 @@ class HrZonesManager {
           pct,
           color: z.color,
           bg_color: z.bg_color,
-          earns_splats: Boolean(z.earns_splats),
+          earns_points: earnsPts,
+          earns_splats: earnsPts,
           min_bpm: z.min_bpm,
           max_bpm: z.max_bpm,
         };
@@ -151,6 +154,7 @@ class HrZonesManager {
     }
 
     const z1 = this.zones["1"];
+    const earnsZ1 = Boolean(z1.earns_points !== undefined ? z1.earns_points : z1.earns_splats);
     return {
       zone: 1,
       name: z1.name,
@@ -158,7 +162,8 @@ class HrZonesManager {
       pct,
       color: z1.color,
       bg_color: z1.bg_color,
-      earns_splats: false,
+      earns_points: earnsZ1,
+      earns_splats: earnsZ1,
       min_bpm: z1.min_bpm,
       max_bpm: z1.max_bpm,
     };
@@ -178,14 +183,16 @@ class HrZonesManager {
   }
 
   /**
-   * Calculates Splat Points and zone time distribution from an array of samples.
+   * Calculates High Intensity Points and zone time distribution from an array of samples.
    */
   calculateSessionZones(samples) {
     const zoneSeconds = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 0: 0 };
-    let splatSeconds = 0;
+    let intensitySeconds = 0;
 
     if (!Array.isArray(samples) || samples.length === 0) {
       return {
+        intensityPoints: 0,
+        intensitySeconds: 0,
         splatPoints: 0,
         splatSeconds: 0,
         zoneMinutes: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
@@ -208,13 +215,13 @@ class HrZonesManager {
       const z = this.getZoneForBpm(hr);
       if (z) {
         zoneSeconds[z.zone] = (zoneSeconds[z.zone] || 0) + dt;
-        if (z.earns_splats) {
-          splatSeconds += dt;
+        if (z.earns_points || z.earns_splats) {
+          intensitySeconds += dt;
         }
       }
     }
 
-    const splatPoints = Math.floor(splatSeconds / 60.0);
+    const intensityPoints = Math.floor(intensitySeconds / 60.0);
     const totalValid = (zoneSeconds[1] || 0) + (zoneSeconds[2] || 0) + (zoneSeconds[3] || 0) + (zoneSeconds[4] || 0) + (zoneSeconds[5] || 0);
 
     const zoneMinutes = {};
@@ -226,8 +233,10 @@ class HrZonesManager {
     }
 
     return {
-      splatPoints,
-      splatSeconds: Math.round(splatSeconds),
+      intensityPoints,
+      intensitySeconds: Math.round(intensitySeconds),
+      splatPoints: intensityPoints, // compatibility alias
+      splatSeconds: Math.round(intensitySeconds), // compatibility alias
       zoneMinutes,
       pctInZones,
       zoneSeconds,

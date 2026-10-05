@@ -111,6 +111,7 @@ class WorkoutSaveRequest(BaseModel):
     max_watts: float = 0.0
     avg_hr: float = 0.0
     max_hr: Optional[float] = 0.0
+    intensity_points: Optional[int] = 0
     splat_points: Optional[int] = 0
     video_id: Optional[str] = None
     audio_source: Optional[str] = None
@@ -343,14 +344,20 @@ async def create_session(workout: WorkoutSaveRequest):
     data = workout.model_dump(exclude={"samples"})
     samples = [s.model_dump() for s in workout.samples] if workout.samples else None
 
-    # Calculate Splat Points and peak HR if samples are provided
+    # Calculate Intensity Points and peak HR if samples are provided
     profile = get_user_profile("default")
     active_max_hr = int(profile.get("active_max_hr", 187))
 
     if samples and len(samples) > 0:
-        session_calcs = hr_calib.calculate_session_zones_and_splats(samples, active_max_hr)
-        if not data.get("splat_points"):
-            data["splat_points"] = session_calcs.get("splat_points", 0)
+        session_calcs = hr_calib.calculate_session_zones_and_points(samples, active_max_hr)
+        calc_pts = session_calcs.get("intensity_points", session_calcs.get("splat_points", 0))
+        if not data.get("intensity_points") and not data.get("splat_points"):
+            data["intensity_points"] = calc_pts
+            data["splat_points"] = calc_pts
+        elif data.get("intensity_points") and not data.get("splat_points"):
+            data["splat_points"] = data["intensity_points"]
+        elif data.get("splat_points") and not data.get("intensity_points"):
+            data["intensity_points"] = data["splat_points"]
 
         if not data.get("max_hr") or float(data.get("max_hr", 0)) <= 0:
             hrs = [float(s.get("hr", 0)) for s in samples if float(s.get("hr", 0)) > 40.0]
@@ -375,7 +382,8 @@ async def create_session(workout: WorkoutSaveRequest):
         except Exception as e:
             print(f"[HR Calibration] Auto-calibration error after session: {e}")
 
-    return {"id": saved_id, "status": "saved", "splat_points": data.get("splat_points", 0)}
+    pts = data.get("intensity_points", data.get("splat_points", 0))
+    return {"id": saved_id, "status": "saved", "intensity_points": pts, "splat_points": pts}
 
 @app.get("/api/profile")
 async def get_profile():

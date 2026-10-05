@@ -207,8 +207,9 @@ export class PM5Hud {
       }
     }
 
-    if (data.splatPoints !== undefined && this.elements.splatChip && this.elements.splatCount) {
-      const pts = Math.max(0, Math.round(data.splatPoints));
+    const points = data.intensityPoints !== undefined ? data.intensityPoints : data.splatPoints;
+    if (points !== undefined && this.elements.splatChip && this.elements.splatCount) {
+      const pts = Math.max(0, Math.round(points));
       this.elements.splatCount.textContent = pts;
       this.elements.splatChip.style.display = pts > 0 ? "inline-flex" : "none";
     }

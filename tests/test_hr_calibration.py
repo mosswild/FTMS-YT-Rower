@@ -34,35 +34,35 @@ class TestHeartRateCalibration(unittest.TestCase):
         zones = hr_calib.calculate_zones_for_max_hr(200)
         self.assertEqual(len(zones), 5)
 
-        # Gray: 50% - 60%
-        self.assertEqual(zones["1"]["name"], "Gray")
+        # Zone 1: 50% - 60%
+        self.assertEqual(zones["1"]["name"], "Zone 1")
         self.assertEqual(zones["1"]["min_bpm"], 100)
         self.assertEqual(zones["1"]["max_bpm"], 120)
-        self.assertFalse(zones["1"]["earns_splats"])
+        self.assertFalse(zones["1"]["earns_points"])
 
-        # Blue: 61% - 70%
-        self.assertEqual(zones["2"]["name"], "Blue")
+        # Zone 2: 61% - 70%
+        self.assertEqual(zones["2"]["name"], "Zone 2")
         self.assertEqual(zones["2"]["min_bpm"], 122)
         self.assertEqual(zones["2"]["max_bpm"], 140)
-        self.assertFalse(zones["2"]["earns_splats"])
+        self.assertFalse(zones["2"]["earns_points"])
 
-        # Green: 71% - 83%
-        self.assertEqual(zones["3"]["name"], "Green")
+        # Zone 3: 71% - 83%
+        self.assertEqual(zones["3"]["name"], "Zone 3")
         self.assertEqual(zones["3"]["min_bpm"], 142)
         self.assertEqual(zones["3"]["max_bpm"], 166)
-        self.assertFalse(zones["3"]["earns_splats"])
+        self.assertFalse(zones["3"]["earns_points"])
 
-        # Orange: 84% - 91%
-        self.assertEqual(zones["4"]["name"], "Orange")
+        # Zone 4: 84% - 91%
+        self.assertEqual(zones["4"]["name"], "Zone 4")
         self.assertEqual(zones["4"]["min_bpm"], 168)
         self.assertEqual(zones["4"]["max_bpm"], 182)
-        self.assertTrue(zones["4"]["earns_splats"])
+        self.assertTrue(zones["4"]["earns_points"])
 
-        # Red: 92% - 100%
-        self.assertEqual(zones["5"]["name"], "Red")
+        # Zone 5: 92% - 100%
+        self.assertEqual(zones["5"]["name"], "Zone 5")
         self.assertEqual(zones["5"]["min_bpm"], 184)
         self.assertEqual(zones["5"]["max_bpm"], 200)
-        self.assertTrue(zones["5"]["earns_splats"])
+        self.assertTrue(zones["5"]["earns_points"])
 
     def test_get_zone_for_bpm(self):
         max_hr = 200
@@ -71,23 +71,23 @@ class TestHeartRateCalibration(unittest.TestCase):
         self.assertEqual(z_low["zone"], 0)
         self.assertEqual(z_low["name"], "Rest")
 
-        # In Zone 2 (Blue)
-        z_blue = hr_calib.get_zone_for_bpm(130, max_hr)
-        self.assertEqual(z_blue["zone"], 2)
-        self.assertEqual(z_blue["name"], "Blue")
-        self.assertFalse(z_blue["earns_splats"])
+        # In Zone 2
+        z_2 = hr_calib.get_zone_for_bpm(130, max_hr)
+        self.assertEqual(z_2["zone"], 2)
+        self.assertEqual(z_2["name"], "Zone 2")
+        self.assertFalse(z_2["earns_points"])
 
-        # In Zone 4 (Orange - Splat zone)
-        z_orange = hr_calib.get_zone_for_bpm(175, max_hr)
-        self.assertEqual(z_orange["zone"], 4)
-        self.assertEqual(z_orange["name"], "Orange")
-        self.assertTrue(z_orange["earns_splats"])
+        # In Zone 4 (Intensity points zone)
+        z_4 = hr_calib.get_zone_for_bpm(175, max_hr)
+        self.assertEqual(z_4["zone"], 4)
+        self.assertEqual(z_4["name"], "Zone 4")
+        self.assertTrue(z_4["earns_points"])
 
-        # In Zone 5 (Red - All out)
-        z_red = hr_calib.get_zone_for_bpm(195, max_hr)
-        self.assertEqual(z_red["zone"], 5)
-        self.assertEqual(z_red["name"], "Red")
-        self.assertTrue(z_red["earns_splats"])
+        # In Zone 5 (All out)
+        z_5 = hr_calib.get_zone_for_bpm(195, max_hr)
+        self.assertEqual(z_5["zone"], 5)
+        self.assertEqual(z_5["name"], "Zone 5")
+        self.assertTrue(z_5["earns_points"])
 
     def test_spike_filtering_sustained_peak_hr(self):
         # 60 samples at steady 150, with a single 225 BPM optical sensor glitch
@@ -99,17 +99,18 @@ class TestHeartRateCalibration(unittest.TestCase):
         # Should be filtered down close to 150, ignoring the single 225 spike
         self.assertLess(peak, 160)
 
-    def test_splat_points_and_session_zones(self):
-        max_hr = 200  # Orange >= 168 BPM
-        # 120 samples: 30s in Green (150 bpm) + 90s in Orange (170 bpm)
+    def test_intensity_points_and_session_zones(self):
+        max_hr = 200  # Zone 4 >= 168 BPM
+        # 120 samples: 30s in Zone 3 (150 bpm) + 90s in Zone 4 (170 bpm)
         samples = (
             [{"elapsed_seconds": i, "hr": 150} for i in range(30)] +
             [{"elapsed_seconds": 30 + i, "hr": 170} for i in range(90)]
         )
-        res = hr_calib.calculate_session_zones_and_splats(samples, max_hr)
-        # 90s in orange = 1 full minute (1 splat point)
+        res = hr_calib.calculate_session_zones_and_points(samples, max_hr)
+        # 90s in Zone 4 = 1 full minute (1 intensity point)
+        self.assertEqual(res["intensity_points"], 1)
         self.assertEqual(res["splat_points"], 1)
-        self.assertGreater(res["splat_seconds"], 80)
+        self.assertGreater(res["intensity_seconds"], 80)
         self.assertIn("4", res["zone_seconds"])
 
     def test_calibration_five_workout_trigger(self):

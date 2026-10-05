@@ -450,23 +450,23 @@ PYTHONPATH=. .venv/bin/python tests/test_backend.py
     - **Console HUD Readout:** Single-line real-time status bar simultaneously displaying Rower and HR monitor connection state and metrics (e.g., `[MRK-2CEE | Polar H10] 24 SPM | 185W | 2:05/500m | 142bpm | 1,240m | 05:42`).
     - **Web App Decoupling:** Decoupled `js/app.js` and `js/modules/ws-telemetry.js` so relay-delivered HR packets update the PM5 HUD and session metrics even if a user connects their rower directly via browser Web Bluetooth or simulator.
 - [ ] **Live GitHub Pages Demo:** Client-side demo on GitHub Pages for previewing the scenic cockpit HUD, visual themes, telemetry charts, and simulator directly in the browser with bundled lightweight sample media.
-- [x] **OrangeTheory-Like HeartBeat Calibration & 5-Zone Engine:**
-  - **Metabolic 5-Zone Partitioning:** Computes color-coded training zones as exact percentages of Maximum Heart Rate ($HR_{max}$):
-    - **Gray ($50\% - 60\%$):** Warm-up, cool-down, active recovery.
-    - **Blue ($61\% - 70\%$):** Light aerobic conditioning.
-    - **Green ($71\% - 83\%$):** Aerobic base pace, fat utilization, sustainable endurance.
-    - **Orange ($84\% - 91\%$):** Anaerobic threshold / push pace (earns **Splat Points**).
-    - **Red ($92\% - 100\%$):** All-out maximum capacity / sprint intervals (earns **Splat Points**).
-  - **Splat Points Engine:** Accumulates 1 Splat Point for every cumulative 60 seconds spent in Orange or Red zones ($\ge 84\% HR_{max}$). Displayed live on the PM5 HUD with a burning flame chip and persisted with each workout session.
+- [x] **Adaptive 5-Zone Heart Rate Calibration & Intensity Engine:**
+  - **Metabolic 5-Zone Partitioning:** Computes heart rate zones as mathematical percentages of Maximum Heart Rate ($HR_{max}$):
+    - **Zone 1 ($50\% - 60\%$):** Warm-up, cool-down, active recovery.
+    - **Zone 2 ($61\% - 70\%$):** Light aerobic conditioning.
+    - **Zone 3 ($71\% - 83\%$):** Aerobic base pace, steady state endurance.
+    - **Zone 4 ($84\% - 91\%$):** Anaerobic threshold / high-intensity intervals (earns **Intensity Points**).
+    - **Zone 5 ($92\% - 100\%$):** Peak capacity / maximum sprint effort (earns **Intensity Points**).
+  - **Intensity Points Engine:** Accumulates 1 point for every cumulative 60 seconds spent in high-intensity zones (Zone 4 & Zone 5, $\ge 84\% HR_{max}$). Displayed live on the PM5 HUD and persisted with each workout session.
   - **Adaptive Rolling Calibration (5-Workout Trigger):**
     - **Initial Baseline:** Automatically initializes via the Tanaka equation ($HR_{max} = 208 - 0.7 \times \text{Age}$), with Fox equation ($220 - \text{Age}$) support.
     - **Personalized Adaptation:** Once the athlete completes 5 qualifying workouts within a 120-day window (duration $\ge 10$ min, average HR $\ge 90$ BPM, peak HR $\ge 120$ BPM), the engine analyzes peak sustained cardiovascular efforts.
     - **Spike Rejection Filtering:** Rejects isolated optical / Bluetooth sensor artifacts (>25 BPM single-sample leaps from local median) using 97th-percentile trimming and 10-second rolling windows before calculating personalized $HR_{max}$.
-  - **Persistent Profile & Manual Overrides:** Athlete age, resting HR, calculation mode (Adaptive OTbeat, Tanaka Formula, Manual), and manual $HR_{max}$ adjustments are persisted in SQLite (`user_profiles` table) with REST API synchronization (`/api/profile`, `/api/profile/recalibrate`).
-  - **Live PM5 Cockpit HUD:** Displays real-time zone pill (`Z4 86%`), heart rate color transitions, beating heart pulse, and live splat counter. Seamlessly informs structured workout target compliance for `hr_zone` targets.
+  - **Persistent Profile & Manual Overrides:** Athlete age, resting HR, calculation mode (Adaptive Auto, Tanaka Formula, Manual), and manual $HR_{max}$ adjustments are persisted in SQLite (`user_profiles` table) with REST API synchronization (`/api/profile`, `/api/profile/recalibrate`).
+  - **Live PM5 Cockpit HUD:** Displays real-time zone pill (`Z4 86%`), heart rate color transitions, beating heart pulse, and live intensity points counter. Seamlessly informs structured workout target compliance for `hr_zone` targets.
 
 ### Recent Milestones
-- [x] **OrangeTheory-Style Heart Rate Zones & Adaptive Calibration:** 5 metabolic zones, Splat Points engine, Tanaka baseline, 5-workout rolling calibration trigger with sensor spike rejection, persistent SQLite profile, manual override nudges, and live HUD zone/splat chips.
+- [x] **Adaptive 5-Zone Heart Rate Calibration & Intensity Points:** 5 metabolic zones (Zone 1–5), High Intensity Points engine, Tanaka baseline, 5-workout rolling calibration trigger with sensor spike rejection, persistent SQLite profile, manual override nudges, and live HUD zone/intensity chips.
 - [x] **Dual-Device BLE Relay & Interactive Terminal Bridge:** Concurrent asyncio Bluetooth connection loops for FTMS rowers and BLE Heart Rate straps (Polar, Garmin, Wahoo, Apple Watch), device memory with auto-reconnect, interactive terminal controls (`[r]` rower, `[h]` HR, `[d]` disconnect), collision-free scan coordination, and decoupled browser mixed-mode support.
 - [x] **Bluetooth Relay Live Terminal HUD & Battery Conservation:** Single-line console dashboard with automatic packet merging and customizable radio silence sleep window (`--silence-window`) to allow rowers to power down.
 - [x] **Auto-Reset & Click-to-Zero Metrics:** Auto-zeroes session distance and elapsed time on workout start, plus on-demand tap-to-zero with confirmation.

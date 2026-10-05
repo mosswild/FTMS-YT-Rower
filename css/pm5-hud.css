@@ -5903,7 +5903,7 @@ body[data-theme="nordic"],
 }
 
 /* ==========================================================================
-   ORANGETHEORY HEART RATE CALIBRATION & ZONE STYLES
+   HEART RATE CALIBRATION & 5-ZONE STYLES
    ========================================================================== */
 .badge-active-hr {
   font-family: var(--font-mono, monospace);

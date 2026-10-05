@@ -3604,17 +3604,17 @@ function renderHrZonesSettings(summary) {
     for (const zNum of [1, 2, 3, 4, 5]) {
       const z = summary.zones[String(zNum)];
       if (!z) continue;
-      const splatBadge = z.earns_splats
-        ? `<span style="display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; padding: 0.1rem 0.35rem; border-radius: 4px; background: rgba(249, 115, 22, 0.25); color: #f97316; font-weight: 700; margin-left: 0.4rem;">🔥 Splats</span>`
+      const earnsPoints = Boolean(z.earns_points !== undefined ? z.earns_points : z.earns_splats);
+      const pointsBadge = earnsPoints
+        ? `<span style="display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; padding: 0.1rem 0.35rem; border-radius: 4px; background: rgba(249, 115, 22, 0.2); color: #f97316; font-weight: 700; margin-left: 0.4rem;">⚡ Points</span>`
         : "";
 
       rowsHtml += `
         <div class="hr-zone-row" style="display: flex; align-items: center; justify-content: space-between; padding: 0.4rem 0.5rem; border-radius: 6px; margin-bottom: 0.25rem; background: ${z.bg_color || 'rgba(255,255,255,0.03)'}; border-left: 3px solid ${z.color};">
           <div style="display: flex; align-items: center;">
             <span style="font-weight: 700; color: ${z.color}; width: 28px; font-size: 0.85rem;">Z${z.zone}</span>
-            <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-main);">${z.name}</span>
-            <span style="font-size: 0.75rem; color: var(--text-dim); margin-left: 0.4rem;">(${z.label})</span>
-            ${splatBadge}
+            <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-main);">${z.label || z.name}</span>
+            ${pointsBadge}
           </div>
           <div style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-dim);">
             ${z.min_pct}% - ${z.max_pct}%

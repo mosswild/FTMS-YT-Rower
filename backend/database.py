@@ -30,6 +30,9 @@ def init_db():
         avg_watts REAL DEFAULT 0.0,
         max_watts REAL DEFAULT 0.0,
         avg_hr REAL DEFAULT 0.0,
+        max_hr REAL DEFAULT 0.0,
+        splat_points INTEGER DEFAULT 0,
+        intensity_points INTEGER DEFAULT 0,
         video_id TEXT,
         audio_source TEXT,
         notes TEXT,
@@ -101,6 +104,11 @@ def init_db():
 
     try:
         cursor.execute("ALTER TABLE workouts ADD COLUMN splat_points INTEGER DEFAULT 0")
+    except Exception:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE workouts ADD COLUMN intensity_points INTEGER DEFAULT 0")
     except Exception:
         pass
 
@@ -191,12 +199,14 @@ def save_workout(workout_data: Dict[str, Any], samples: Optional[List[Dict[str, 
     laps_data = workout_data.get("laps", [])
     laps_json = json.dumps(laps_data) if isinstance(laps_data, list) else str(laps_data or "[]")
 
+    pts = workout_data.get("intensity_points", workout_data.get("splat_points", 0))
+
     cursor.execute("""
     INSERT OR REPLACE INTO workouts (
         id, start_time, end_time, duration_seconds, distance_meters,
         total_strokes, avg_spm, avg_split, avg_watts, max_watts,
-        avg_hr, max_hr, splat_points, video_id, audio_source, notes, laps
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        avg_hr, max_hr, splat_points, intensity_points, video_id, audio_source, notes, laps
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         workout_id,
         workout_data.get("start_time"),
@@ -210,7 +220,8 @@ def save_workout(workout_data: Dict[str, Any], samples: Optional[List[Dict[str, 
         workout_data.get("max_watts", 0.0),
         workout_data.get("avg_hr", 0.0),
         workout_data.get("max_hr", 0.0),
-        workout_data.get("splat_points", 0),
+        pts,
+        pts,
         workout_data.get("video_id"),
         workout_data.get("audio_source"),
         workout_data.get("notes", ""),
@@ -248,7 +259,7 @@ def list_workouts() -> List[Dict[str, Any]]:
     cursor.execute("""
     SELECT id, start_time, end_time, duration_seconds, distance_meters,
            total_strokes, avg_spm, avg_split, avg_watts, max_watts,
-           avg_hr, max_hr, splat_points, video_id, audio_source, notes, laps
+           avg_hr, max_hr, splat_points, intensity_points, video_id, audio_source, notes, laps
     FROM workouts
     ORDER BY start_time DESC
     """)
@@ -257,6 +268,9 @@ def list_workouts() -> List[Dict[str, Any]]:
     result = []
     for r in rows:
         d = dict(r)
+        pts = d.get("intensity_points") if d.get("intensity_points") is not None else d.get("splat_points", 0)
+        d["intensity_points"] = pts
+        d["splat_points"] = pts
         try:
             d["laps"] = json.loads(d.get("laps") or "[]")
         except Exception:

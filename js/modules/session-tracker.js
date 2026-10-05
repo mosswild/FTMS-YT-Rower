@@ -223,16 +223,18 @@ export class SessionTracker {
     const sessionDist = Math.max(0, rawDist - (this.baseDistance || 0) - (this.distanceOffset || 0));
     const hr = this.currentMetrics.hr || 0;
 
-    // Track cumulative Splat Points (minutes in Orange or Red zones)
+    // Track cumulative Intensity Points (minutes in Zone 4 or Zone 5)
     if (hr > 0 && typeof window !== "undefined" && window.hrZonesManager) {
       const z = window.hrZonesManager.getZoneForBpm(hr);
-      if (z && z.earns_splats) {
-        this.splatSeconds += 1.0;
-        const newSplats = Math.floor(this.splatSeconds / 60.0);
-        if (newSplats !== this.splatPoints) {
-          this.splatPoints = newSplats;
+      if (z && (z.earns_points || z.earns_splats)) {
+        this.intensitySeconds = (this.intensitySeconds || 0) + 1.0;
+        this.splatSeconds = this.intensitySeconds;
+        const newPoints = Math.floor(this.intensitySeconds / 60.0);
+        if (newPoints !== this.intensityPoints) {
+          this.intensityPoints = newPoints;
+          this.splatPoints = newPoints;
           if (typeof pm5Hud !== "undefined" && pm5Hud) {
-            pm5Hud.updateMetrics({ splatPoints: this.splatPoints });
+            pm5Hud.updateMetrics({ intensityPoints: this.intensityPoints, splatPoints: this.intensityPoints });
           }
         }
       }
@@ -267,6 +269,9 @@ export class SessionTracker {
       : (this.currentMetrics.strokes || 0);
     const sessionStrokes = Math.max(0, rawStrokes - (this.baseStrokes || 0) - (this.strokesOffset || 0));
 
+    const pts = this.intensityPoints || this.splatPoints || 0;
+    const sSecs = Math.round(this.intensitySeconds || this.splatSeconds || 0);
+
     return {
       durationSeconds: this.elapsedSeconds,
       distanceMeters: Math.round(sessionDist),
@@ -277,8 +282,10 @@ export class SessionTracker {
       maxWatts: max(validWatts),
       avgHr: avg(validHrs),
       maxHr: max(validHrs),
-      splatPoints: this.splatPoints || 0,
-      splatSeconds: Math.round(this.splatSeconds || 0),
+      intensityPoints: pts,
+      intensitySeconds: sSecs,
+      splatPoints: pts,
+      splatSeconds: sSecs,
       laps: this.laps || []
     };
   }
@@ -314,7 +321,8 @@ export class SessionTracker {
       max_watts: summary.maxWatts,
       avg_hr: summary.avgHr,
       max_hr: summary.maxHr,
-      splat_points: summary.splatPoints,
+      intensity_points: summary.intensityPoints,
+      splat_points: summary.intensityPoints,
       video_id: this.meta.videoId,
       audio_source: this.meta.audioSource,
       notes: this.meta.notes || "",

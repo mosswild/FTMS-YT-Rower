@@ -1,18 +1,18 @@
-"""OrangeTheory-Style Adaptive Heart Rate Calibration and Zone Calculation Engine.
+"""Adaptive Heart Rate Calibration and 5-Zone Calculation Engine.
 
-Implements the physiological formulas and adaptive calibration mechanics used by OrangeTheory Fitness:
+Implements physiological formulas and adaptive calibration mechanics:
 1. Initial baseline: Tanaka formula (208 - 0.7 * Age) or Fox formula (220 - Age).
 2. The 5-Workout Trigger: Evaluates peak cardiovascular performance and sustained elevated
    efforts across qualifying workouts (duration >= 10m, avg HR >= 90, peak HR >= 120, last 120 days).
-3. Spike-filtered peak analysis: Uses sustained percentiles (98.5th percentile / rolling top window)
+3. Spike-filtered peak analysis: Uses sustained percentiles (97th percentile / rolling top window)
    to eliminate Bluetooth / optical monitor artifacts.
-4. Five distinct color-coded metabolic zones:
-   - Zone 1 (Gray):   50% - 60% HRmax (Warm-up, recovery)
-   - Zone 2 (Blue):   61% - 70% HRmax (Light aerobic base warm-up)
-   - Zone 3 (Green):  71% - 83% HRmax (Aerobic endurance / Base pace)
-   - Zone 4 (Orange): 84% - 91% HRmax (Anaerobic threshold / Push pace - Splat Points)
-   - Zone 5 (Red):    92% - 100% HRmax (Maximum capacity / All-out - Splat Points)
-5. Splat Points: 1 point earned for each cumulative 60 seconds spent in Orange or Red zones (>= 84% HRmax).
+4. Five distinct metabolic zones:
+   - Zone 1: 50% - 60% HRmax (Active Recovery / Warm-up)
+   - Zone 2: 61% - 70% HRmax (Light Aerobic Endurance)
+   - Zone 3: 71% - 83% HRmax (Aerobic Base / Steady State)
+   - Zone 4: 84% - 91% HRmax (Anaerobic Threshold - Earns Intensity Points)
+   - Zone 5: 92% - 100% HRmax (Peak / Maximum Capacity - Earns Intensity Points)
+5. Intensity Points: 1 point earned for each cumulative 60 seconds spent in Zone 4 or Zone 5 (>= 84% HRmax).
 """
 
 from typing import Dict, List, Any, Optional, Tuple
@@ -21,53 +21,56 @@ import math
 
 
 # Zone definitions as percentages of HRmax [min_pct, max_pct]
-ORANGETHEORY_ZONES = {
+HEART_RATE_ZONES = {
     1: {
-        "name": "Gray",
-        "label": "Warm-up / Recovery",
+        "name": "Zone 1",
+        "label": "Active Recovery / Warm-up",
         "min_pct": 0.50,
         "max_pct": 0.60,
         "color": "#94a3b8",
         "bg_color": "rgba(148, 163, 184, 0.2)",
-        "earns_splats": False,
+        "earns_points": False,
     },
     2: {
-        "name": "Blue",
-        "label": "Light Aerobic / Warm-up",
+        "name": "Zone 2",
+        "label": "Light Aerobic Endurance",
         "min_pct": 0.61,
         "max_pct": 0.70,
         "color": "#38bdf8",
         "bg_color": "rgba(56, 189, 248, 0.2)",
-        "earns_splats": False,
+        "earns_points": False,
     },
     3: {
-        "name": "Green",
-        "label": "Aerobic Base Pace",
+        "name": "Zone 3",
+        "label": "Aerobic Base / Steady State",
         "min_pct": 0.71,
         "max_pct": 0.83,
         "color": "#10b981",
         "bg_color": "rgba(16, 185, 129, 0.2)",
-        "earns_splats": False,
+        "earns_points": False,
     },
     4: {
-        "name": "Orange",
-        "label": "Anaerobic Push Pace",
+        "name": "Zone 4",
+        "label": "Anaerobic Threshold",
         "min_pct": 0.84,
         "max_pct": 0.91,
         "color": "#f97316",
         "bg_color": "rgba(249, 115, 22, 0.2)",
-        "earns_splats": True,
+        "earns_points": True,
     },
     5: {
-        "name": "Red",
-        "label": "All-Out Maximum",
+        "name": "Zone 5",
+        "label": "Peak / Maximum Capacity",
         "min_pct": 0.92,
         "max_pct": 1.00,
         "color": "#ef4444",
         "bg_color": "rgba(239, 68, 68, 0.2)",
-        "earns_splats": True,
+        "earns_points": True,
     },
 }
+
+# Compatibility alias
+ORANGETHEORY_ZONES = HEART_RATE_ZONES
 
 # Calibration constants
 MIN_QUALIFYING_WORKOUTS = 5
@@ -89,18 +92,19 @@ def calculate_age_based_max_hr(age: int, formula: str = "tanaka") -> int:
     if formula.lower() == "standard" or formula.lower() == "fox":
         max_hr = 220 - safe_age
     else:
-        # Default: Tanaka equation (standard in Orangetheory OTbeat)
+        # Default: Tanaka equation
         max_hr = round(208.0 - (0.7 * safe_age))
     return int(max(ABSOLUTE_MIN_HRMAX, min(ABSOLUTE_MAX_HRMAX, max_hr)))
 
 
 def calculate_zones_for_max_hr(max_hr: int) -> Dict[str, Dict[str, Any]]:
-    """Generates the 5 OrangeTheory heart rate zones with exact BPM boundaries for a given HRmax."""
+    """Generates the 5 metabolic heart rate zones with exact BPM boundaries for a given HRmax."""
     safe_max_hr = max(ABSOLUTE_MIN_HRMAX, min(ABSOLUTE_MAX_HRMAX, int(max_hr)))
     zones = {}
-    for zone_num, defn in ORANGETHEORY_ZONES.items():
+    for zone_num, defn in HEART_RATE_ZONES.items():
         min_bpm = round(safe_max_hr * defn["min_pct"])
         max_bpm = round(safe_max_hr * defn["max_pct"])
+        earns_pts = defn.get("earns_points", False)
         zones[str(zone_num)] = {
             "zone": zone_num,
             "name": defn["name"],
@@ -111,13 +115,14 @@ def calculate_zones_for_max_hr(max_hr: int) -> Dict[str, Dict[str, Any]]:
             "max_bpm": max_bpm,
             "color": defn["color"],
             "bg_color": defn["bg_color"],
-            "earns_splats": defn["earns_splats"],
+            "earns_points": earns_pts,
+            "earns_splats": earns_pts,  # compatibility alias
         }
     return zones
 
 
 def get_zone_for_bpm(bpm: float, max_hr: int) -> Optional[Dict[str, Any]]:
-    """Determines which OrangeTheory zone a given heart rate falls into."""
+    """Determines which heart rate zone a given heart rate falls into."""
     if not bpm or bpm <= 0 or not max_hr or max_hr <= 0:
         return None
     pct = (float(bpm) / float(max_hr)) * 100.0
@@ -132,12 +137,14 @@ def get_zone_for_bpm(bpm: float, max_hr: int) -> Optional[Dict[str, Any]]:
             "pct": round(pct, 1),
             "color": "#64748b",
             "bg_color": "rgba(100, 116, 139, 0.2)",
+            "earns_points": False,
             "earns_splats": False,
         }
 
     for zone_num in (5, 4, 3, 2, 1):
         z = zones[str(zone_num)]
         if bpm >= z["min_bpm"]:
+            earns_pts = z.get("earns_points", z.get("earns_splats", False))
             return {
                 "zone": zone_num,
                 "name": z["name"],
@@ -145,10 +152,12 @@ def get_zone_for_bpm(bpm: float, max_hr: int) -> Optional[Dict[str, Any]]:
                 "pct": round(pct, 1),
                 "color": z["color"],
                 "bg_color": z["bg_color"],
-                "earns_splats": z["earns_splats"],
+                "earns_points": earns_pts,
+                "earns_splats": earns_pts,
             }
 
     z1 = zones["1"]
+    earns_pts = z1.get("earns_points", z1.get("earns_splats", False))
     return {
         "zone": 1,
         "name": z1["name"],
@@ -156,7 +165,8 @@ def get_zone_for_bpm(bpm: float, max_hr: int) -> Optional[Dict[str, Any]]:
         "pct": round(pct, 1),
         "color": z1["color"],
         "bg_color": z1["bg_color"],
-        "earns_splats": False,
+        "earns_points": earns_pts,
+        "earns_splats": earns_pts,
     }
 
 
@@ -259,7 +269,7 @@ def calibrate_max_hr(
     age: int,
     formula: str = "tanaka"
 ) -> Tuple[int, bool, float]:
-    """Runs the OrangeTheory adaptive calibration algorithm against qualifying workouts.
+    """Runs the adaptive calibration algorithm against qualifying workouts.
 
     Returns:
         (active_max_hr, is_calibrated, raw_calibrated_val)
@@ -283,7 +293,7 @@ def calibrate_max_hr(
         reverse=True
     )
 
-    # OrangeTheory looks at peak efforts. Take the average of the top 3 peak workouts
+    # Take the average of the top 3 peak workouts
     top_peaks = sorted_peaks[:min(3, len(sorted_peaks))]
     peak_avg = sum(top_peaks) / len(top_peaks)
 
@@ -294,17 +304,20 @@ def calibrate_max_hr(
     return int(clamped_hr), True, round(calibrated_raw, 1)
 
 
-def calculate_session_zones_and_splats(
+def calculate_session_zones_and_points(
     samples: List[Dict[str, Any]],
     max_hr: int
 ) -> Dict[str, Any]:
-    """Calculates time spent in each of the 5 OrangeTheory zones and total Splat Points earned."""
+    """Calculates time spent in each of the 5 metabolic zones and total intensity points earned."""
     zone_seconds = {1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0, 0: 0.0}
-    splat_seconds = 0.0
+    intensity_seconds = 0.0
 
     if not samples or max_hr <= 0:
         return {
+            "intensity_points": 0,
+            "intensity_seconds": 0.0,
             "splat_points": 0,
+            "splat_seconds": 0.0,
             "zone_seconds": {str(k): 0 for k in (1, 2, 3, 4, 5)},
             "zone_minutes": {str(k): 0.0 for k in (1, 2, 3, 4, 5)},
             "pct_in_zones": {str(k): 0.0 for k in (1, 2, 3, 4, 5)},
@@ -328,11 +341,11 @@ def calculate_session_zones_and_splats(
         if zone_info:
             z_num = zone_info["zone"]
             zone_seconds[z_num] = zone_seconds.get(z_num, 0.0) + dt
-            if zone_info["earns_splats"]:
-                splat_seconds += dt
+            if zone_info.get("earns_points", zone_info.get("earns_splats", False)):
+                intensity_seconds += dt
 
-    # 1 Splat Point per full 60 seconds (1 minute) spent in Orange (Zone 4) or Red (Zone 5)
-    splat_points = int(math.floor(splat_seconds / 60.0))
+    # 1 Intensity Point per full 60 seconds (1 minute) spent in Zone 4 or Zone 5 (>= 84% HRmax)
+    intensity_points = int(math.floor(intensity_seconds / 60.0))
 
     total_valid_seconds = sum(zone_seconds[k] for k in (1, 2, 3, 4, 5))
     pct_in_zones = {}
@@ -343,9 +356,14 @@ def calculate_session_zones_and_splats(
         pct_in_zones[str(k)] = round((s_dur / total_valid_seconds * 100.0), 1) if total_valid_seconds > 0 else 0.0
 
     return {
-        "splat_points": splat_points,
-        "splat_seconds": round(splat_seconds, 1),
+        "intensity_points": intensity_points,
+        "intensity_seconds": round(intensity_seconds, 1),
+        "splat_points": intensity_points,  # compatibility alias
+        "splat_seconds": round(intensity_seconds, 1),  # compatibility alias
         "zone_seconds": {str(k): round(zone_seconds.get(k, 0.0), 1) for k in (1, 2, 3, 4, 5)},
         "zone_minutes": zone_minutes,
         "pct_in_zones": pct_in_zones,
     }
+
+# Backward compatibility alias
+calculate_session_zones_and_splats = calculate_session_zones_and_points

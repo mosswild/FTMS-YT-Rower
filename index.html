@@ -321,7 +321,7 @@
               <div class="pm5-cell-header">
                 <span class="pm5-label">Heart Rate</span>
                 <div style="display: flex; align-items: center; gap: 0.35rem;">
-                  <div id="hud-splat-chip" class="pm5-splat-chip" style="display: none;" title="OrangeTheory Splat Points (minutes in Orange & Red zones)"><span class="splat-fire">🔥</span> <span id="hud-splat-count">0</span></div>
+                  <div id="hud-splat-chip" class="pm5-splat-chip" style="display: none;" title="High-intensity minutes (Zone 4 & Zone 5)"><span class="splat-fire">⚡</span> <span id="hud-splat-count">0</span> <span style="font-size: 0.65rem; opacity: 0.8; font-weight: normal; margin-left: 0.15rem;">PTS</span></div>
                   <svg id="hud-hr-icon" class="pm5-heart-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </div>
               </div>
@@ -742,7 +742,7 @@
         <p class="form-hint" style="margin-top: 0.4rem; margin-bottom: 0;">Controls the rate of volume change based on stroke cadence (0.5× = subtle modulation, 1.0× = standard, 1.5×–2.5× = dynamic surges & deeper rest dips).</p>
       </div>
 
-      <!-- ATHLETE PROFILE & ORANGETHEORY HR CALIBRATION -->
+      <!-- ATHLETE PROFILE & HEART RATE CALIBRATION -->
       <div class="form-group" style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -751,7 +751,7 @@
           </div>
           <span id="profile-active-hr-badge" class="badge-active-hr" title="Active Max Heart Rate">187 BPM Max</span>
         </div>
-        <p class="form-hint">OrangeTheory-inspired 5 metabolic zones with adaptive, rolling calibration based on peak workout performance.</p>
+        <p class="form-hint">5-zone metabolic training engine with adaptive, rolling calibration based on peak workout performance.</p>
 
         <!-- Athlete Profile Inputs -->
         <div class="profile-input-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.75rem;">
@@ -776,7 +776,7 @@
           <label class="form-label" style="font-size: 0.8rem; margin-bottom: 0.35rem;">HRmax Calculation Mode</label>
           <div class="calib-mode-selector" id="calib-mode-selector">
             <button type="button" class="btn-calib-choice active" data-mode="auto">
-              <span class="calib-name">Adaptive OTbeat</span>
+              <span class="calib-name">Adaptive Auto</span>
               <span class="calib-desc">Auto-calibrates (5+ rows)</span>
             </button>
             <button type="button" class="btn-calib-choice" data-mode="age">
@@ -817,7 +817,7 @@
           </div>
         </div>
 
-        <!-- 5-Zone Real-Time Color Breakdown Table -->
+        <!-- 5-Zone Real-Time Breakdown Table -->
         <div class="hr-zones-table-container" style="margin-top: 1rem;">
           <div class="hr-zones-table-header" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 600; padding: 0 0.5rem 0.3rem;">
             <span>Zone & Target State</span>
