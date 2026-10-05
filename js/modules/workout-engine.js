@@ -534,9 +534,26 @@ export class WorkoutEngine {
 
     // Heart Rate Compliance
     if (targets.hr || targets.hr_zone) {
-      const minHr = targets.hr ? (Array.isArray(targets.hr) ? targets.hr[0] : targets.hr) : null;
-      const maxHr = targets.hr ? (Array.isArray(targets.hr) ? (targets.hr[1] !== undefined ? targets.hr[1] : targets.hr[0]) : targets.hr) : null;
-      const targetStr = minHr !== null ? (minHr === maxHr ? `${minHr}` : `${minHr}-${maxHr}`) : `Zone ${Array.isArray(targets.hr_zone) ? targets.hr_zone[0] : targets.hr_zone}`;
+      let minHr = targets.hr ? (Array.isArray(targets.hr) ? targets.hr[0] : targets.hr) : null;
+      let maxHr = targets.hr ? (Array.isArray(targets.hr) ? (targets.hr[1] !== undefined ? targets.hr[1] : targets.hr[0]) : targets.hr) : null;
+      let targetStr = "";
+
+      if (minHr !== null) {
+        targetStr = minHr === maxHr ? `${minHr} bpm` : `${minHr}-${maxHr} bpm`;
+      } else if (targets.hr_zone) {
+        const zNum = Array.isArray(targets.hr_zone) ? targets.hr_zone[0] : targets.hr_zone;
+        if (typeof window !== "undefined" && window.hrZonesManager) {
+          const range = window.hrZonesManager.getBpmRangeForZone(zNum);
+          minHr = range[0];
+          maxHr = range[1];
+          const zInfo = window.hrZonesManager.zones ? window.hrZonesManager.zones[String(zNum)] : null;
+          const zName = zInfo ? zInfo.name : `Zone ${zNum}`;
+          targetStr = `${minHr}-${maxHr} bpm [Z${zNum} ${zName}]`;
+        } else {
+          targetStr = `Zone ${zNum}`;
+        }
+      }
+
       const val = curTelem.heartRate !== undefined ? curTelem.heartRate : 0;
       if (val === 0) {
         if (isStepRest && (!minHr || minHr <= 0)) {

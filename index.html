@@ -320,10 +320,14 @@
             <div class="pm5-cell pm5-cell-hr">
               <div class="pm5-cell-header">
                 <span class="pm5-label">Heart Rate</span>
-                <svg id="hud-hr-icon" class="pm5-heart-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <div id="hud-splat-chip" class="pm5-splat-chip" style="display: none;" title="OrangeTheory Splat Points (minutes in Orange & Red zones)"><span class="splat-fire">🔥</span> <span id="hud-splat-count">0</span></div>
+                  <svg id="hud-hr-icon" class="pm5-heart-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </div>
               </div>
               <div class="pm5-value" id="hud-hr">--</div>
               <span class="pm5-unit">bpm</span>
+              <div id="hud-hr-zone-pill" class="pm5-hr-zone-pill" style="display: none;"></div>
               <div class="pm5-target-chip" id="hud-target-hr" style="display: none;"></div>
               <!-- Cyberpunk ECG Pulse Waveform -->
               <div class="cyber-ecg-container">
@@ -736,6 +740,94 @@
           <input type="range" id="setting-cadence-volume-sensitivity" min="0.25" max="2.50" value="1.00" step="0.25">
         </div>
         <p class="form-hint" style="margin-top: 0.4rem; margin-bottom: 0;">Controls the rate of volume change based on stroke cadence (0.5× = subtle modulation, 1.0× = standard, 1.5×–2.5× = dynamic surges & deeper rest dips).</p>
+      </div>
+
+      <!-- ATHLETE PROFILE & ORANGETHEORY HR CALIBRATION -->
+      <div class="form-group" style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#f97316"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <label class="form-label" style="margin-bottom: 0; font-size: 0.95rem; font-weight: 700;">Heart Rate Zones & Adaptive Calibration</label>
+          </div>
+          <span id="profile-active-hr-badge" class="badge-active-hr" title="Active Max Heart Rate">187 BPM Max</span>
+        </div>
+        <p class="form-hint">OrangeTheory-inspired 5 metabolic zones with adaptive, rolling calibration based on peak workout performance.</p>
+
+        <!-- Athlete Profile Inputs -->
+        <div class="profile-input-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.75rem;">
+          <div>
+            <label class="form-label" style="font-size: 0.8rem; margin-bottom: 0.2rem;">Athlete Age</label>
+            <div class="range-with-val" style="margin-top: 0;">
+              <input type="range" id="profile-age-range" min="15" max="85" value="30" step="1">
+              <span id="profile-age-val" class="range-val-badge">30</span>
+            </div>
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 0.8rem; margin-bottom: 0.2rem;">Resting Heart Rate</label>
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <input type="number" id="profile-rest-hr" min="35" max="110" value="60" style="width: 100%; padding: 0.45rem 0.6rem; background: rgba(0,0,0,0.4); color: var(--text-main); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; font-size: 0.88rem; font-family: var(--font-mono);">
+              <span style="font-size: 0.75rem; color: var(--text-dim);">bpm</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calibration Mode Selection -->
+        <div style="margin-top: 1rem;">
+          <label class="form-label" style="font-size: 0.8rem; margin-bottom: 0.35rem;">HRmax Calculation Mode</label>
+          <div class="calib-mode-selector" id="calib-mode-selector">
+            <button type="button" class="btn-calib-choice active" data-mode="auto">
+              <span class="calib-name">Adaptive OTbeat</span>
+              <span class="calib-desc">Auto-calibrates (5+ rows)</span>
+            </button>
+            <button type="button" class="btn-calib-choice" data-mode="age">
+              <span class="calib-name">Tanaka Formula</span>
+              <span class="calib-desc">208 - 0.7 &times; Age</span>
+            </button>
+            <button type="button" class="btn-calib-choice" data-mode="manual">
+              <span class="calib-name">Manual</span>
+              <span class="calib-desc">Custom Max HR</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Manual Override Section (hidden unless manual selected) -->
+        <div id="manual-hr-container" style="display: none; margin-top: 0.75rem; padding: 0.75rem 1rem; background: rgba(0,0,0,0.25); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label class="form-label" style="margin-bottom: 0; font-size: 0.82rem;">Manual Max Heart Rate</label>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <button type="button" id="btn-nudge-hr-down" class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.5rem; font-weight: bold;">-</button>
+              <span id="manual-hr-display" style="font-family: var(--font-mono); font-weight: 700; font-size: 1rem; color: #f97316; min-width: 60px; text-align: center;">187 bpm</span>
+              <button type="button" id="btn-nudge-hr-up" class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.5rem; font-weight: bold;">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calibration Status & Progress Banner -->
+        <div id="calibration-status-card" class="calibration-status-card" style="margin-top: 0.85rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div id="calibration-badge-text" style="font-size: 0.8rem; font-weight: 600; color: #38bdf8;">
+              ⚡ Calibration: 0 / 5 qualifying workouts completed
+            </div>
+            <button type="button" id="btn-trigger-recalibrate" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">
+              Recalibrate
+            </button>
+          </div>
+          <div class="calib-progress-track" style="margin-top: 0.4rem; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+            <div id="calib-progress-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #38bdf8, #f97316); transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- 5-Zone Real-Time Color Breakdown Table -->
+        <div class="hr-zones-table-container" style="margin-top: 1rem;">
+          <div class="hr-zones-table-header" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 600; padding: 0 0.5rem 0.3rem;">
+            <span>Zone & Target State</span>
+            <span>% Max HR</span>
+            <span>BPM Range</span>
+          </div>
+          <div id="hr-zones-table-body" class="hr-zones-table-body">
+            <!-- Dynamically populated rows -->
+          </div>
+        </div>
       </div>
 
       <div class="form-group" style="margin-top: 1.5rem;">

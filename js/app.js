@@ -10,6 +10,7 @@ import { TrackController } from "./modules/track-controller.js?v=spm-cal-v41";
 import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=spm-cal-v41";
 import { WorkoutEngine } from "./modules/workout-engine.js?v=spm-cal-v41";
 import { KeepAwake } from "./modules/keep-awake.js?v=nosleep-v42";
+import { HrZonesManager } from "./modules/hr-zones.js?v=ot-cal-v1";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -44,6 +45,16 @@ const trackTimeDisplay = document.getElementById("track-time-display");
 
 // Initialize PM5 HUD
 const pm5Hud = new PM5Hud(viewportContainer);
+
+// Initialize Heart Rate Zones & Adaptive Calibration Manager
+const hrZonesManager = new HrZonesManager({
+  onProfileChange: (summary) => {
+    if (typeof renderHrZonesSettings === "function") {
+      renderHrZonesSettings(summary);
+    }
+  }
+});
+window.hrZonesManager = hrZonesManager;
 
 // Load persisted Cadence Volume setting (defaults to true for cadence-locked tracks)
 let initialCadenceAudioVol = true;
@@ -3520,6 +3531,179 @@ if (settingCadenceSensitivity) {
     renderHudAudioDropdown();
   });
 }
+
+// ----------------- Heart Rate Zones & Adaptive Calibration Settings -----------------
+function renderHrZonesSettings(summary) {
+  if (!summary) return;
+  const p = summary.profile || {};
+  const maxHr = summary.activeMaxHr || p.active_max_hr || 187;
+
+  // Active Max HR Badge
+  const badge = document.getElementById("profile-active-hr-badge");
+  if (badge) {
+    badge.textContent = `${Math.round(maxHr)} BPM Max`;
+  }
+
+  // Age input
+  const ageRange = document.getElementById("profile-age-range");
+  const ageVal = document.getElementById("profile-age-val");
+  if (ageRange && p.age !== undefined && document.activeElement !== ageRange) {
+    ageRange.value = p.age;
+    if (ageVal) ageVal.textContent = p.age;
+  }
+
+  // Rest HR input
+  const restHrInput = document.getElementById("profile-rest-hr");
+  if (restHrInput && p.rest_hr !== undefined && document.activeElement !== restHrInput) {
+    restHrInput.value = p.rest_hr;
+  }
+
+  // Calibration mode choice buttons
+  const curMode = p.calibration_mode || "auto";
+  document.querySelectorAll(".btn-calib-choice").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-mode") === curMode);
+  });
+
+  // Manual override section visibility and display
+  const manualContainer = document.getElementById("manual-hr-container");
+  if (manualContainer) {
+    manualContainer.style.display = curMode === "manual" ? "block" : "none";
+  }
+
+  const manualDisplay = document.getElementById("manual-hr-display");
+  if (manualDisplay) {
+    const manualHr = p.manual_max_hr || maxHr;
+    manualDisplay.textContent = `${Math.round(manualHr)} bpm`;
+  }
+
+  // Calibration status banner & progress bar
+  const calibText = document.getElementById("calibration-badge-text");
+  const calibFill = document.getElementById("calib-progress-fill");
+  const count = summary.qualifyingCount || 0;
+  const needed = summary.minQualifyingNeeded || 5;
+  const pct = Math.min(100, Math.round((count / needed) * 100));
+
+  if (calibFill) {
+    calibFill.style.width = `${pct}%`;
+  }
+
+  if (calibText) {
+    if (summary.isCalibrated) {
+      calibText.innerHTML = `⚡ Calibrated: <strong>${Math.round(p.calibrated_max_hr || maxHr)} BPM</strong> (${count} qualifying workouts analyzed)`;
+      calibText.style.color = "#10b981";
+    } else {
+      calibText.textContent = `⚡ Calibration: ${count} / ${needed} qualifying workouts completed`;
+      calibText.style.color = "#38bdf8";
+    }
+  }
+
+  // 5-Zone breakdown table
+  const tableBody = document.getElementById("hr-zones-table-body");
+  if (tableBody && summary.zones) {
+    let rowsHtml = "";
+    for (const zNum of [1, 2, 3, 4, 5]) {
+      const z = summary.zones[String(zNum)];
+      if (!z) continue;
+      const splatBadge = z.earns_splats
+        ? `<span style="display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; padding: 0.1rem 0.35rem; border-radius: 4px; background: rgba(249, 115, 22, 0.25); color: #f97316; font-weight: 700; margin-left: 0.4rem;">🔥 Splats</span>`
+        : "";
+
+      rowsHtml += `
+        <div class="hr-zone-row" style="display: flex; align-items: center; justify-content: space-between; padding: 0.4rem 0.5rem; border-radius: 6px; margin-bottom: 0.25rem; background: ${z.bg_color || 'rgba(255,255,255,0.03)'}; border-left: 3px solid ${z.color};">
+          <div style="display: flex; align-items: center;">
+            <span style="font-weight: 700; color: ${z.color}; width: 28px; font-size: 0.85rem;">Z${z.zone}</span>
+            <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-main);">${z.name}</span>
+            <span style="font-size: 0.75rem; color: var(--text-dim); margin-left: 0.4rem;">(${z.label})</span>
+            ${splatBadge}
+          </div>
+          <div style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-dim);">
+            ${z.min_pct}% - ${z.max_pct}%
+          </div>
+          <div style="font-family: var(--font-mono); font-weight: 700; font-size: 0.85rem; color: ${z.color};">
+            ${z.min_bpm} - ${z.max_bpm} <span style="font-size: 0.7rem; font-weight: normal; color: var(--text-dim);">BPM</span>
+          </div>
+        </div>
+      `;
+    }
+    tableBody.innerHTML = rowsHtml;
+  }
+}
+
+// Wire settings listeners
+const profileAgeRange = document.getElementById("profile-age-range");
+const profileAgeVal = document.getElementById("profile-age-val");
+let profileAgeDebounce = null;
+if (profileAgeRange) {
+  profileAgeRange.addEventListener("input", (e) => {
+    const val = parseInt(e.target.value, 10);
+    if (profileAgeVal) profileAgeVal.textContent = val;
+    clearTimeout(profileAgeDebounce);
+    profileAgeDebounce = setTimeout(() => {
+      hrZonesManager.updateProfile({ age: val });
+    }, 300);
+  });
+}
+
+const profileRestHr = document.getElementById("profile-rest-hr");
+if (profileRestHr) {
+  profileRestHr.addEventListener("change", (e) => {
+    const val = parseInt(e.target.value, 10);
+    if (!isNaN(val) && val >= 35 && val <= 110) {
+      hrZonesManager.updateProfile({ rest_hr: val });
+    }
+  });
+}
+
+document.querySelectorAll(".btn-calib-choice").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const mode = btn.getAttribute("data-mode");
+    hrZonesManager.updateProfile({ calibration_mode: mode });
+    showHudToast(`HR Mode: ${mode.toUpperCase()}`);
+  });
+});
+
+const btnNudgeHrDown = document.getElementById("btn-nudge-hr-down");
+const btnNudgeHrUp = document.getElementById("btn-nudge-hr-up");
+if (btnNudgeHrDown) {
+  btnNudgeHrDown.addEventListener("click", () => {
+    const cur = hrZonesManager.profile.manual_max_hr || hrZonesManager.activeMaxHr || 187;
+    const next = Math.max(120, cur - 1);
+    hrZonesManager.updateProfile({ manual_max_hr: next, calibration_mode: "manual" });
+  });
+}
+if (btnNudgeHrUp) {
+  btnNudgeHrUp.addEventListener("click", () => {
+    const cur = hrZonesManager.profile.manual_max_hr || hrZonesManager.activeMaxHr || 187;
+    const next = Math.min(225, cur + 1);
+    hrZonesManager.updateProfile({ manual_max_hr: next, calibration_mode: "manual" });
+  });
+}
+
+const btnTriggerRecalibrate = document.getElementById("btn-trigger-recalibrate");
+if (btnTriggerRecalibrate) {
+  btnTriggerRecalibrate.addEventListener("click", async () => {
+    btnTriggerRecalibrate.disabled = true;
+    btnTriggerRecalibrate.textContent = "Calculating...";
+    const res = await hrZonesManager.recalibrate();
+    btnTriggerRecalibrate.disabled = false;
+    btnTriggerRecalibrate.textContent = "Recalibrate";
+    if (res.success && res.data) {
+      if (res.data.is_calibrated) {
+        showHudToast(`Recalibrated! Max HR: ${Math.round(res.data.active_max_hr)} BPM`);
+      } else {
+        showHudToast(`Need ${res.data.min_qualifying_needed || 5} qualifying workouts`);
+      }
+    } else {
+      showHudToast("Recalibration failed");
+    }
+  });
+}
+
+// Initial render and backend sync for HR profile
+renderHrZonesSettings(hrZonesManager.getSummary());
+hrZonesManager.init().then(() => {
+  renderHrZonesSettings(hrZonesManager.getSummary());
+}).catch(() => {});
 
 // ----------------- HUD Visual Theme Management -----------------
 const THEMES = ["default", "cyberpunk", "retro-pm5", "nordic"];

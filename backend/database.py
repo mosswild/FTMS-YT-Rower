@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import json
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 
 DATA_DIR = os.getenv("DATA_DIR", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data")))
@@ -65,6 +66,23 @@ def init_db():
     )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS user_profiles (
+        id TEXT PRIMARY KEY,
+        name TEXT DEFAULT 'Athlete',
+        age INTEGER DEFAULT 30,
+        gender TEXT DEFAULT 'unspecified',
+        rest_hr INTEGER DEFAULT 60,
+        formula TEXT DEFAULT 'tanaka',
+        calibration_mode TEXT DEFAULT 'auto',
+        manual_max_hr INTEGER DEFAULT 187,
+        calibrated_max_hr REAL DEFAULT 0.0,
+        active_max_hr INTEGER DEFAULT 187,
+        last_calibrated_at TEXT,
+        updated_at TEXT
+    )
+    """)
+
     # Migration for existing databases
     try:
         cursor.execute("ALTER TABLE tracks ADD COLUMN fixed_speed INTEGER DEFAULT 0")
@@ -73,6 +91,16 @@ def init_db():
 
     try:
         cursor.execute("ALTER TABLE workouts ADD COLUMN laps TEXT DEFAULT '[]'")
+    except Exception:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE workouts ADD COLUMN max_hr REAL DEFAULT 0.0")
+    except Exception:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE workouts ADD COLUMN splat_points INTEGER DEFAULT 0")
     except Exception:
         pass
 
@@ -167,8 +195,8 @@ def save_workout(workout_data: Dict[str, Any], samples: Optional[List[Dict[str, 
     INSERT OR REPLACE INTO workouts (
         id, start_time, end_time, duration_seconds, distance_meters,
         total_strokes, avg_spm, avg_split, avg_watts, max_watts,
-        avg_hr, video_id, audio_source, notes, laps
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        avg_hr, max_hr, splat_points, video_id, audio_source, notes, laps
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         workout_id,
         workout_data.get("start_time"),
@@ -181,6 +209,8 @@ def save_workout(workout_data: Dict[str, Any], samples: Optional[List[Dict[str, 
         workout_data.get("avg_watts", 0.0),
         workout_data.get("max_watts", 0.0),
         workout_data.get("avg_hr", 0.0),
+        workout_data.get("max_hr", 0.0),
+        workout_data.get("splat_points", 0),
         workout_data.get("video_id"),
         workout_data.get("audio_source"),
         workout_data.get("notes", ""),
@@ -218,7 +248,7 @@ def list_workouts() -> List[Dict[str, Any]]:
     cursor.execute("""
     SELECT id, start_time, end_time, duration_seconds, distance_meters,
            total_strokes, avg_spm, avg_split, avg_watts, max_watts,
-           avg_hr, video_id, audio_source, notes, laps
+           avg_hr, max_hr, splat_points, video_id, audio_source, notes, laps
     FROM workouts
     ORDER BY start_time DESC
     """)
@@ -279,4 +309,117 @@ def delete_workouts(workout_ids: List[str]) -> int:
     conn.commit()
     conn.close()
     return deleted_count
+
+
+def get_user_profile(profile_id: str = "default") -> Dict[str, Any]:
+    """Retrieves a user profile, initializing with default 30yo Tanaka baseline if not found."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM user_profiles WHERE id = ?", (profile_id,))
+    row = cursor.fetchone()
+    if row:
+        profile = dict(row)
+        conn.close()
+        return profile
+
+    # Default profile creation
+    now_iso = datetime.now(timezone.utc).isoformat()
+    default_profile = {
+        "id": profile_id,
+        "name": "Athlete",
+        "age": 30,
+        "gender": "unspecified",
+        "rest_hr": 60,
+        "formula": "tanaka",
+        "calibration_mode": "auto",
+        "manual_max_hr": 187,
+        "calibrated_max_hr": 0.0,
+        "active_max_hr": 187,
+        "last_calibrated_at": None,
+        "updated_at": now_iso,
+    }
+    cursor.execute("""
+    INSERT OR REPLACE INTO user_profiles (
+        id, name, age, gender, rest_hr, formula, calibration_mode,
+        manual_max_hr, calibrated_max_hr, active_max_hr, last_calibrated_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        default_profile["id"],
+        default_profile["name"],
+        default_profile["age"],
+        default_profile["gender"],
+        default_profile["rest_hr"],
+        default_profile["formula"],
+        default_profile["calibration_mode"],
+        default_profile["manual_max_hr"],
+        default_profile["calibrated_max_hr"],
+        default_profile["active_max_hr"],
+        default_profile["last_calibrated_at"],
+        default_profile["updated_at"],
+    ))
+    conn.commit()
+    conn.close()
+    return default_profile
+
+
+def save_user_profile(profile_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Saves or updates a user profile."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    profile_id = profile_data.get("id", "default")
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    cursor.execute("""
+    INSERT OR REPLACE INTO user_profiles (
+        id, name, age, gender, rest_hr, formula, calibration_mode,
+        manual_max_hr, calibrated_max_hr, active_max_hr, last_calibrated_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        profile_id,
+        profile_data.get("name", "Athlete"),
+        int(profile_data.get("age", 30)),
+        profile_data.get("gender", "unspecified"),
+        int(profile_data.get("rest_hr", 60)),
+        profile_data.get("formula", "tanaka"),
+        profile_data.get("calibration_mode", "auto"),
+        int(profile_data.get("manual_max_hr", 187)),
+        float(profile_data.get("calibrated_max_hr", 0.0)),
+        int(profile_data.get("active_max_hr", 187)),
+        profile_data.get("last_calibrated_at"),
+        now_iso,
+    ))
+    conn.commit()
+    conn.close()
+    return get_user_profile(profile_id)
+
+
+def get_recent_workouts_for_calibration(limit: int = 100) -> List[Dict[str, Any]]:
+    """Retrieves recent completed workouts with their heart rate samples for calibration analysis."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT id, start_time, duration_seconds, distance_meters, avg_hr, max_hr, splat_points
+    FROM workouts
+    WHERE duration_seconds >= 600 AND avg_hr >= 85
+    ORDER BY start_time DESC
+    LIMIT ?
+    """, (limit,))
+    workout_rows = cursor.fetchall()
+
+    results = []
+    for r in workout_rows:
+        w = dict(r)
+        w_id = w["id"]
+        cursor.execute("""
+        SELECT elapsed_seconds, hr
+        FROM workout_samples
+        WHERE workout_id = ? AND hr > 40
+        ORDER BY elapsed_seconds ASC
+        """, (w_id,))
+        w["samples"] = [dict(s) for s in cursor.fetchall()]
+        results.append(w)
+
+    conn.close()
+    return results
+
 

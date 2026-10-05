@@ -12,7 +12,8 @@ from pydantic import BaseModel, Field
 
 from backend.database import (
     init_db, save_workout, list_workouts, get_workout, delete_workout, delete_workouts,
-    save_track, list_tracks, get_track, delete_track
+    save_track, list_tracks, get_track, delete_track,
+    get_user_profile, save_user_profile, get_recent_workouts_for_calibration
 )
 from backend.downloader import (
     start_download_task, get_download_tasks, get_download_status,
@@ -23,6 +24,7 @@ from backend.uploader import save_uploaded_media
 from backend.streaming import range_streaming_response
 from backend.tcx_generator import generate_tcx, generate_multi_tcx
 import backend.workout_manager as workout_mgr
+import backend.hr_calibration as hr_calib
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -109,11 +111,21 @@ class WorkoutSaveRequest(BaseModel):
     max_watts: float = 0.0
     avg_hr: float = 0.0
     max_hr: Optional[float] = 0.0
+    splat_points: Optional[int] = 0
     video_id: Optional[str] = None
     audio_source: Optional[str] = None
     notes: Optional[str] = ""
     samples: Optional[List[WorkoutSampleModel]] = None
     laps: Optional[List[LapModel]] = None
+
+class UserProfileUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    rest_hr: Optional[int] = None
+    formula: Optional[str] = None
+    calibration_mode: Optional[str] = None
+    manual_max_hr: Optional[int] = None
 
 class BulkExportRequest(BaseModel):
     ids: Optional[List[str]] = None
@@ -320,7 +332,7 @@ async def get_video_thumbnail(video_id: str):
 
     raise HTTPException(status_code=404, detail="Thumbnail not available")
 
-# ----------------- Workout Persistence Endpoints -----------------
+# ----------------- Workout Persistence & Profile Endpoints -----------------
 @app.get("/api/sessions")
 async def get_sessions():
     sessions = list_workouts()
@@ -330,8 +342,155 @@ async def get_sessions():
 async def create_session(workout: WorkoutSaveRequest):
     data = workout.model_dump(exclude={"samples"})
     samples = [s.model_dump() for s in workout.samples] if workout.samples else None
+
+    # Calculate Splat Points and peak HR if samples are provided
+    profile = get_user_profile("default")
+    active_max_hr = int(profile.get("active_max_hr", 187))
+
+    if samples and len(samples) > 0:
+        session_calcs = hr_calib.calculate_session_zones_and_splats(samples, active_max_hr)
+        if not data.get("splat_points"):
+            data["splat_points"] = session_calcs.get("splat_points", 0)
+
+        if not data.get("max_hr") or float(data.get("max_hr", 0)) <= 0:
+            hrs = [float(s.get("hr", 0)) for s in samples if float(s.get("hr", 0)) > 40.0]
+            if hrs:
+                data["max_hr"] = max(hrs)
+
     saved_id = save_workout(data, samples)
-    return {"id": saved_id, "status": "saved"}
+
+    # If user is in auto calibration mode, run auto-calibration check
+    if profile.get("calibration_mode") == "auto":
+        try:
+            recent_workouts = get_recent_workouts_for_calibration()
+            qualifying = hr_calib.evaluate_qualifying_workouts(recent_workouts)
+            age = int(profile.get("age", 30))
+            formula = profile.get("formula", "tanaka")
+            new_active_hr, is_calibrated, raw_calibrated = hr_calib.calibrate_max_hr(qualifying, age, formula)
+            if is_calibrated and (profile.get("active_max_hr") != new_active_hr or profile.get("calibrated_max_hr") != raw_calibrated):
+                profile["active_max_hr"] = new_active_hr
+                profile["calibrated_max_hr"] = raw_calibrated
+                profile["last_calibrated_at"] = datetime.now(timezone.utc).isoformat()
+                save_user_profile(profile)
+        except Exception as e:
+            print(f"[HR Calibration] Auto-calibration error after session: {e}")
+
+    return {"id": saved_id, "status": "saved", "splat_points": data.get("splat_points", 0)}
+
+@app.get("/api/profile")
+async def get_profile():
+    profile = get_user_profile("default")
+    recent_workouts = get_recent_workouts_for_calibration()
+    qualifying = hr_calib.evaluate_qualifying_workouts(recent_workouts)
+
+    mode = profile.get("calibration_mode", "auto")
+    age = int(profile.get("age", 30))
+    formula = profile.get("formula", "tanaka")
+    manual_hr = int(profile.get("manual_max_hr", 187))
+
+    if mode == "manual":
+        active_hr = manual_hr
+        is_calibrated = False
+    elif mode == "age":
+        active_hr = hr_calib.calculate_age_based_max_hr(age, formula)
+        is_calibrated = False
+    else:  # auto
+        calib_active, is_calibrated, raw_val = hr_calib.calibrate_max_hr(qualifying, age, formula)
+        active_hr = calib_active
+        if is_calibrated and (profile.get("active_max_hr") != active_hr or profile.get("calibrated_max_hr") != raw_val):
+            profile["active_max_hr"] = active_hr
+            profile["calibrated_max_hr"] = raw_val
+            profile["last_calibrated_at"] = datetime.now(timezone.utc).isoformat()
+            save_user_profile(profile)
+
+    zones = hr_calib.calculate_zones_for_max_hr(active_hr)
+
+    return {
+        "profile": profile,
+        "active_max_hr": active_hr,
+        "is_calibrated": len(qualifying) >= hr_calib.MIN_QUALIFYING_WORKOUTS and mode == "auto",
+        "qualifying_workouts_count": len(qualifying),
+        "min_qualifying_needed": hr_calib.MIN_QUALIFYING_WORKOUTS,
+        "zones": zones,
+        "recent_qualifying": qualifying[:5],
+    }
+
+@app.put("/api/profile")
+async def update_profile(req: UserProfileUpdateRequest):
+    current = get_user_profile("default")
+    if req.name is not None:
+        current["name"] = req.name.strip() or "Athlete"
+    if req.age is not None:
+        current["age"] = max(10, min(100, int(req.age)))
+    if req.gender is not None:
+        current["gender"] = req.gender.strip() or "unspecified"
+    if req.rest_hr is not None:
+        current["rest_hr"] = max(30, min(120, int(req.rest_hr)))
+    if req.formula is not None:
+        current["formula"] = req.formula.strip().lower()
+    if req.calibration_mode is not None:
+        current["calibration_mode"] = req.calibration_mode.strip().lower()
+    if req.manual_max_hr is not None:
+        current["manual_max_hr"] = max(120, min(230, int(req.manual_max_hr)))
+
+    # Compute active max HR based on updated settings
+    recent_workouts = get_recent_workouts_for_calibration()
+    qualifying = hr_calib.evaluate_qualifying_workouts(recent_workouts)
+    age = current["age"]
+    formula = current["formula"]
+    mode = current["calibration_mode"]
+
+    if mode == "manual":
+        current["active_max_hr"] = current["manual_max_hr"]
+        is_calibrated = False
+    elif mode == "age":
+        current["active_max_hr"] = hr_calib.calculate_age_based_max_hr(age, formula)
+        is_calibrated = False
+    else:  # auto
+        calib_active, is_calibrated, raw_val = hr_calib.calibrate_max_hr(qualifying, age, formula)
+        current["active_max_hr"] = calib_active
+        if is_calibrated:
+            current["calibrated_max_hr"] = raw_val
+            current["last_calibrated_at"] = datetime.now(timezone.utc).isoformat()
+
+    saved = save_user_profile(current)
+    zones = hr_calib.calculate_zones_for_max_hr(saved["active_max_hr"])
+
+    return {
+        "status": "updated",
+        "profile": saved,
+        "active_max_hr": saved["active_max_hr"],
+        "is_calibrated": len(qualifying) >= hr_calib.MIN_QUALIFYING_WORKOUTS and mode == "auto",
+        "qualifying_workouts_count": len(qualifying),
+        "min_qualifying_needed": hr_calib.MIN_QUALIFYING_WORKOUTS,
+        "zones": zones,
+    }
+
+@app.post("/api/profile/recalibrate")
+async def trigger_recalibration():
+    current = get_user_profile("default")
+    recent_workouts = get_recent_workouts_for_calibration()
+    qualifying = hr_calib.evaluate_qualifying_workouts(recent_workouts)
+    age = int(current.get("age", 30))
+    formula = current.get("formula", "tanaka")
+
+    calib_active, is_calibrated, raw_val = hr_calib.calibrate_max_hr(qualifying, age, formula)
+    current["calibrated_max_hr"] = raw_val
+    if is_calibrated and current.get("calibration_mode") == "auto":
+        current["active_max_hr"] = calib_active
+    current["last_calibrated_at"] = datetime.now(timezone.utc).isoformat()
+    saved = save_user_profile(current)
+    zones = hr_calib.calculate_zones_for_max_hr(saved["active_max_hr"])
+
+    return {
+        "status": "calibrated" if is_calibrated else "baseline",
+        "is_calibrated": is_calibrated,
+        "qualifying_workouts_count": len(qualifying),
+        "min_qualifying_needed": hr_calib.MIN_QUALIFYING_WORKOUTS,
+        "calibrated_max_hr": raw_val,
+        "active_max_hr": saved["active_max_hr"],
+        "zones": zones,
+    }
 
 def format_session_filename(session: Dict[str, Any], used_names: set) -> str:
     start_time_str = session.get("start_time")

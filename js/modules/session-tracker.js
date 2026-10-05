@@ -31,6 +31,8 @@ export class SessionTracker {
 
     this.timerInterval = null;
     this.sampleInterval = null;
+    this.splatSeconds = 0;
+    this.splatPoints = 0;
 
     this.meta = {
       videoId: options.videoId || null,
@@ -63,6 +65,11 @@ export class SessionTracker {
     this.samples = [];
     this.laps = [];
     this.currentLap = null;
+    this.splatSeconds = 0;
+    this.splatPoints = 0;
+    if (typeof pm5Hud !== "undefined" && pm5Hud && pm5Hud.resetSplatPoints) {
+      pm5Hud.resetSplatPoints();
+    }
 
     // 1-second elapsed timer
     this.timerInterval = setInterval(() => {
@@ -90,6 +97,11 @@ export class SessionTracker {
     this.samples = [];
     this.laps = [];
     this.currentLap = null;
+    this.splatSeconds = 0;
+    this.splatPoints = 0;
+    if (typeof pm5Hud !== "undefined" && pm5Hud && pm5Hud.resetSplatPoints) {
+      pm5Hud.resetSplatPoints();
+    }
     if (this.onTick) {
       this.onTick(this.getSummary());
     }
@@ -209,12 +221,29 @@ export class SessionTracker {
   recordSample() {
     const rawDist = this.currentMetrics.distance || 0;
     const sessionDist = Math.max(0, rawDist - (this.baseDistance || 0) - (this.distanceOffset || 0));
+    const hr = this.currentMetrics.hr || 0;
+
+    // Track cumulative Splat Points (minutes in Orange or Red zones)
+    if (hr > 0 && typeof window !== "undefined" && window.hrZonesManager) {
+      const z = window.hrZonesManager.getZoneForBpm(hr);
+      if (z && z.earns_splats) {
+        this.splatSeconds += 1.0;
+        const newSplats = Math.floor(this.splatSeconds / 60.0);
+        if (newSplats !== this.splatPoints) {
+          this.splatPoints = newSplats;
+          if (typeof pm5Hud !== "undefined" && pm5Hud) {
+            pm5Hud.updateMetrics({ splatPoints: this.splatPoints });
+          }
+        }
+      }
+    }
+
     this.samples.push({
       elapsed_seconds: this.elapsedSeconds,
       stroke_rate: this.currentMetrics.spm,
       split_seconds: this.currentMetrics.split,
       watts: this.currentMetrics.watts,
-      hr: this.currentMetrics.hr,
+      hr: hr,
       distance: Math.round(sessionDist)
     });
   }
@@ -248,6 +277,8 @@ export class SessionTracker {
       maxWatts: max(validWatts),
       avgHr: avg(validHrs),
       maxHr: max(validHrs),
+      splatPoints: this.splatPoints || 0,
+      splatSeconds: Math.round(this.splatSeconds || 0),
       laps: this.laps || []
     };
   }
@@ -283,6 +314,7 @@ export class SessionTracker {
       max_watts: summary.maxWatts,
       avg_hr: summary.avgHr,
       max_hr: summary.maxHr,
+      splat_points: summary.splatPoints,
       video_id: this.meta.videoId,
       audio_source: this.meta.audioSource,
       notes: this.meta.notes || "",
@@ -298,6 +330,10 @@ export class SessionTracker {
       });
       const result = await response.json();
       console.log("[SessionTracker] Workout persisted to SQLite:", result);
+      // Refresh HR calibration state if user was in auto mode
+      if (typeof window !== "undefined" && window.hrZonesManager) {
+        window.hrZonesManager.init().catch(() => {});
+      }
       return result.id;
     } catch (err) {
       console.error("[SessionTracker] Error saving workout session:", err);
@@ -313,6 +349,11 @@ export class SessionTracker {
     this.endTime = null;
     this.elapsedSeconds = 0;
     this.samples = [];
+    this.splatSeconds = 0;
+    this.splatPoints = 0;
+    if (typeof pm5Hud !== "undefined" && pm5Hud && pm5Hud.resetSplatPoints) {
+      pm5Hud.resetSplatPoints();
+    }
     this.baseDistance = this.currentMetrics.distance || 0;
     this.baseStrokes = this.currentMetrics.strokes || 0;
     this.currentMetrics.spm = 0;

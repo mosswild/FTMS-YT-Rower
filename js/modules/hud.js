@@ -39,6 +39,9 @@ export class PM5Hud {
       targetSplit: document.getElementById("hud-target-split"),
       targetWatts: document.getElementById("hud-target-watts"),
       targetHr: document.getElementById("hud-target-hr"),
+      hrZonePill: document.getElementById("hud-hr-zone-pill"),
+      splatChip: document.getElementById("hud-splat-chip"),
+      splatCount: document.getElementById("hud-splat-count"),
       workoutBadge: document.getElementById("hud-workout-badge"),
       frozenDist: document.getElementById("hud-frozen-dist"),
       frozenTime: document.getElementById("hud-frozen-time"),
@@ -101,6 +104,12 @@ export class PM5Hud {
     this.timeOffset = time !== undefined ? time : this.rawElapsedSeconds;
     if (this.elements.distance) this.elements.distance.textContent = "0";
     if (this.elements.time) this.elements.time.textContent = "00:00";
+    this.resetSplatPoints();
+  }
+
+  resetSplatPoints() {
+    if (this.elements.splatCount) this.elements.splatCount.textContent = "0";
+    if (this.elements.splatChip) this.elements.splatChip.style.display = "none";
   }
 
   resetDistance() {
@@ -176,12 +185,32 @@ export class PM5Hud {
     }
 
     if (data.heartRate !== undefined && this.elements.hr) {
-      this.elements.hr.textContent = data.heartRate > 0 ? Math.round(data.heartRate) : "--";
-      if (data.heartRate > 0 && this.elements.hrIcon) {
+      const bpm = Number(data.heartRate) || 0;
+      this.elements.hr.textContent = bpm > 0 ? Math.round(bpm) : "--";
+      if (bpm > 0 && this.elements.hrIcon) {
         this.elements.hrIcon.classList.add("beating");
+        if (typeof window !== "undefined" && window.hrZonesManager) {
+          const z = window.hrZonesManager.getZoneForBpm(bpm);
+          if (z && this.elements.hrZonePill) {
+            this.elements.hrZonePill.textContent = z.zone > 0 ? `Z${z.zone} ${z.pct}%` : `${z.pct}%`;
+            this.elements.hrZonePill.style.color = z.color;
+            this.elements.hrZonePill.style.borderColor = z.color;
+            this.elements.hrZonePill.style.backgroundColor = z.bg_color;
+            this.elements.hrZonePill.style.display = "inline-block";
+            this.elements.hrIcon.style.color = z.color;
+          }
+        }
       } else if (this.elements.hrIcon) {
         this.elements.hrIcon.classList.remove("beating");
+        this.elements.hrIcon.style.color = "";
+        if (this.elements.hrZonePill) this.elements.hrZonePill.style.display = "none";
       }
+    }
+
+    if (data.splatPoints !== undefined && this.elements.splatChip && this.elements.splatCount) {
+      const pts = Math.max(0, Math.round(data.splatPoints));
+      this.elements.splatCount.textContent = pts;
+      this.elements.splatChip.style.display = pts > 0 ? "inline-flex" : "none";
     }
   }
 
