@@ -20,7 +20,6 @@ segments:
       duration: "6m"
     targets:
       spm: [18, 22]
-      split: ["2:05", "2:15"]
     cues:
       on_start: "Warm up gradually. Easy strokes and clean recovery."
 
@@ -33,8 +32,6 @@ segments:
         exit:
           distance: "1000m"
         targets:
-          spm: [24, 26]
-          split: ["1:54", "1:58"]
           watts: [200, 240]
         cues:
           on_start: "Establish your threshold rhythm early. Relax shoulders."

@@ -27,7 +27,6 @@ segments:
       distance: "1000m"
     targets:
       spm: [20, 22]
-      split: ["2:05", "2:10"]
     cues:
       on_start: "Find a long, rhythmic catch. Hold 20–22 SPM."
 
@@ -37,7 +36,6 @@ segments:
       distance: "1000m"
     targets:
       spm: [22, 24]
-      split: ["2:02", "2:05"]
     cues:
       on_start: "Step it up to 22–24 SPM. Keep recovery relaxed."
 
@@ -47,7 +45,6 @@ segments:
       distance: "1000m"
     targets:
       spm: [24, 26]
-      split: ["1:58", "2:02"]
     cues:
       on_start: "Halfway through! Step up to 24–26 SPM."
 
@@ -57,7 +54,6 @@ segments:
       distance: "1000m"
     targets:
       spm: [26, 28]
-      split: ["1:54", "1:58"]
     cues:
       on_start: "Drive through the legs. Build to 26–28 SPM."
 
@@ -67,7 +63,6 @@ segments:
       distance: "1000m"
     targets:
       spm: [28, 32]
-      split: ["1:48", "1:54"]
     cues:
       on_start: "Final kilometer! Bring up the rate and sprint to the finish!"
 

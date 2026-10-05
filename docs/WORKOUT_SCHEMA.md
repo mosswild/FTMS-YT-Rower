@@ -91,6 +91,20 @@ targets:
 - **`under-target` (Amber with `▲` arrow):** Output is below target (e.g., pulling 24 SPM when target is 28–32).
 - **`over-target` (Red with `▼` arrow):** Output exceeds target (e.g., pulling 36 SPM during a 20 SPM recovery).
 
+### Best Practice: Target Either SPM or Power (Watts), Not Both
+> [!TIP]
+> In rowing workouts, it is strongly recommended that any given interval targets **either** stroke rate (`spm`) **or** power (`watts`), rather than attempting to constrain both simultaneously.
+>
+> Because rowing power is the product of stroke force and stroke rate, athlete physiology and machine resistance vary widely:
+> - Rowing hard to reach a high power/watt level will naturally increase stroke rate, causing the HUD to report an over-target warning on SPM.
+> - Conversely, trying to strictly maintain a low SPM window can hinder reaching target wattage unless stroke force is disproportionately high.
+>
+> **Recommended guidelines:**
+> 1. **Power / HIIT / Sprints:** Target `watts` (e.g., `[240, 320]`). Allow the rower natural cadence freedom to generate that power.
+> 2. **Cadence / Rate Ladders / Drills:** Target `spm` (e.g., `[22, 24]`).
+> 3. **Endurance / Aerobic Base:** Target `spm` with optional physiological targets (`hr_zone` or `hr`).
+> 4. **Rest / Recovery Steps:** Target a gentle recovery cadence (`spm: [14, 18]`).
+
 ---
 
 ## 5. Coaching Cues (`cues`)
@@ -99,7 +113,7 @@ Prompts displayed as subtitle banners on the lower third of the video:
 
 ```yaml
 cues:
-  on_start: "Explosive drive! Establish 30 SPM within the first 5 strokes."
+  on_start: "Explosive drive! Establish target power within the first 5 strokes."
   at_midpoint: "Halfway! Maintain length through the finish."
   at_time_remaining:
     "30s": "Final 30 seconds! Build the pressure."
@@ -121,7 +135,7 @@ To define interval series without repetitive declarations, use a container `bloc
     - type: "work"
       title: "Sprint"
       exit: { distance: "500m" }
-      targets: { spm: [28, 32], split: ["1:42", "1:48"] }
+      targets: { watts: [240, 320] }
 
     - type: "rest"
       title: "Paddle Rest"
@@ -160,7 +174,6 @@ segments:
     exit: { duration: "5m" }
     targets:
       spm: [18, 22]
-      split: ["2:05", "2:15"]
     cues:
       on_start: "Settle into a relaxed rhythm, focusing on posture and leg drive."
       at_midpoint: "Gradually build pressure through the legs."
@@ -173,11 +186,9 @@ segments:
         title: "Sprint Interval"
         exit: { distance: "500m" }
         targets:
-          spm: [28, 32]
-          split: ["1:42", "1:48"]
-          watts: [240, 300]
+          watts: [240, 320]
         cues:
-          on_start: "Explosive drive! Lock in your target split."
+          on_start: "Explosive drive! Hit your target wattage."
           at_distance_remaining:
             "100m": "Final sprint, empty the tank!"
 
@@ -220,39 +231,43 @@ segments:
   - type: "work"
     title: "Step 1: 250m Blast"
     exit: { distance: "250m" }
-    targets: { spm: [30, 34], split: ["1:38", "1:44"] }
+    targets: { watts: [290, 350] }
   - type: "rest"
     title: "Rest"
     exit: { duration: "90s" }
+    targets: { spm: [14, 18] }
 
   - type: "work"
     title: "Step 2: 500m Pace"
     exit: { distance: "500m" }
-    targets: { spm: [28, 30], split: ["1:44", "1:48"] }
+    targets: { watts: [260, 290] }
   - type: "rest"
     title: "Rest"
     exit: { duration: "2m" }
+    targets: { spm: [14, 18] }
 
   - type: "work"
     title: "Step 3: 750m Peak"
     exit: { distance: "750m" }
-    targets: { spm: [26, 28], split: ["1:48", "1:52"] }
+    targets: { watts: [230, 260] }
   - type: "rest"
     title: "Rest"
     exit: { duration: "2m30s" }
+    targets: { spm: [14, 18] }
 
   - type: "work"
     title: "Step 4: 500m Pace"
     exit: { distance: "500m" }
-    targets: { spm: [28, 30], split: ["1:44", "1:48"] }
+    targets: { watts: [260, 290] }
   - type: "rest"
     title: "Rest"
     exit: { duration: "2m" }
+    targets: { spm: [14, 18] }
 
   - type: "work"
     title: "Step 5: 250m All-Out"
     exit: { distance: "250m" }
-    targets: { spm: [32, 36], split: ["1:35", "1:42"] }
+    targets: { watts: [310, 390] }
 
   - type: "cooldown"
     title: "Cooldown"
@@ -265,7 +280,7 @@ segments:
 schema: "1.0"
 id: "5k-rate-ladder"
 title: "5K Negative Split & Rate Ladder"
-description: "Continuous 5,000m row building stroke rate and pace every 1,000 meters."
+description: "Continuous 5,000m row building stroke rate every 1,000 meters."
 author: "Pete Plan"
 category: "endurance"
 difficulty: "intermediate"
@@ -280,27 +295,27 @@ segments:
   - type: "work"
     title: "0 – 1000m (Settle In)"
     exit: { distance: "1000m" }
-    targets: { spm: [20, 22], split: ["2:05", "2:10"] }
+    targets: { spm: [20, 22] }
 
   - type: "work"
     title: "1000 – 2000m (Base Pace)"
     exit: { distance: "1000m" }
-    targets: { spm: [22, 24], split: ["2:02", "2:05"] }
+    targets: { spm: [22, 24] }
 
   - type: "work"
     title: "2000 – 3000m (Tempo Surge)"
     exit: { distance: "1000m" }
-    targets: { spm: [24, 26], split: ["1:58", "2:02"] }
+    targets: { spm: [24, 26] }
 
   - type: "work"
     title: "3000 – 4000m (Hold Pressure)"
     exit: { distance: "1000m" }
-    targets: { spm: [26, 28], split: ["1:54", "1:58"] }
+    targets: { spm: [26, 28] }
 
   - type: "work"
     title: "4000 – 5000m (Sprint Finish)"
     exit: { distance: "1000m" }
-    targets: { spm: [28, 32], split: ["1:48", "1:54"] }
+    targets: { spm: [28, 32] }
 
   - type: "cooldown"
     title: "Cooldown"

@@ -20,7 +20,6 @@ segments:
       duration: "5m"
     targets:
       spm: [18, 22]
-      split: ["2:05", "2:15"]
     cues:
       on_start: "Settle into a relaxed rhythm, focusing on posture and leg drive."
       at_midpoint: "Gradually build pressure through the legs."
@@ -34,8 +33,6 @@ segments:
         exit:
           distance: "500m"
         targets:
-          spm: [28, 32]
-          split: ["1:42", "1:48"]
           watts: [240, 320]
         cues:
           on_start: "Explosive drive! Lock into your target split."

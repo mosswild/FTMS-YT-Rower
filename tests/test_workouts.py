@@ -65,7 +65,8 @@ class TestWorkoutFramework(unittest.TestCase):
         second_step = w["expanded_steps"][1]
         self.assertEqual(second_step["type"], "work")
         self.assertEqual(second_step["exit"]["distance"], 500.0)
-        self.assertEqual(second_step["targets"]["spm"], [28.0, 32.0])
+        self.assertEqual(second_step["targets"]["watts"], [240.0, 320.0])
+        self.assertNotIn("spm", second_step["targets"])
 
     def test_api_list_and_get(self):
         res = self.client.get("/api/workouts")

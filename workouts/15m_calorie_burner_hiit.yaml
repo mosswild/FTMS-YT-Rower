@@ -21,7 +21,6 @@ segments:
     targets:
       spm: [18, 22]
       hr_zone: 2
-      watts: [120, 160]
     cues:
       on_start: "Start with relaxed, rhythmic strokes to elevate core temperature."
       at_midpoint: "Gradually build stroke rate to 22 SPM. Prepare for the first work interval."
@@ -35,10 +34,8 @@ segments:
         exit:
           duration: "1m"
         targets:
-          spm: [26, 30]
           watts: [190, 270]
           hr_zone: 4
-          split: ["1:50", "2:02"]
         cues:
           on_start: "Drive hard through the heels! Maximize leg drive for peak caloric burn."
           at_midpoint: "30 seconds left! Maintain strong posture and quick hands at the release."
@@ -62,7 +59,6 @@ segments:
     targets:
       spm: [16, 18]
       hr_zone: 1
-      watts: [80, 120]
     cues:
       on_start: "Light, relaxed strokes to recover. Great high-intensity session!"
       at_midpoint: "Focus on deep nasal breathing and full recovery."

@@ -34,8 +34,6 @@ segments:
       spm: [18, 22]
       hr: [130, 145]
       hr_zone: 2
-      split: ["2:05", "2:15"]
-      watts: [150, 190]
     cues:
       on_start: "Lock into Heart Rate Zone 2 (130-145 BPM). Conversational pace—you should be able to speak in full sentences."
       at_midpoint: "10 minutes down! Relax your grip on the handle and breathe rhythmically."

@@ -26,8 +26,7 @@ segments:
     exit:
       distance: "250m"
     targets:
-      spm: [30, 34]
-      split: ["1:38", "1:44"]
+      watts: [290, 350]
     cues:
       on_start: "Quick hands and aggressive jump off the footstretcher!"
 
@@ -45,8 +44,7 @@ segments:
     exit:
       distance: "500m"
     targets:
-      spm: [28, 30]
-      split: ["1:44", "1:48"]
+      watts: [260, 290]
     cues:
       on_start: "Lock into a solid 500m race rhythm."
 
@@ -64,8 +62,7 @@ segments:
     exit:
       distance: "750m"
     targets:
-      spm: [26, 28]
-      split: ["1:48", "1:52"]
+      watts: [230, 260]
     cues:
       on_start: "The peak of the mountain! Long strokes, big drive."
 
@@ -83,8 +80,7 @@ segments:
     exit:
       distance: "500m"
     targets:
-      spm: [28, 30]
-      split: ["1:44", "1:48"]
+      watts: [260, 290]
     cues:
       on_start: "Coming down the pyramid! Match your earlier 500m split."
 
@@ -102,8 +98,7 @@ segments:
     exit:
       distance: "250m"
     targets:
-      spm: [32, 36]
-      split: ["1:35", "1:42"]
+      watts: [310, 390]
     cues:
       on_start: "Final sprint! Empty the tank to the line!"
 

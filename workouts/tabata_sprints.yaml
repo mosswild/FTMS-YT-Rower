@@ -30,7 +30,6 @@ segments:
         exit:
           duration: "20s"
         targets:
-          spm: [32, 38]
           watts: [280, 450]
         cues:
           on_start: "MAX EFFORT! Spin the wheel!"
