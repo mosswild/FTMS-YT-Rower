@@ -1,0 +1,58 @@
+schema: "1.0"
+id: "12m-beginner-intervals"
+title: "12-Minute Easy Intervals (1m On / 1m Off)"
+description: "The perfect introduction to interval training: 5 rounds of 1 minute comfortable rowing followed by 1 minute active paddle recovery."
+author: "British Rowing"
+category: "intervals"
+difficulty: "beginner"
+tags: ["beginner", "intervals", "12min", "intro"]
+
+settings:
+  default_speed_mode: "cadence_zones"
+  audio_modulation: true
+  sound_alerts: true
+  countdown_seconds: 5
+
+segments:
+  - type: "warmup"
+    title: "Easy Warmup"
+    exit:
+      duration: "1m"
+    targets:
+      spm: [18, 20]
+    cues:
+      on_start: "Settle into an easy, comfortable rowing rhythm."
+
+  - type: "block"
+    title: "1m Interval Sets"
+    repeat: 5
+    steps:
+      - type: "work"
+        title: "1m Comfortable Work"
+        exit:
+          duration: "1m"
+        targets:
+          spm: [22, 24]
+        cues:
+          on_start: "Pick up the rate slightly to 22-24 SPM. Keep strokes smooth and relaxed."
+          at_midpoint: "30 seconds left! Stay rhythmic and breathe steadily."
+
+      - type: "rest"
+        title: "1m Active Recovery"
+        mode: "active"
+        auto_pause_video: false
+        exit:
+          duration: "1m"
+        targets:
+          spm: [16, 18]
+        cues:
+          on_start: "Breathe deeply and paddle easily. Let your heart rate settle."
+
+  - type: "cooldown"
+    title: "Flush Cooldown"
+    exit:
+      duration: "1m"
+    targets:
+      spm: [16, 18]
+    cues:
+      on_start: "Nice job completing your intervals! Smooth, light paddling to finish."

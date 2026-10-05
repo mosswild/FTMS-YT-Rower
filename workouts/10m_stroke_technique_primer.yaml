@@ -1,0 +1,65 @@
+schema: "1.0"
+id: "10m-stroke-technique-primer"
+title: "10-Minute Stroke & Rhythm Primer"
+description: "A gentle introductory row focusing on proper sequence (Legs-Body-Arms drive, Arms-Body-Legs recovery) and rhythm control at relaxed cadences."
+author: "Concept2 Technique"
+category: "recovery"
+difficulty: "beginner"
+tags: ["beginner", "technique", "form", "warmup", "10min"]
+
+settings:
+  default_speed_mode: "cadence_zones"
+  audio_modulation: true
+  sound_alerts: true
+  countdown_seconds: 5
+
+segments:
+  - type: "warmup"
+    title: "Pick Drill Sequence"
+    exit:
+      duration: "2m"
+    targets:
+      spm: [16, 18]
+    cues:
+      on_start: "Legs, body, arms on the drive. Arms, body, legs on the recovery."
+      at_midpoint: "Keep your recovery slow and controlled. Let the flywheel spin."
+
+  - type: "work"
+    title: "Smooth Catch & Rhythm"
+    exit:
+      duration: "3m"
+    targets:
+      spm: [18, 20]
+    cues:
+      on_start: "Focus on relaxed shoulders and a smooth push through your heels."
+      at_midpoint: "Maintain tall posture at the finish with chest proud."
+
+  - type: "rest"
+    title: "Light Paddle Reset"
+    mode: "active"
+    auto_pause_video: false
+    exit:
+      duration: "1m"
+    targets:
+      spm: [14, 16]
+    cues:
+      on_start: "Light, effortless strokes. Reset your grip and roll your shoulders."
+
+  - type: "work"
+    title: "Building Ratio & Glide"
+    exit:
+      duration: "3m"
+    targets:
+      spm: [20, 22]
+    cues:
+      on_start: "Find your 1:2 ratio—one quick drive, two relaxed recovery counts."
+      at_midpoint: "Feel the glide on the recovery before the next catch."
+
+  - type: "cooldown"
+    title: "Final Glide"
+    exit:
+      duration: "1m"
+    targets:
+      spm: [16, 18]
+    cues:
+      on_start: "Relaxed breathing and gentle flush. Excellent form practice today!"

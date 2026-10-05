@@ -1,0 +1,78 @@
+schema: "1.0"
+id: "2000m-beginner-milestone"
+title: "2,000m Milestone Row"
+description: "A benchmark distance row broken down into manageable 500m quarters, teaching beginners how to establish, hold, and finish a classic 2K distance with confidence."
+author: "Concept2 Benchmark"
+category: "benchmark"
+difficulty: "beginner"
+tags: ["beginner", "benchmark", "2k", "pacing", "distance"]
+
+settings:
+  default_speed_mode: "cadence_zones"
+  audio_modulation: true
+  sound_alerts: true
+  countdown_seconds: 5
+
+segments:
+  - type: "warmup"
+    title: "Progressive Warmup"
+    exit:
+      duration: "3m"
+    targets:
+      spm: [18, 20]
+    cues:
+      on_start: "Warm up the legs and find a long, relaxed stroke."
+      at_midpoint: "Take a few firmer strokes to prepare for the 2,000m row."
+
+  - type: "work"
+    title: "Quarter 1 (0–500m): Settle In"
+    exit:
+      distance: "500m"
+    targets:
+      spm: [20, 22]
+    cues:
+      on_start: "Settle into a steady, comfortable pace. Resist the urge to start too fast!"
+      at_distance_remaining:
+        "100m": "First 500m almost done! Feeling smooth and relaxed."
+
+  - type: "work"
+    title: "Quarter 2 (500–1000m): Find Your Groove"
+    exit:
+      distance: "500m"
+    targets:
+      spm: [20, 22]
+    cues:
+      on_start: "Lock into your rhythm. Push through the feet and keep shoulders loose."
+      at_distance_remaining:
+        "100m": "Approaching halfway! Keep that rhythmic breathing going."
+
+  - type: "work"
+    title: "Quarter 3 (1000–1500m): Stay Strong"
+    exit:
+      distance: "500m"
+    targets:
+      spm: [22, 24]
+    cues:
+      on_start: "Past the halfway mark! Sit up tall and maintain solid leg drive."
+      at_distance_remaining:
+        "100m": "75% complete! Ready for the home stretch."
+
+  - type: "work"
+    title: "Quarter 4 (1500–2000m): Finish Proud"
+    exit:
+      distance: "500m"
+    targets:
+      spm: [22, 24]
+    cues:
+      on_start: "Final 500 meters! Keep your technique clean and bring it across the finish line."
+      at_distance_remaining:
+        "100m": "Last 100 meters! Strong strokes all the way home!"
+
+  - type: "cooldown"
+    title: "Flush Cooldown"
+    exit:
+      duration: "2m"
+    targets:
+      spm: [16, 18]
+    cues:
+      on_start: "Congratulations on completing 2,000 meters! Paddle lightly to flush your legs."

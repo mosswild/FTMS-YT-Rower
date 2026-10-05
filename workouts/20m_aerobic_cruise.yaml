@@ -1,0 +1,47 @@
+schema: "1.0"
+id: "20m-aerobic-cruise"
+title: "20-Minute Aerobic Cruise"
+description: "A low-impact, conversational steady-state row designed to build aerobic endurance and cardiovascular health without fatigue."
+author: "FTMS Rower Coaching"
+category: "endurance"
+difficulty: "beginner"
+tags: ["beginner", "endurance", "aerobic", "steady_state", "20min"]
+
+settings:
+  default_speed_mode: "cadence_zones"
+  audio_modulation: true
+  sound_alerts: true
+  countdown_seconds: 5
+
+segments:
+  - type: "warmup"
+    title: "Gentle Warmup"
+    exit:
+      duration: "3m"
+    targets:
+      spm: [18, 20]
+    cues:
+      on_start: "Start easy. Let your breathing settle and warm up the major muscle groups."
+      at_midpoint: "Gradually build up to your cruising rhythm."
+
+  - type: "work"
+    title: "Aerobic Cruise"
+    exit:
+      duration: "14m"
+    targets:
+      spm: [20, 22]
+    cues:
+      on_start: "Find a rhythm you could hold comfortably for an hour. Conversational, enjoyable pace."
+      at_midpoint: "7 minutes to go! Keep your grip relaxed on the handle and drive evenly with both legs."
+      at_time_remaining:
+        "2m": "Almost there! Enjoy the smooth rhythm all the way through."
+
+  - type: "cooldown"
+    title: "Easy Cooldown"
+    exit:
+      duration: "3m"
+    targets:
+      spm: [16, 18]
+    cues:
+      on_start: "Ease off the pressure. Light paddle to lower heart rate and stretch out."
+      at_midpoint: "Deep nasal breathing. Great steady-state session today!"

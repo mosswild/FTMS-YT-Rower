@@ -30,7 +30,7 @@ class TestWorkoutFramework(unittest.TestCase):
 
     def test_list_builtin_workouts(self):
         workouts = workout_mgr.list_workouts()
-        self.assertGreaterEqual(len(workouts), 6)
+        self.assertGreaterEqual(len(workouts), 10)
         ids = [w["id"] for w in workouts]
         self.assertIn("5x500m-power-intervals", ids)
         self.assertIn("4x1000m-aerobic-threshold", ids)
@@ -39,6 +39,28 @@ class TestWorkoutFramework(unittest.TestCase):
         self.assertIn("tabata-sprints", ids)
         self.assertIn("30m-zone2-aerobic-base", ids)
         self.assertIn("15m-calorie-burner-hiit", ids)
+        self.assertIn("10m-stroke-technique-primer", ids)
+        self.assertIn("12m-beginner-intervals", ids)
+        self.assertIn("20m-aerobic-cruise", ids)
+        self.assertIn("2000m-beginner-milestone", ids)
+
+    def test_beginner_workouts(self):
+        beginner_ids = [
+            "10m-stroke-technique-primer",
+            "12m-beginner-intervals",
+            "20m-aerobic-cruise",
+            "2000m-beginner-milestone",
+            "30m-zone2-aerobic-base",
+        ]
+        for bid in beginner_ids:
+            w = workout_mgr.get_workout(bid)
+            self.assertIsNotNone(w, f"Workout {bid} should exist")
+            self.assertEqual(w["difficulty"], "beginner", f"{bid} difficulty should be beginner")
+            # All steps in beginner workouts should target SPM or HR (no conflicting high watt targets)
+            for step in w["expanded_steps"]:
+                targets = step.get("targets", {})
+                if targets:
+                    self.assertNotIn("watts", targets, f"Beginner step in {bid} should focus on SPM/cadence rather than watts")
 
     def test_zone2_heart_rate_workout(self):
         w = workout_mgr.get_workout("30m-zone2-aerobic-base")
