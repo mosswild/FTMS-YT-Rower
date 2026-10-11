@@ -60,8 +60,42 @@ export class PM5Hud {
     this.userScale = "auto";
     this.isWorkoutBarVisible = false;
 
+    this.lastHeartRate = null;
+    this.lastHeartRateTime = 0;
+    this.hrTimeoutMs = 10000; // 10s sample-and-hold threshold for intermittent HR broadcasts (e.g. Garmin)
+    this.hrWatchdogInterval = null;
+
+    this.setupHeartRateWatchdog();
     this.setupInactivityWatchdog();
     this.setupFullscreen();
+  }
+
+  setupHeartRateWatchdog() {
+    if (this.hrWatchdogInterval) clearInterval(this.hrWatchdogInterval);
+    this.hrWatchdogInterval = setInterval(() => {
+      this.checkHeartRateFreshness();
+    }, 1000);
+  }
+
+  checkHeartRateFreshness() {
+    if (!this.elements.hr) return;
+    if (this.lastHeartRate && this.lastHeartRateTime > 0) {
+      const elapsed = Date.now() - this.lastHeartRateTime;
+      if (elapsed > this.hrTimeoutMs) {
+        this.resetHeartRate();
+      }
+    }
+  }
+
+  resetHeartRate() {
+    this.lastHeartRate = null;
+    this.lastHeartRateTime = 0;
+    if (this.elements.hr) this.elements.hr.textContent = "--";
+    if (this.elements.hrIcon) {
+      this.elements.hrIcon.classList.remove("beating");
+      this.elements.hrIcon.style.color = "";
+    }
+    if (this.elements.hrZonePill) this.elements.hrZonePill.style.display = "none";
   }
 
   pauseSession() {
@@ -184,25 +218,39 @@ export class PM5Hud {
       this.updateResistance(data.resistance);
     }
 
-    if (data.heartRate !== undefined && this.elements.hr) {
+    if (data.heartRate !== undefined) {
       const bpm = Number(data.heartRate) || 0;
-      this.elements.hr.textContent = bpm > 0 ? Math.round(bpm) : "--";
-      if (bpm > 0 && this.elements.hrIcon) {
-        this.elements.hrIcon.classList.add("beating");
-        if (typeof window !== "undefined" && window.hrZonesManager) {
-          const z = window.hrZonesManager.getZoneForBpm(bpm);
-          if (z && this.elements.hrZonePill) {
-            this.elements.hrZonePill.textContent = z.zone > 0 ? `Z${z.zone} ${z.pct}%` : `${z.pct}%`;
-            this.elements.hrZonePill.style.color = z.color;
-            this.elements.hrZonePill.style.borderColor = z.color;
-            this.elements.hrZonePill.style.backgroundColor = z.bg_color;
-            this.elements.hrZonePill.style.display = "inline-block";
-            this.elements.hrIcon.style.color = z.color;
+      if (bpm > 0) {
+        this.lastHeartRate = Math.round(bpm);
+        this.lastHeartRateTime = Date.now();
+      }
+    }
+
+    if (this.elements.hr) {
+      const isHrFresh = this.lastHeartRate && this.lastHeartRateTime > 0 && (Date.now() - this.lastHeartRateTime <= this.hrTimeoutMs);
+      if (isHrFresh) {
+        const bpm = this.lastHeartRate;
+        this.elements.hr.textContent = bpm;
+        if (this.elements.hrIcon) {
+          this.elements.hrIcon.classList.add("beating");
+          if (typeof window !== "undefined" && window.hrZonesManager) {
+            const z = window.hrZonesManager.getZoneForBpm(bpm);
+            if (z && this.elements.hrZonePill) {
+              this.elements.hrZonePill.textContent = z.zone > 0 ? `Z${z.zone} ${z.pct}%` : `${z.pct}%`;
+              this.elements.hrZonePill.style.color = z.color;
+              this.elements.hrZonePill.style.borderColor = z.color;
+              this.elements.hrZonePill.style.backgroundColor = z.bg_color;
+              this.elements.hrZonePill.style.display = "inline-block";
+              this.elements.hrIcon.style.color = z.color;
+            }
           }
         }
-      } else if (this.elements.hrIcon) {
-        this.elements.hrIcon.classList.remove("beating");
-        this.elements.hrIcon.style.color = "";
+      } else if (!this.lastHeartRate) {
+        this.elements.hr.textContent = "--";
+        if (this.elements.hrIcon) {
+          this.elements.hrIcon.classList.remove("beating");
+          this.elements.hrIcon.style.color = "";
+        }
         if (this.elements.hrZonePill) this.elements.hrZonePill.style.display = "none";
       }
     }

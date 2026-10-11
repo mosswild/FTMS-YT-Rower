@@ -572,6 +572,30 @@ class TestBluetoothRelay(unittest.TestCase):
 
         asyncio.run(run_test())
 
+    def test_hr_sample_and_hold_and_timeout(self):
+        """Test that HR is preserved during short broadcast gaps and expires after 10s timeout."""
+        # 1. 0 BPM from rower bit 9 is ignored
+        flags = (1 << 9)
+        data = bytearray()
+        data.extend(flags.to_bytes(2, "little"))
+        data.append(40)  # Stroke rate 20 SPM (40 * 0.5)
+        data.extend((15).to_bytes(2, "little"))  # 15 strokes
+        data.append(0)   # 0 BPM
+        parsed = parse_ftms_rower_data(data)
+        self.assertEqual(parsed["stroke_rate"], 20)
+        self.assertEqual(parsed["total_strokes"], 15)
+        self.assertNotIn("hr", parsed)
+
+        # 2. 0 BPM from optical HR glitch is ignored
+        data_zero_hr = bytearray([0x00, 0])
+        parsed_zero = parse_hr_measurement(data_zero_hr)
+        self.assertNotIn("hr", parsed_zero)
+
+        # 3. Valid HR measurement is parsed
+        data_valid_hr = bytearray([0x00, 145])
+        parsed_valid = parse_hr_measurement(data_valid_hr)
+        self.assertEqual(parsed_valid["hr"], 145)
+
 
 if __name__ == "__main__":
     unittest.main()

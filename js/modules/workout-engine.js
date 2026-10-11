@@ -51,6 +51,8 @@ export class WorkoutEngine {
       powerWatts: 0,
       heartRate: 0
     };
+    this.lastHeartRateTime = 0;
+    this.hrTimeoutMs = 10000;
     this.isRowerPaused = false;
 
     // Web Audio Context for beeps
@@ -319,7 +321,10 @@ export class WorkoutEngine {
       if (watts !== undefined) this.lastTelemetry.powerWatts = watts;
 
       const hr = telemetry.heartRate !== undefined ? telemetry.heartRate : telemetry.hr;
-      if (hr !== undefined) this.lastTelemetry.heartRate = hr;
+      if (hr !== undefined && hr > 0) {
+        this.lastTelemetry.heartRate = hr;
+        this.lastHeartRateTime = Date.now();
+      }
 
       if ((spm !== undefined && spm > 0) || (watts !== undefined && watts > 0) || (pace !== undefined && pace > 0)) {
         this.isRowerPaused = false;
@@ -554,7 +559,8 @@ export class WorkoutEngine {
         }
       }
 
-      const val = curTelem.heartRate !== undefined ? curTelem.heartRate : 0;
+      const isHrFresh = this.lastHeartRateTime > 0 && (Date.now() - this.lastHeartRateTime <= this.hrTimeoutMs);
+      const val = isHrFresh && curTelem.heartRate ? curTelem.heartRate : 0;
       if (val === 0) {
         if (isStepRest && (!minHr || minHr <= 0)) {
           compliance.hr = { status: "in-target", target: targetStr };

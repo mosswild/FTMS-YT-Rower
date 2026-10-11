@@ -515,6 +515,9 @@ const hrBle = new HeartRateBLE(
   },
   () => {
     updateHrStatus(false, "Disconnected");
+    if (typeof pm5Hud !== "undefined" && pm5Hud) {
+      pm5Hud.resetHeartRate();
+    }
   }
 );
 
@@ -633,6 +636,9 @@ const wsTelemetry = new WebSocketTelemetry(
       if (relayHrTimeout) clearTimeout(relayHrTimeout);
       if (!hrBle.isConnected) {
         updateHrStatus(false, "Relay HR Disconnected");
+        if (typeof pm5Hud !== "undefined" && pm5Hud) {
+          pm5Hud.resetHeartRate();
+        }
       }
       return;
     }

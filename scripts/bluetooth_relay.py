@@ -367,8 +367,10 @@ def parse_ftms_rower_data(data: bytearray, spm_multiplier: float = 0.5) -> dict:
 
     # Bit 9: Heart Rate present (uint8)
     if (flags & (1 << 9)) and idx + 1 <= len(data):
-        parsed["hr"] = data[idx]
-        parsed["heart_rate"] = data[idx]
+        raw_hr = data[idx]
+        if raw_hr > 0:
+            parsed["hr"] = raw_hr
+            parsed["heart_rate"] = raw_hr
         idx += 1
 
     # Bit 10: Metabolic Equivalent present
@@ -390,12 +392,14 @@ def parse_hr_measurement(data: bytearray) -> dict:
     flags = data[0]
     hr_is_16bit = bool(flags & 0x01)
     bpm = int.from_bytes(data[1:3], byteorder="little") if hr_is_16bit else data[1]
-    return {
-        "hr": bpm,
-        "heart_rate": bpm,
+    res = {
         "timestamp": time.time(),
         "source": "ble-relay"
     }
+    if bpm > 0:
+        res["hr"] = bpm
+        res["heart_rate"] = bpm
+    return res
 
 
 # ---------------------------------------------------------------------------
@@ -531,6 +535,8 @@ class RelayState:
         self.composite_metrics = {}
         self.last_active_time = time.time()
         self.last_connected_dt = None
+        self.last_hr_time = 0.0
+        self.hr_timeout_sec = 10.0
 
         # Interactive state
         self.interactive_mode = False
@@ -584,12 +590,22 @@ async def rower_loop(
 
             for k, v in parsed.items():
                 if v is not None and k not in ("timestamp", "source"):
+                    # If an external HR strap is connected or active, never let rower overwrite HR
+                    if k in ("hr", "heart_rate") and state.hr_connected:
+                        continue
                     state.composite_metrics[k] = v
             state.composite_metrics["timestamp"] = parsed.get("timestamp", time.time())
             state.composite_metrics["source"] = "ble-relay"
             state.composite_metrics["device_name"] = state.rower_name
             state.composite_metrics["device_type"] = "rower"
-            if state.hr_connected and "hr" in state.composite_metrics:
+
+            # Check HR freshness with 10s hold threshold
+            if state.last_hr_time > 0 and (time.time() - state.last_hr_time > state.hr_timeout_sec):
+                state.composite_metrics.pop("hr", None)
+                state.composite_metrics.pop("heart_rate", None)
+                state.composite_metrics.pop("heartRate", None)
+                state.composite_metrics.pop("hr_device_name", None)
+            elif state.hr_connected and "hr" in state.composite_metrics:
                 state.composite_metrics["hr_device_name"] = state.hr_name
 
             publisher.publish(state.composite_metrics)
@@ -777,10 +793,12 @@ async def hr_loop(
 ):
     def hr_notification_handler(sender, data: bytearray):
         parsed = parse_hr_measurement(data)
-        if "hr" in parsed:
+        if "hr" in parsed and parsed["hr"] > 0:
             bpm = parsed["hr"]
+            state.last_hr_time = time.time()
             state.composite_metrics["hr"] = bpm
             state.composite_metrics["heart_rate"] = bpm
+            state.composite_metrics["heartRate"] = bpm
             state.composite_metrics["hr_device_name"] = state.hr_name
             state.composite_metrics["source"] = "ble-relay"
             state.composite_metrics["timestamp"] = time.time()
@@ -865,6 +883,11 @@ async def hr_loop(
 
                 state.hr_connected = False
                 state.active_hr_client = None
+                state.last_hr_time = 0.0
+                state.composite_metrics.pop("hr", None)
+                state.composite_metrics.pop("heart_rate", None)
+                state.composite_metrics.pop("heartRate", None)
+                state.composite_metrics.pop("hr_device_name", None)
                 hud.log(f"! HR monitor {state.hr_name} disconnected. Re-scanning...")
 
                 publisher.publish({

@@ -33,6 +33,8 @@ export class SessionTracker {
     this.sampleInterval = null;
     this.splatSeconds = 0;
     this.splatPoints = 0;
+    this.lastHeartRateTime = 0;
+    this.hrTimeoutMs = 10000;
 
     this.meta = {
       videoId: options.videoId || null,
@@ -197,7 +199,13 @@ export class SessionTracker {
     if (telemetry.watts !== undefined) this.currentMetrics.watts = telemetry.watts;
     if (telemetry.distance !== undefined) this.currentMetrics.distance = telemetry.distance;
     if (telemetry.strokeCount !== undefined) this.currentMetrics.strokes = telemetry.strokeCount;
-    if (telemetry.heartRate !== undefined) this.currentMetrics.hr = telemetry.heartRate;
+    if (telemetry.heartRate !== undefined) {
+      const bpm = Number(telemetry.heartRate) || 0;
+      if (bpm > 0) {
+        this.currentMetrics.hr = bpm;
+        this.lastHeartRateTime = Date.now();
+      }
+    }
 
     // Auto-start workout on first meaningful pull if idle (unless a program is explicitly paused)
     if (this.state === "idle" && (this.currentMetrics.spm > 0 || this.currentMetrics.watts > 0)) {
@@ -221,7 +229,8 @@ export class SessionTracker {
   recordSample() {
     const rawDist = this.currentMetrics.distance || 0;
     const sessionDist = Math.max(0, rawDist - (this.baseDistance || 0) - (this.distanceOffset || 0));
-    const hr = this.currentMetrics.hr || 0;
+    const isHrFresh = this.lastHeartRateTime > 0 && (Date.now() - this.lastHeartRateTime <= this.hrTimeoutMs);
+    const hr = (isHrFresh && this.currentMetrics.hr) ? this.currentMetrics.hr : 0;
 
     // Track cumulative Intensity Points (minutes in Zone 4 or Zone 5)
     if (hr > 0 && typeof window !== "undefined" && window.hrZonesManager) {

@@ -178,7 +178,10 @@ export class RowerBLE {
 
     // Flag Bit 9: Heart Rate (uint8)
     if ((flags & (1 << 9)) !== 0 && byteIndex < value.byteLength) {
-      data.heartRate = value.getUint8(byteIndex);
+      const rawHr = value.getUint8(byteIndex);
+      if (rawHr > 0) {
+        data.heartRate = rawHr;
+      }
       byteIndex += 1;
     }
 
