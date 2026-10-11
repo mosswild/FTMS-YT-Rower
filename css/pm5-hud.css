@@ -6072,6 +6072,8 @@ body[data-theme="nordic"],
   gap: 0.45rem;
   padding: 0.3rem 0.65rem;
   border-radius: 9999px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .athlete-pill:hover {
@@ -6165,6 +6167,8 @@ body[data-theme="nordic"],
     border-radius: 50% !important;
     justify-content: center !important;
     box-sizing: border-box !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
 
   .athlete-pill .athlete-name-text,

@@ -3571,14 +3571,20 @@ function renderAthleteHeaderDropdown() {
   const profiles = hrZonesManager.profilesList || [];
   const activeId = hrZonesManager.activeProfileId || "default";
 
-  // Update header pill
+  // Update header pill without needlessly churning DOM nodes
   const avatarBadge = document.getElementById("athlete-avatar-badge");
   const nameText = document.getElementById("athlete-name-text");
+  const targetInitial = (p.name || "A").trim().charAt(0).toUpperCase();
+  const targetColor = p.avatar_color || "#38bdf8";
   if (avatarBadge) {
-    avatarBadge.style.backgroundColor = p.avatar_color || "#38bdf8";
-    avatarBadge.textContent = (p.name || "A").trim().charAt(0).toUpperCase();
+    if (avatarBadge.textContent !== targetInitial) {
+      avatarBadge.textContent = targetInitial;
+    }
+    if (avatarBadge.style.backgroundColor !== targetColor) {
+      avatarBadge.style.backgroundColor = targetColor;
+    }
   }
-  if (nameText) {
+  if (nameText && nameText.textContent !== (p.name || "Athlete")) {
     nameText.textContent = p.name || "Athlete";
   }
 
@@ -3613,15 +3619,16 @@ function renderAthleteHeaderDropdown() {
       }).join("");
 
       listContainer.querySelectorAll(".athlete-dropdown-item").forEach(item => {
-        item.addEventListener("click", async () => {
+        item.addEventListener("click", async (e) => {
+          e.stopPropagation();
           const id = item.dataset.id;
           if (id && id !== hrZonesManager.activeProfileId) {
             await hrZonesManager.switchProfile(id);
             sessionTracker.setProfileId(id);
-            closeAthleteDropdown();
+            closeAthleteDropdown(true);
             showHudToast(`Switched athlete: ${hrZonesManager.profile.name}`);
           } else {
-            closeAthleteDropdown();
+            closeAthleteDropdown(true);
           }
         });
       });
@@ -3644,6 +3651,8 @@ function renderAthleteHeaderDropdown() {
   }
 }
 
+let athleteDropdownOpenedAt = 0;
+
 function toggleAthleteDropdown(e) {
   if (e) {
     e.stopPropagation();
@@ -3652,24 +3661,25 @@ function toggleAthleteDropdown(e) {
   const menu = document.getElementById("athlete-dropdown-menu");
   const btn = document.getElementById("btn-active-athlete");
   if (!menu) return;
-  const isShown = menu.style.display !== "none";
+  const isShown = menu.style.display === "flex";
   if (isShown) {
-    menu.style.display = "none";
-    if (btn) btn.setAttribute("aria-expanded", "false");
+    closeAthleteDropdown(true);
   } else {
     // Close other HUD dropdowns first
-    const trackMenu = document.getElementById("hud-track-dropdown-menu");
-    const audioMenu = document.getElementById("hud-audio-dropdown-menu");
-    if (trackMenu) trackMenu.style.display = "none";
-    if (audioMenu) audioMenu.style.display = "none";
+    closeHudDropdowns();
 
     renderAthleteHeaderDropdown();
     menu.style.display = "flex";
+    athleteDropdownOpenedAt = Date.now();
     if (btn) btn.setAttribute("aria-expanded", "true");
   }
 }
 
-function closeAthleteDropdown() {
+function closeAthleteDropdown(force = false) {
+  // Mobile guard: prevent outside clicks or ghost touchup within 350ms of opening
+  if (!force && Date.now() - athleteDropdownOpenedAt < 350) {
+    return;
+  }
   const menu = document.getElementById("athlete-dropdown-menu");
   const btn = document.getElementById("btn-active-athlete");
   if (menu) menu.style.display = "none";
@@ -3794,19 +3804,29 @@ if (btnActiveAthlete) {
   btnActiveAthlete.addEventListener("click", toggleAthleteDropdown);
 }
 
+const athleteDropdownMenu = document.getElementById("athlete-dropdown-menu");
+if (athleteDropdownMenu) {
+  athleteDropdownMenu.addEventListener("click", (e) => e.stopPropagation());
+}
+
 // Close on outside click
 document.addEventListener("click", (e) => {
   const wrapper = document.getElementById("athlete-dropdown-wrapper");
-  if (wrapper && !wrapper.contains(e.target)) {
-    closeAthleteDropdown();
+  if (!wrapper) return;
+  if (e.target && e.target.closest && e.target.closest("#athlete-dropdown-wrapper")) {
+    return;
   }
+  if (wrapper.contains(e.target)) {
+    return;
+  }
+  closeAthleteDropdown(false);
 });
 
 // Manage athletes button in dropdown
 const btnManageAthletes = document.getElementById("btn-manage-athletes");
 if (btnManageAthletes) {
   btnManageAthletes.addEventListener("click", () => {
-    closeAthleteDropdown();
+    closeAthleteDropdown(true);
     const modalSettings = document.getElementById("modal-settings");
     if (modalSettings) {
       modalSettings.classList.add("open");
@@ -3818,7 +3838,7 @@ if (btnManageAthletes) {
 
 // Create Athlete Modal Triggers
 function openCreateAthleteModal() {
-  closeAthleteDropdown();
+  closeAthleteDropdown(true);
   const modal = document.getElementById("modal-create-athlete");
   if (modal) {
     modal.classList.add("open");
@@ -4523,6 +4543,7 @@ document.addEventListener("click", (e) => {
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     closeHudDropdowns();
+    closeAthleteDropdown(true);
     if (modalRenameMedia && modalRenameMedia.classList.contains("open")) {
       closeRenameMediaModal();
       return;
