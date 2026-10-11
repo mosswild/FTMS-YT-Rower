@@ -6059,3 +6059,149 @@ body[data-theme="nordic"],
   border-color: var(--accent-blue, #38bdf8);
   box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
 }
+
+/* ----------------- Multi-Athlete Profile Switcher & Badges ----------------- */
+.athlete-pill {
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.athlete-pill:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.athlete-avatar-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+.athlete-name-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main, #f8fafc);
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.athlete-dropdown-menu {
+  min-width: 260px;
+  right: 0;
+  left: auto;
+  z-index: 1000;
+}
+
+.athlete-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-main, #f8fafc);
+  text-align: left;
+}
+
+.athlete-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.athlete-dropdown-item.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-left: 3px solid var(--accent-blue, #38bdf8);
+}
+
+.color-swatch-btn,
+.new-color-swatch {
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.color-swatch-btn:hover,
+.new-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch-btn.active,
+.new-color-swatch.active {
+  border-color: #fff !important;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+/* Responsive Collapsing for Athlete Selector (Mobile Portrait & Compact Viewports) */
+@media (max-width: 768px), (orientation: portrait) and (max-width: 900px) {
+  .athlete-pill {
+    padding: 2px !important;
+    gap: 0 !important;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    border-radius: 50% !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .athlete-pill .athlete-name-text,
+  .athlete-pill .hud-caret {
+    display: none !important;
+  }
+
+  .athlete-pill .athlete-avatar-badge {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 0.72rem !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .athlete-dropdown-menu {
+    min-width: 230px !important;
+    max-width: min(300px, calc(100vw - 1rem)) !important;
+    right: 0 !important;
+    left: auto !important;
+  }
+}
+
+/* Ultra-compact screens (e.g. <= 440px phones in portrait) */
+@media (max-width: 440px) {
+  .athlete-pill {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    padding: 1px !important;
+  }
+
+  .athlete-pill .athlete-avatar-badge {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 0.65rem !important;
+  }
+}
+
+

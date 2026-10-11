@@ -13,8 +13,12 @@ export class HrZonesManager {
     this.options = options;
     this.onProfileChange = options.onProfileChange || null;
 
+    this.activeProfileId = (typeof localStorage !== "undefined" && localStorage.getItem("ftms_active_profile_id")) || "default";
+    this.profilesList = [];
+
     // Default starting state (30yo Tanaka baseline: 208 - 0.7*30 = 187)
     this.profile = {
+      id: this.activeProfileId,
       name: "Athlete",
       age: 30,
       gender: "unspecified",
@@ -24,6 +28,8 @@ export class HrZonesManager {
       manual_max_hr: 187,
       calibrated_max_hr: 0.0,
       active_max_hr: 187,
+      avatar_color: "#38bdf8",
+      preferences: {},
     };
 
     this.activeMaxHr = 187;
@@ -49,7 +55,8 @@ export class HrZonesManager {
 
   _loadLocalCache() {
     try {
-      const cached = localStorage.getItem("ftms_hr_profile");
+      const cacheKey = "ftms_hr_profile_" + (this.activeProfileId || "default");
+      const cached = localStorage.getItem(cacheKey) || localStorage.getItem("ftms_hr_profile");
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed.profile) this.profile = Object.assign(this.profile, parsed.profile);
@@ -65,15 +72,39 @@ export class HrZonesManager {
 
   _saveLocalCache(data) {
     try {
+      const cacheKey = "ftms_hr_profile_" + (this.activeProfileId || "default");
+      localStorage.setItem(cacheKey, JSON.stringify(data));
       localStorage.setItem("ftms_hr_profile", JSON.stringify(data));
     } catch (e) {
       console.warn("[HrZones] Could not save localStorage cache:", e);
     }
   }
 
+  async fetchProfiles() {
+    try {
+      const res = await fetch("/api/profiles");
+      if (res.ok) {
+        const data = await res.json();
+        this.profilesList = data.profiles || [];
+        return this.profilesList;
+      }
+    } catch (e) {
+      console.warn("[HrZones] Failed to fetch profiles list:", e);
+    }
+    return this.profilesList;
+  }
+
   async init() {
     try {
-      const res = await fetch("/api/profile");
+      await this.fetchProfiles();
+      if (this.profilesList.length > 0 && !this.profilesList.some(p => p.id === this.activeProfileId)) {
+        this.activeProfileId = this.profilesList[0].id || "default";
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem("ftms_active_profile_id", this.activeProfileId);
+        }
+      }
+
+      const res = await fetch(`/api/profile/${this.activeProfileId}`);
       if (res.ok) {
         const data = await res.json();
         this.applyProfileData(data);
@@ -243,9 +274,78 @@ export class HrZonesManager {
     };
   }
 
+  async switchProfile(profileId) {
+    if (!profileId) return this.profile;
+    this.activeProfileId = profileId;
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("ftms_active_profile_id", profileId);
+    }
+    this._loadLocalCache();
+    try {
+      const res = await fetch(`/api/profile/${profileId}`);
+      if (res.ok) {
+        const data = await res.json();
+        this.applyProfileData(data);
+      }
+    } catch (e) {
+      console.warn("[HrZones] Failed to switch profile on server:", e);
+    }
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("athlete-profile-changed", {
+        detail: { profileId: this.activeProfileId, profile: this.profile }
+      }));
+    }
+    return this.profile;
+  }
+
+  async createProfile(profileData) {
+    try {
+      const res = await fetch("/api/profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profileData),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const created = data.profile;
+        await this.fetchProfiles();
+        if (created && created.id) {
+          await this.switchProfile(created.id);
+        }
+        return { success: true, profile: created };
+      }
+      return { success: false, error: "Failed to create profile" };
+    } catch (e) {
+      console.error("[HrZones] Error creating profile:", e);
+      return { success: false, error: e.message };
+    }
+  }
+
+  async deleteProfile(profileId) {
+    try {
+      const res = await fetch(`/api/profiles/${profileId}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        await this.fetchProfiles();
+        if (this.activeProfileId === profileId) {
+          const nextId = this.profilesList[0]?.id || "default";
+          await this.switchProfile(nextId);
+        }
+        return { success: true };
+      }
+      const err = await res.json();
+      return { success: false, error: err.detail || "Failed to delete profile" };
+    } catch (e) {
+      console.error("[HrZones] Error deleting profile:", e);
+      return { success: false, error: e.message };
+    }
+  }
+
   async updateProfile(updates) {
     try {
-      const res = await fetch("/api/profile", {
+      const res = await fetch(`/api/profile/${this.activeProfileId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
@@ -253,6 +353,12 @@ export class HrZonesManager {
       if (res.ok) {
         const data = await res.json();
         this.applyProfileData(data);
+        await this.fetchProfiles();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("athlete-profile-changed", {
+            detail: { profileId: this.activeProfileId, profile: this.profile }
+          }));
+        }
         return { success: true, data };
       }
       return { success: false, error: "Failed to update profile" };
@@ -272,7 +378,7 @@ export class HrZonesManager {
 
   async recalibrate() {
     try {
-      const res = await fetch("/api/profile/recalibrate", { method: "POST" });
+      const res = await fetch(`/api/profile/${this.activeProfileId}/recalibrate`, { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         this.activeMaxHr = data.active_max_hr;
@@ -289,6 +395,21 @@ export class HrZonesManager {
       console.error("[HrZones] Recalibration network error:", e);
       return { success: false, error: e.message };
     }
+  }
+
+  getPreference(key, defaultValue = null) {
+    if (this.profile && this.profile.preferences && this.profile.preferences[key] !== undefined) {
+      return this.profile.preferences[key];
+    }
+    return defaultValue;
+  }
+
+  async setPreference(key, value) {
+    if (!this.profile.preferences || typeof this.profile.preferences !== "object") {
+      this.profile.preferences = {};
+    }
+    this.profile.preferences[key] = value;
+    return this.updateProfile({ preferences: this.profile.preferences });
   }
 }
 

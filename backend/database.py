@@ -112,7 +112,28 @@ def init_db():
     except Exception:
         pass
 
+    try:
+        cursor.execute("ALTER TABLE workouts ADD COLUMN profile_id TEXT DEFAULT 'default'")
+    except Exception:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE user_profiles ADD COLUMN preferences TEXT DEFAULT '{}'")
+    except Exception:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE user_profiles ADD COLUMN avatar_color TEXT DEFAULT '#38bdf8'")
+    except Exception:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE user_profiles ADD COLUMN created_at TEXT")
+    except Exception:
+        pass
+
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_samples_workout ON workout_samples(workout_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_workouts_profile ON workouts(profile_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tracks_video ON tracks(video_id)")
     conn.commit()
     conn.close()
@@ -200,13 +221,14 @@ def save_workout(workout_data: Dict[str, Any], samples: Optional[List[Dict[str, 
     laps_json = json.dumps(laps_data) if isinstance(laps_data, list) else str(laps_data or "[]")
 
     pts = workout_data.get("intensity_points", workout_data.get("splat_points", 0))
+    profile_id = workout_data.get("profile_id") or "default"
 
     cursor.execute("""
     INSERT OR REPLACE INTO workouts (
         id, start_time, end_time, duration_seconds, distance_meters,
         total_strokes, avg_spm, avg_split, avg_watts, max_watts,
-        avg_hr, max_hr, splat_points, intensity_points, video_id, audio_source, notes, laps
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        avg_hr, max_hr, splat_points, intensity_points, video_id, audio_source, notes, laps, profile_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         workout_id,
         workout_data.get("start_time"),
@@ -225,7 +247,8 @@ def save_workout(workout_data: Dict[str, Any], samples: Optional[List[Dict[str, 
         workout_data.get("video_id"),
         workout_data.get("audio_source"),
         workout_data.get("notes", ""),
-        laps_json
+        laps_json,
+        profile_id
     ))
 
     if samples:
@@ -253,16 +276,21 @@ def save_workout(workout_data: Dict[str, Any], samples: Optional[List[Dict[str, 
     conn.close()
     return workout_id
 
-def list_workouts() -> List[Dict[str, Any]]:
+def list_workouts(profile_id: Optional[str] = None) -> List[Dict[str, Any]]:
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
+    query = """
     SELECT id, start_time, end_time, duration_seconds, distance_meters,
            total_strokes, avg_spm, avg_split, avg_watts, max_watts,
-           avg_hr, max_hr, splat_points, intensity_points, video_id, audio_source, notes, laps
+           avg_hr, max_hr, splat_points, intensity_points, video_id, audio_source, notes, laps, profile_id
     FROM workouts
-    ORDER BY start_time DESC
-    """)
+    """
+    params = []
+    if profile_id:
+        query += " WHERE profile_id = ? OR (profile_id IS NULL AND ? = 'default')"
+        params.extend([profile_id, profile_id])
+    query += " ORDER BY start_time DESC"
+    cursor.execute(query, tuple(params))
     rows = cursor.fetchall()
     conn.close()
     result = []
@@ -325,21 +353,31 @@ def delete_workouts(workout_ids: List[str]) -> int:
     return deleted_count
 
 
-def get_user_profile(profile_id: str = "default") -> Dict[str, Any]:
-    """Retrieves a user profile, initializing with default 30yo Tanaka baseline if not found."""
+def get_user_profile(profile_id: str = "default") -> Optional[Dict[str, Any]]:
+    """Retrieves a user profile, initializing default if 'default' not found."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM user_profiles WHERE id = ?", (profile_id,))
     row = cursor.fetchone()
     if row:
         profile = dict(row)
+        try:
+            profile["preferences"] = json.loads(profile.get("preferences") or "{}")
+        except Exception:
+            profile["preferences"] = {}
+        if not profile.get("avatar_color"):
+            profile["avatar_color"] = "#38bdf8"
         conn.close()
         return profile
+
+    if profile_id != "default":
+        conn.close()
+        return None
 
     # Default profile creation
     now_iso = datetime.now(timezone.utc).isoformat()
     default_profile = {
-        "id": profile_id,
+        "id": "default",
         "name": "Athlete",
         "age": 30,
         "gender": "unspecified",
@@ -351,12 +389,16 @@ def get_user_profile(profile_id: str = "default") -> Dict[str, Any]:
         "active_max_hr": 187,
         "last_calibrated_at": None,
         "updated_at": now_iso,
+        "avatar_color": "#38bdf8",
+        "preferences": {},
+        "created_at": now_iso,
     }
     cursor.execute("""
     INSERT OR REPLACE INTO user_profiles (
         id, name, age, gender, rest_hr, formula, calibration_mode,
-        manual_max_hr, calibrated_max_hr, active_max_hr, last_calibrated_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        manual_max_hr, calibrated_max_hr, active_max_hr, last_calibrated_at, updated_at,
+        avatar_color, preferences, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         default_profile["id"],
         default_profile["name"],
@@ -370,10 +412,96 @@ def get_user_profile(profile_id: str = "default") -> Dict[str, Any]:
         default_profile["active_max_hr"],
         default_profile["last_calibrated_at"],
         default_profile["updated_at"],
+        default_profile["avatar_color"],
+        json.dumps(default_profile["preferences"]),
+        default_profile["created_at"],
     ))
     conn.commit()
     conn.close()
     return default_profile
+
+
+def list_user_profiles() -> List[Dict[str, Any]]:
+    """Lists all user profiles with summary metrics."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # Ensure default profile exists if empty
+    cursor.execute("SELECT COUNT(*) FROM user_profiles")
+    if cursor.fetchone()[0] == 0:
+        conn.close()
+        get_user_profile("default")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT p.*,
+           (SELECT COUNT(*) FROM workouts w WHERE w.profile_id = p.id OR (w.profile_id IS NULL AND p.id = 'default')) AS workout_count
+    FROM user_profiles p
+    ORDER BY CASE WHEN p.id = 'default' THEN 0 ELSE 1 END, p.name ASC
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    profiles = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["preferences"] = json.loads(d.get("preferences") or "{}")
+        except Exception:
+            d["preferences"] = {}
+        if not d.get("avatar_color"):
+            d["avatar_color"] = "#38bdf8"
+        profiles.append(d)
+    return profiles
+
+
+def create_user_profile(profile_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Creates a new user profile with unique ID and Tanaka baseline."""
+    import time
+    name = (profile_data.get("name") or "Athlete").strip()
+    profile_id = profile_data.get("id") or f"athlete_{int(time.time() * 1000)}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+    age = max(10, min(100, int(profile_data.get("age", 30))))
+    formula = profile_data.get("formula", "tanaka").strip().lower()
+    if formula == "fox":
+        baseline_hr = max(120, min(220, round(220 - age)))
+    else:
+        baseline_hr = max(120, min(220, round(208 - 0.7 * age)))
+
+    manual_hr = int(profile_data.get("manual_max_hr") or baseline_hr)
+    calib_mode = profile_data.get("calibration_mode", "auto").strip().lower()
+    active_hr = manual_hr if calib_mode == "manual" else baseline_hr
+    avatar_color = profile_data.get("avatar_color") or "#38bdf8"
+    prefs = profile_data.get("preferences") or {}
+    prefs_json = json.dumps(prefs) if isinstance(prefs, dict) else "{}"
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO user_profiles (
+        id, name, age, gender, rest_hr, formula, calibration_mode,
+        manual_max_hr, calibrated_max_hr, active_max_hr, last_calibrated_at, updated_at,
+        avatar_color, preferences, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        profile_id,
+        name,
+        age,
+        profile_data.get("gender", "unspecified"),
+        int(profile_data.get("rest_hr", 60)),
+        formula,
+        calib_mode,
+        manual_hr,
+        0.0,
+        active_hr,
+        None,
+        now_iso,
+        avatar_color,
+        prefs_json,
+        now_iso
+    ))
+    conn.commit()
+    conn.close()
+    return get_user_profile(profile_id)
 
 
 def save_user_profile(profile_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -383,11 +511,16 @@ def save_user_profile(profile_data: Dict[str, Any]) -> Dict[str, Any]:
     profile_id = profile_data.get("id", "default")
     now_iso = datetime.now(timezone.utc).isoformat()
 
+    avatar_color = profile_data.get("avatar_color") or "#38bdf8"
+    prefs = profile_data.get("preferences") or {}
+    prefs_json = json.dumps(prefs) if isinstance(prefs, dict) else "{}"
+
     cursor.execute("""
     INSERT OR REPLACE INTO user_profiles (
         id, name, age, gender, rest_hr, formula, calibration_mode,
-        manual_max_hr, calibrated_max_hr, active_max_hr, last_calibrated_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        manual_max_hr, calibrated_max_hr, active_max_hr, last_calibrated_at, updated_at,
+        avatar_color, preferences
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         profile_id,
         profile_data.get("name", "Athlete"),
@@ -401,23 +534,44 @@ def save_user_profile(profile_data: Dict[str, Any]) -> Dict[str, Any]:
         int(profile_data.get("active_max_hr", 187)),
         profile_data.get("last_calibrated_at"),
         now_iso,
+        avatar_color,
+        prefs_json,
     ))
     conn.commit()
     conn.close()
     return get_user_profile(profile_id)
 
 
-def get_recent_workouts_for_calibration(limit: int = 100) -> List[Dict[str, Any]]:
+def delete_user_profile(profile_id: str) -> bool:
+    """Deletes an athlete profile. Cannot delete if only 1 profile remains."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM user_profiles")
+    count = cursor.fetchone()[0]
+    if count <= 1:
+        conn.close()
+        return False
+
+    # Reassign workouts of deleted profile to 'default'
+    cursor.execute("UPDATE workouts SET profile_id = 'default' WHERE profile_id = ?", (profile_id,))
+    cursor.execute("DELETE FROM user_profiles WHERE id = ?", (profile_id,))
+    deleted = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return deleted
+
+
+def get_recent_workouts_for_calibration(limit: int = 100, profile_id: str = "default") -> List[Dict[str, Any]]:
     """Retrieves recent completed workouts with their heart rate samples for calibration analysis."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
     SELECT id, start_time, duration_seconds, distance_meters, avg_hr, max_hr, splat_points
     FROM workouts
-    WHERE duration_seconds >= 600 AND avg_hr >= 85
+    WHERE duration_seconds >= 600 AND avg_hr >= 85 AND (profile_id = ? OR (profile_id IS NULL AND ? = 'default'))
     ORDER BY start_time DESC
     LIMIT ?
-    """, (limit,))
+    """, (profile_id, profile_id, limit))
     workout_rows = cursor.fetchall()
 
     results = []

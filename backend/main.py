@@ -13,7 +13,8 @@ from pydantic import BaseModel, Field
 from backend.database import (
     init_db, save_workout, list_workouts, get_workout, delete_workout, delete_workouts,
     save_track, list_tracks, get_track, delete_track,
-    get_user_profile, save_user_profile, get_recent_workouts_for_calibration
+    get_user_profile, save_user_profile, get_recent_workouts_for_calibration,
+    list_user_profiles, create_user_profile, delete_user_profile
 )
 from backend.downloader import (
     start_download_task, get_download_tasks, get_download_status,
@@ -116,8 +117,21 @@ class WorkoutSaveRequest(BaseModel):
     video_id: Optional[str] = None
     audio_source: Optional[str] = None
     notes: Optional[str] = ""
+    profile_id: Optional[str] = "default"
     samples: Optional[List[WorkoutSampleModel]] = None
     laps: Optional[List[LapModel]] = None
+
+class UserProfileCreateRequest(BaseModel):
+    id: Optional[str] = None
+    name: str = "Athlete"
+    age: Optional[int] = 30
+    gender: Optional[str] = "unspecified"
+    rest_hr: Optional[int] = 60
+    formula: Optional[str] = "tanaka"
+    calibration_mode: Optional[str] = "auto"
+    manual_max_hr: Optional[int] = 187
+    avatar_color: Optional[str] = "#38bdf8"
+    preferences: Optional[Dict[str, Any]] = None
 
 class UserProfileUpdateRequest(BaseModel):
     name: Optional[str] = None
@@ -127,6 +141,8 @@ class UserProfileUpdateRequest(BaseModel):
     formula: Optional[str] = None
     calibration_mode: Optional[str] = None
     manual_max_hr: Optional[int] = None
+    avatar_color: Optional[str] = None
+    preferences: Optional[Dict[str, Any]] = None
 
 class BulkExportRequest(BaseModel):
     ids: Optional[List[str]] = None
@@ -335,8 +351,8 @@ async def get_video_thumbnail(video_id: str):
 
 # ----------------- Workout Persistence & Profile Endpoints -----------------
 @app.get("/api/sessions")
-async def get_sessions():
-    sessions = list_workouts()
+async def get_sessions(profile_id: Optional[str] = None):
+    sessions = list_workouts(profile_id=profile_id)
     return {"sessions": sessions}
 
 @app.post("/api/sessions")
@@ -344,8 +360,9 @@ async def create_session(workout: WorkoutSaveRequest):
     data = workout.model_dump(exclude={"samples"})
     samples = [s.model_dump() for s in workout.samples] if workout.samples else None
 
+    profile_id = data.get("profile_id") or "default"
     # Calculate Intensity Points and peak HR if samples are provided
-    profile = get_user_profile("default")
+    profile = get_user_profile(profile_id)
     active_max_hr = int(profile.get("active_max_hr", 187))
 
     if samples and len(samples) > 0:
@@ -366,10 +383,10 @@ async def create_session(workout: WorkoutSaveRequest):
 
     saved_id = save_workout(data, samples)
 
-    # If user is in auto calibration mode, run auto-calibration check
+    # If user is in auto calibration mode, run auto-calibration check for this athlete
     if profile.get("calibration_mode") == "auto":
         try:
-            recent_workouts = get_recent_workouts_for_calibration()
+            recent_workouts = get_recent_workouts_for_calibration(profile_id=profile_id)
             qualifying = hr_calib.evaluate_qualifying_workouts(recent_workouts)
             age = int(profile.get("age", 30))
             formula = profile.get("formula", "tanaka")
@@ -385,10 +402,25 @@ async def create_session(workout: WorkoutSaveRequest):
     pts = data.get("intensity_points", data.get("splat_points", 0))
     return {"id": saved_id, "status": "saved", "intensity_points": pts, "splat_points": pts}
 
-@app.get("/api/profile")
-async def get_profile():
-    profile = get_user_profile("default")
-    recent_workouts = get_recent_workouts_for_calibration()
+@app.get("/api/profiles")
+async def get_all_profiles():
+    return {"profiles": list_user_profiles()}
+
+@app.post("/api/profiles")
+async def create_profile_endpoint(req: UserProfileCreateRequest):
+    created = create_user_profile(req.model_dump())
+    return {"status": "created", "profile": created}
+
+@app.delete("/api/profiles/{profile_id}")
+async def delete_profile_endpoint(profile_id: str):
+    success = delete_user_profile(profile_id)
+    if not success:
+        raise HTTPException(status_code=400, detail="Cannot delete profile (at least one profile must remain).")
+    return {"status": "deleted", "deleted_profile_id": profile_id}
+
+def _build_profile_response(profile_id: str = "default"):
+    profile = get_user_profile(profile_id)
+    recent_workouts = get_recent_workouts_for_calibration(profile_id=profile_id)
     qualifying = hr_calib.evaluate_qualifying_workouts(recent_workouts)
 
     mode = profile.get("calibration_mode", "auto")
@@ -423,9 +455,8 @@ async def get_profile():
         "recent_qualifying": qualifying[:5],
     }
 
-@app.put("/api/profile")
-async def update_profile(req: UserProfileUpdateRequest):
-    current = get_user_profile("default")
+def _update_profile_helper(profile_id: str, req: UserProfileUpdateRequest):
+    current = get_user_profile(profile_id)
     if req.name is not None:
         current["name"] = req.name.strip() or "Athlete"
     if req.age is not None:
@@ -440,9 +471,12 @@ async def update_profile(req: UserProfileUpdateRequest):
         current["calibration_mode"] = req.calibration_mode.strip().lower()
     if req.manual_max_hr is not None:
         current["manual_max_hr"] = max(120, min(230, int(req.manual_max_hr)))
+    if req.avatar_color is not None:
+        current["avatar_color"] = req.avatar_color.strip()
+    if req.preferences is not None:
+        current["preferences"] = req.preferences
 
-    # Compute active max HR based on updated settings
-    recent_workouts = get_recent_workouts_for_calibration()
+    recent_workouts = get_recent_workouts_for_calibration(profile_id=profile_id)
     qualifying = hr_calib.evaluate_qualifying_workouts(recent_workouts)
     age = current["age"]
     formula = current["formula"]
@@ -474,10 +508,9 @@ async def update_profile(req: UserProfileUpdateRequest):
         "zones": zones,
     }
 
-@app.post("/api/profile/recalibrate")
-async def trigger_recalibration():
-    current = get_user_profile("default")
-    recent_workouts = get_recent_workouts_for_calibration()
+def _recalibrate_helper(profile_id: str):
+    current = get_user_profile(profile_id)
+    recent_workouts = get_recent_workouts_for_calibration(profile_id=profile_id)
     qualifying = hr_calib.evaluate_qualifying_workouts(recent_workouts)
     age = int(current.get("age", 30))
     formula = current.get("formula", "tanaka")
@@ -499,6 +532,33 @@ async def trigger_recalibration():
         "active_max_hr": saved["active_max_hr"],
         "zones": zones,
     }
+
+@app.get("/api/profile")
+async def get_profile(profile_id: Optional[str] = "default"):
+    target_id = profile_id or "default"
+    return _build_profile_response(target_id)
+
+@app.get("/api/profile/{profile_id}")
+async def get_profile_by_id(profile_id: str):
+    return _build_profile_response(profile_id)
+
+@app.put("/api/profile")
+async def update_profile(req: UserProfileUpdateRequest, profile_id: Optional[str] = "default"):
+    target_id = profile_id or "default"
+    return _update_profile_helper(target_id, req)
+
+@app.put("/api/profile/{profile_id}")
+async def update_profile_by_id(profile_id: str, req: UserProfileUpdateRequest):
+    return _update_profile_helper(profile_id, req)
+
+@app.post("/api/profile/recalibrate")
+async def trigger_recalibration(profile_id: Optional[str] = "default"):
+    target_id = profile_id or "default"
+    return _recalibrate_helper(target_id)
+
+@app.post("/api/profile/{profile_id}/recalibrate")
+async def trigger_recalibration_by_id(profile_id: str):
+    return _recalibrate_helper(profile_id)
 
 def format_session_filename(session: Dict[str, Any], used_names: set) -> str:
     start_time_str = session.get("start_time")

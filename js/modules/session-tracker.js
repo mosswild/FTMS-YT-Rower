@@ -41,6 +41,7 @@ export class SessionTracker {
       audioSource: options.audioSource || "original",
       notes: ""
     };
+    this.profileId = options.profileId || "default";
 
     this.onTick = options.onTick || null;
     this.onStateChange = options.onStateChange || null;
@@ -50,6 +51,10 @@ export class SessionTracker {
     this.meta.videoId = videoId;
     this.meta.audioSource = audioSource;
     this.meta.notes = notes;
+  }
+
+  setProfileId(profileId) {
+    this.profileId = profileId || "default";
   }
 
   start() {
@@ -335,6 +340,7 @@ export class SessionTracker {
       video_id: this.meta.videoId,
       audio_source: this.meta.audioSource,
       notes: this.meta.notes || "",
+      profile_id: this.profileId || (typeof window !== "undefined" && window.hrZonesManager ? window.hrZonesManager.activeProfileId : "default"),
       samples: this.samples,
       laps: this.laps || []
     };

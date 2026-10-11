@@ -438,7 +438,109 @@ class TestBackendAndFormulas(unittest.TestCase):
         self.assertIsNone(get_workout("del-w1"))
         self.assertIsNone(get_workout("del-w2"))
 
+    def test_multi_athlete_profiles_crud(self):
+        """Test multi-athlete profile creation, listing, switching, updating, and deletion."""
+        # 1. List profiles - should contain at least 'default'
+        resp = self.client.get("/api/profiles")
+        self.assertEqual(resp.status_code, 200)
+        profiles = resp.json()["profiles"]
+        self.assertTrue(any(p["id"] == "default" for p in profiles))
+
+        # 2. Create a new athlete profile
+        new_athlete_payload = {
+            "id": "athlete_test_jordan",
+            "name": "Jordan",
+            "age": 25,
+            "gender": "male",
+            "rest_hr": 55,
+            "formula": "tanaka",
+            "calibration_mode": "auto",
+            "avatar_color": "#f97316",
+            "preferences": {"favorite_videos": ["video123"]}
+        }
+        resp = self.client.post("/api/profiles", json=new_athlete_payload)
+        self.assertEqual(resp.status_code, 200)
+        created = resp.json()["profile"]
+        self.assertEqual(created["name"], "Jordan")
+        self.assertEqual(created["avatar_color"], "#f97316")
+        # Tanaka for age 25: 208 - (0.7 * 25) = 190.5 -> 190
+        self.assertEqual(created["active_max_hr"], 190)
+
+        # 3. Fetch single profile
+        resp = self.client.get("/api/profile/athlete_test_jordan")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["profile"]["name"], "Jordan")
+        self.assertEqual(data["active_max_hr"], 190)
+
+        # 4. Update athlete profile
+        update_payload = {
+            "name": "Jordan Pro",
+            "age": 28,
+            "avatar_color": "#10b981"
+        }
+        resp = self.client.put("/api/profile/athlete_test_jordan", json=update_payload)
+        self.assertEqual(resp.status_code, 200)
+        updated = resp.json()["profile"]
+        self.assertEqual(updated["name"], "Jordan Pro")
+        self.assertEqual(updated["avatar_color"], "#10b981")
+        # Tanaka for age 28: 208 - (0.7 * 28) = 188.4 -> 188
+        self.assertEqual(updated["active_max_hr"], 188)
+
+        # 5. Save workouts for Jordan and for default athlete
+        w_jordan = {
+            "id": "w-jordan-1",
+            "start_time": "2026-10-10T10:00:00Z",
+            "duration_seconds": 600,
+            "distance_meters": 2000.0,
+            "avg_hr": 150.0,
+            "profile_id": "athlete_test_jordan"
+        }
+        w_default = {
+            "id": "w-default-1",
+            "start_time": "2026-10-10T11:00:00Z",
+            "duration_seconds": 600,
+            "distance_meters": 2000.0,
+            "avg_hr": 140.0,
+            "profile_id": "default"
+        }
+        self.client.post("/api/sessions", json=w_jordan)
+        self.client.post("/api/sessions", json=w_default)
+
+        # Query workouts filtered by profile_id
+        res_jordan = self.client.get("/api/sessions?profile_id=athlete_test_jordan").json()["sessions"]
+        res_default = self.client.get("/api/sessions?profile_id=default").json()["sessions"]
+
+        self.assertTrue(any(s["id"] == "w-jordan-1" for s in res_jordan))
+        self.assertFalse(any(s["id"] == "w-default-1" for s in res_jordan))
+
+        self.assertTrue(any(s["id"] == "w-default-1" for s in res_default))
+        self.assertFalse(any(s["id"] == "w-jordan-1" for s in res_default))
+
+        # 6. Delete Jordan profile - workouts should be reassigned to default
+        del_resp = self.client.delete("/api/profiles/athlete_test_jordan")
+        self.assertEqual(del_resp.status_code, 200)
+        self.assertEqual(del_resp.json()["status"], "deleted")
+
+        # Cleanup
+        delete_workout("w-jordan-1")
+        delete_workout("w-default-1")
+
+    def test_athlete_cannot_delete_last_profile(self):
+        """Verify that when only 1 profile exists, deletion is rejected."""
+        # Clean any extra profiles first
+        resp = self.client.get("/api/profiles")
+        profiles = resp.json()["profiles"]
+        for p in profiles:
+            if p["id"] != "default":
+                self.client.delete(f"/api/profiles/{p['id']}")
+
+        # Attempt to delete the only remaining profile
+        del_resp = self.client.delete("/api/profiles/default")
+        self.assertEqual(del_resp.status_code, 400)
+
 if __name__ == "__main__":
     unittest.main()
+
 
 

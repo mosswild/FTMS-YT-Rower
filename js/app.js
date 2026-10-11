@@ -1,16 +1,16 @@
-import { RowerBLE } from "./modules/ble-rower.js?v=hr-buf-v43";
-import { HeartRateBLE } from "./modules/ble-heartrate.js?v=hr-buf-v43";
-import { RateController } from "./modules/rate-controller.js?v=hr-buf-v43";
-import { AudioEngine } from "./modules/audio-engine.js?v=hr-buf-v43";
-import { PM5Hud } from "./modules/hud.js?v=hr-buf-v43";
-import { SessionTracker } from "./modules/session-tracker.js?v=hr-buf-v43";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=hr-buf-v43";
-import { MediaManager } from "./modules/media-manager.js?v=hr-buf-v43";
-import { TrackController } from "./modules/track-controller.js?v=hr-buf-v43";
-import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=hr-buf-v43";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=hr-buf-v43";
-import { KeepAwake } from "./modules/keep-awake.js?v=hr-buf-v43";
-import { HrZonesManager } from "./modules/hr-zones.js?v=hr-buf-v43";
+import { RowerBLE } from "./modules/ble-rower.js?v=multi-athlete-v45";
+import { HeartRateBLE } from "./modules/ble-heartrate.js?v=multi-athlete-v45";
+import { RateController } from "./modules/rate-controller.js?v=multi-athlete-v45";
+import { AudioEngine } from "./modules/audio-engine.js?v=multi-athlete-v45";
+import { PM5Hud } from "./modules/hud.js?v=multi-athlete-v45";
+import { SessionTracker } from "./modules/session-tracker.js?v=multi-athlete-v45";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=multi-athlete-v45";
+import { MediaManager } from "./modules/media-manager.js?v=multi-athlete-v45";
+import { TrackController } from "./modules/track-controller.js?v=multi-athlete-v45";
+import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=multi-athlete-v45";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=multi-athlete-v45";
+import { KeepAwake } from "./modules/keep-awake.js?v=multi-athlete-v45";
+import { HrZonesManager } from "./modules/hr-zones.js?v=multi-athlete-v45";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -222,6 +222,7 @@ if (videoEl) {
 
 // Initialize Session Tracker
 const sessionTracker = new SessionTracker({
+  profileId: hrZonesManager.activeProfileId,
   onTick: (summary) => {},
   onStateChange: (state, prevState) => {
     const workoutBtn = document.getElementById("btn-toggle-workout");
@@ -2797,7 +2798,33 @@ async function triggerBulkExport(ids = null) {
 }
 
 async function loadHistoryUI() {
-  const res = await fetch("/api/sessions");
+  const athleteFilterEl = document.getElementById("history-athlete-filter");
+  const selectedAthleteId = athleteFilterEl ? athleteFilterEl.value : "all";
+
+  // Populate athlete filter dropdown options
+  if (athleteFilterEl && window.hrZonesManager && window.hrZonesManager.profilesList) {
+    const profiles = window.hrZonesManager.profilesList;
+    const currentVal = athleteFilterEl.value || "all";
+    let optsHtml = `<option value="all">All Athletes</option>`;
+    profiles.forEach(p => {
+      optsHtml += `<option value="${p.id}" ${p.id === currentVal ? "selected" : ""}>${p.name}</option>`;
+    });
+    if (athleteFilterEl.innerHTML !== optsHtml) {
+      athleteFilterEl.innerHTML = optsHtml;
+    }
+    if (!athleteFilterEl.dataset.wired) {
+      athleteFilterEl.dataset.wired = "true";
+      athleteFilterEl.addEventListener("change", () => {
+        loadHistoryUI();
+      });
+    }
+  }
+
+  const endpoint = selectedAthleteId && selectedAthleteId !== "all"
+    ? `/api/sessions?profile_id=${encodeURIComponent(selectedAthleteId)}`
+    : "/api/sessions";
+
+  const res = await fetch(endpoint);
   const data = await res.json();
   const sessions = data.sessions || [];
 
@@ -3538,11 +3565,137 @@ if (settingCadenceSensitivity) {
   });
 }
 
+// ----------------- Multi-Athlete Profile Header & Switcher UI -----------------
+function renderAthleteHeaderDropdown() {
+  const p = hrZonesManager.profile || {};
+  const profiles = hrZonesManager.profilesList || [];
+  const activeId = hrZonesManager.activeProfileId || "default";
+
+  // Update header pill
+  const avatarBadge = document.getElementById("athlete-avatar-badge");
+  const nameText = document.getElementById("athlete-name-text");
+  if (avatarBadge) {
+    avatarBadge.style.backgroundColor = p.avatar_color || "#38bdf8";
+    avatarBadge.textContent = (p.name || "A").trim().charAt(0).toUpperCase();
+  }
+  if (nameText) {
+    nameText.textContent = p.name || "Athlete";
+  }
+
+  const btnActive = document.getElementById("btn-active-athlete");
+  if (btnActive) {
+    btnActive.title = `Active Athlete: ${p.name || 'Athlete'} (Click to switch)`;
+  }
+
+  // Populate header dropdown list
+  const listContainer = document.getElementById("athlete-profiles-list");
+  if (listContainer) {
+    if (profiles.length === 0) {
+      listContainer.innerHTML = `<div style="padding: 0.75rem; text-align: center; color: var(--text-dim); font-size: 0.8rem;">No profiles found</div>`;
+    } else {
+      listContainer.innerHTML = profiles.map(prof => {
+        const isActive = prof.id === activeId;
+        const initial = (prof.name || "A").trim().charAt(0).toUpperCase();
+        const color = prof.avatar_color || "#38bdf8";
+        const count = prof.workout_count !== undefined ? prof.workout_count : 0;
+        return `
+          <button type="button" class="athlete-dropdown-item ${isActive ? 'active' : ''}" data-id="${prof.id}">
+            <div style="display: flex; align-items: center; gap: 0.5rem; min-width: 0;">
+              <span class="athlete-avatar-badge" style="background-color: ${color};">${initial}</span>
+              <div style="display: flex; flex-direction: column; min-width: 0;">
+                <span style="font-weight: 600; font-size: 0.82rem; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${prof.name}</span>
+                <span style="font-size: 0.7rem; color: var(--text-dim);">${Math.round(prof.active_max_hr || 187)} BPM &bull; ${count} rows</span>
+              </div>
+            </div>
+            ${isActive ? '<span style="color: var(--accent-blue); font-weight: bold; font-size: 0.9rem;">✓</span>' : ''}
+          </button>
+        `;
+      }).join("");
+
+      listContainer.querySelectorAll(".athlete-dropdown-item").forEach(item => {
+        item.addEventListener("click", async () => {
+          const id = item.dataset.id;
+          if (id && id !== hrZonesManager.activeProfileId) {
+            await hrZonesManager.switchProfile(id);
+            sessionTracker.setProfileId(id);
+            closeAthleteDropdown();
+            showHudToast(`Switched athlete: ${hrZonesManager.profile.name}`);
+          } else {
+            closeAthleteDropdown();
+          }
+        });
+      });
+    }
+  }
+
+  // Update Settings modal athlete dropdown
+  const settingsSelect = document.getElementById("settings-athlete-select");
+  if (settingsSelect && profiles.length > 0) {
+    settingsSelect.innerHTML = profiles.map(prof => {
+      return `<option value="${prof.id}" ${prof.id === activeId ? 'selected' : ''}>${prof.name} (${Math.round(prof.active_max_hr || 187)} BPM Max)</option>`;
+    }).join("");
+  }
+
+  // Update delete button state in Settings modal
+  const btnDelete = document.getElementById("btn-settings-delete-athlete");
+  if (btnDelete) {
+    btnDelete.disabled = profiles.length <= 1;
+    btnDelete.title = profiles.length <= 1 ? "Cannot delete the only athlete profile" : "Delete this profile";
+  }
+}
+
+function toggleAthleteDropdown(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  const menu = document.getElementById("athlete-dropdown-menu");
+  const btn = document.getElementById("btn-active-athlete");
+  if (!menu) return;
+  const isShown = menu.style.display !== "none";
+  if (isShown) {
+    menu.style.display = "none";
+    if (btn) btn.setAttribute("aria-expanded", "false");
+  } else {
+    // Close other HUD dropdowns first
+    const trackMenu = document.getElementById("hud-track-dropdown-menu");
+    const audioMenu = document.getElementById("hud-audio-dropdown-menu");
+    if (trackMenu) trackMenu.style.display = "none";
+    if (audioMenu) audioMenu.style.display = "none";
+
+    renderAthleteHeaderDropdown();
+    menu.style.display = "flex";
+    if (btn) btn.setAttribute("aria-expanded", "true");
+  }
+}
+
+function closeAthleteDropdown() {
+  const menu = document.getElementById("athlete-dropdown-menu");
+  const btn = document.getElementById("btn-active-athlete");
+  if (menu) menu.style.display = "none";
+  if (btn) btn.setAttribute("aria-expanded", "false");
+}
+
 // ----------------- Heart Rate Zones & Adaptive Calibration Settings -----------------
 function renderHrZonesSettings(summary) {
   if (!summary) return;
   const p = summary.profile || {};
   const maxHr = summary.activeMaxHr || p.active_max_hr || 187;
+
+  // Render header dropdown and badges
+  renderAthleteHeaderDropdown();
+
+  // Athlete Name input
+  const nameInput = document.getElementById("profile-name-input");
+  if (nameInput && p.name !== undefined && document.activeElement !== nameInput) {
+    nameInput.value = p.name;
+  }
+
+  // Avatar Color Palette in Settings
+  const curColor = p.avatar_color || "#38bdf8";
+  document.querySelectorAll("#athlete-color-palette .color-swatch-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.color === curColor);
+  });
 
   // Active Max HR Badge
   const badge = document.getElementById("profile-active-hr-badge");
@@ -3635,6 +3788,176 @@ function renderHrZonesSettings(summary) {
   }
 }
 
+// ----------------- Wire Athlete Switcher & Settings Listeners -----------------
+const btnActiveAthlete = document.getElementById("btn-active-athlete");
+if (btnActiveAthlete) {
+  btnActiveAthlete.addEventListener("click", toggleAthleteDropdown);
+}
+
+// Close on outside click
+document.addEventListener("click", (e) => {
+  const wrapper = document.getElementById("athlete-dropdown-wrapper");
+  if (wrapper && !wrapper.contains(e.target)) {
+    closeAthleteDropdown();
+  }
+});
+
+// Manage athletes button in dropdown
+const btnManageAthletes = document.getElementById("btn-manage-athletes");
+if (btnManageAthletes) {
+  btnManageAthletes.addEventListener("click", () => {
+    closeAthleteDropdown();
+    const modalSettings = document.getElementById("modal-settings");
+    if (modalSettings) {
+      modalSettings.classList.add("open");
+      const athleteBar = document.querySelector(".athlete-mgmt-bar");
+      if (athleteBar) athleteBar.scrollIntoView({ behavior: "smooth" });
+    }
+  });
+}
+
+// Create Athlete Modal Triggers
+function openCreateAthleteModal() {
+  closeAthleteDropdown();
+  const modal = document.getElementById("modal-create-athlete");
+  if (modal) {
+    modal.classList.add("open");
+    const nameInput = document.getElementById("new-athlete-name");
+    if (nameInput) {
+      nameInput.value = "";
+      nameInput.focus();
+    }
+  }
+}
+
+function closeCreateAthleteModal() {
+  const modal = document.getElementById("modal-create-athlete");
+  if (modal) modal.classList.remove("open");
+}
+
+document.getElementById("btn-add-athlete-quick")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  openCreateAthleteModal();
+});
+document.getElementById("btn-settings-add-athlete")?.addEventListener("click", openCreateAthleteModal);
+document.getElementById("btn-close-create-athlete-modal")?.addEventListener("click", closeCreateAthleteModal);
+document.getElementById("btn-cancel-create-athlete")?.addEventListener("click", closeCreateAthleteModal);
+
+// Create Athlete Color Swatches
+let newAthleteSelectedColor = "#38bdf8";
+document.querySelectorAll(".new-color-swatch").forEach(swatch => {
+  swatch.addEventListener("click", () => {
+    document.querySelectorAll(".new-color-swatch").forEach(s => s.classList.remove("active"));
+    swatch.classList.add("active");
+    newAthleteSelectedColor = swatch.dataset.color || "#38bdf8";
+  });
+});
+
+// Submit Create Athlete
+document.getElementById("btn-submit-create-athlete")?.addEventListener("click", async () => {
+  const nameInput = document.getElementById("new-athlete-name");
+  const ageInput = document.getElementById("new-athlete-age");
+  const formulaInput = document.getElementById("new-athlete-formula");
+
+  const name = (nameInput?.value || "").trim() || "Athlete";
+  const age = parseInt(ageInput?.value || "30", 10) || 30;
+  const formula = formulaInput?.value || "tanaka";
+
+  const btnSubmit = document.getElementById("btn-submit-create-athlete");
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = "Creating...";
+  }
+
+  const res = await hrZonesManager.createProfile({
+    name,
+    age,
+    formula,
+    avatar_color: newAthleteSelectedColor,
+    calibration_mode: "auto"
+  });
+
+  if (btnSubmit) {
+    btnSubmit.disabled = false;
+    btnSubmit.textContent = "Create Profile";
+  }
+
+  if (res.success) {
+    closeCreateAthleteModal();
+    sessionTracker.setProfileId(hrZonesManager.activeProfileId);
+    showHudToast(`Athlete created: ${name}`);
+  } else {
+    alert(res.error || "Failed to create athlete");
+  }
+});
+
+// Settings Modal Athlete Switcher Dropdown
+document.getElementById("settings-athlete-select")?.addEventListener("change", async (e) => {
+  const id = e.target.value;
+  if (id && id !== hrZonesManager.activeProfileId) {
+    await hrZonesManager.switchProfile(id);
+    sessionTracker.setProfileId(hrZonesManager.activeProfileId);
+    showHudToast(`Active Athlete: ${hrZonesManager.profile.name}`);
+  }
+});
+
+// Settings Modal Name Editor (debounced)
+let profileNameDebounce = null;
+document.getElementById("profile-name-input")?.addEventListener("input", (e) => {
+  const val = e.target.value.trim();
+  clearTimeout(profileNameDebounce);
+  profileNameDebounce = setTimeout(() => {
+    if (val) {
+      hrZonesManager.updateProfile({ name: val });
+    }
+  }, 400);
+});
+
+// Settings Modal Color Swatches
+document.querySelectorAll("#athlete-color-palette .color-swatch-btn").forEach(swatch => {
+  swatch.addEventListener("click", () => {
+    const color = swatch.dataset.color;
+    if (color) {
+      document.querySelectorAll("#athlete-color-palette .color-swatch-btn").forEach(s => s.classList.remove("active"));
+      swatch.classList.add("active");
+      hrZonesManager.updateProfile({ avatar_color: color });
+    }
+  });
+});
+
+// Settings Modal Delete Athlete
+document.getElementById("btn-settings-delete-athlete")?.addEventListener("click", async () => {
+  if (hrZonesManager.profilesList.length <= 1) {
+    showHudToast("Cannot delete the only athlete profile");
+    return;
+  }
+  const curName = hrZonesManager.profile.name || "this athlete";
+  const confirmed = await showConfirmDialog({
+    title: "Delete Athlete Profile",
+    message: `Are you sure you want to delete profile "${curName}"? Workouts will be preserved and reassigned to the default profile.`,
+    confirmBtnText: "Delete Profile",
+    isDanger: true
+  });
+  if (confirmed) {
+    const res = await hrZonesManager.deleteProfile(hrZonesManager.activeProfileId);
+    if (res.success) {
+      sessionTracker.setProfileId(hrZonesManager.activeProfileId);
+      showHudToast(`Profile deleted. Switched to ${hrZonesManager.profile.name}`);
+    } else {
+      alert(res.error || "Failed to delete profile");
+    }
+  }
+});
+
+// Listen for athlete profile changes globally
+window.addEventListener("athlete-profile-changed", (e) => {
+  const pid = e.detail?.profileId || hrZonesManager.activeProfileId;
+  sessionTracker.setProfileId(pid);
+  renderAthleteHeaderDropdown();
+  renderHrZonesSettings(hrZonesManager.getSummary());
+  loadHistoryUI();
+});
+
 // Wire settings listeners
 const profileAgeRange = document.getElementById("profile-age-range");
 const profileAgeVal = document.getElementById("profile-age-val");
@@ -3708,6 +4031,7 @@ if (btnTriggerRecalibrate) {
 // Initial render and backend sync for HR profile
 renderHrZonesSettings(hrZonesManager.getSummary());
 hrZonesManager.init().then(() => {
+  sessionTracker.setProfileId(hrZonesManager.activeProfileId);
   renderHrZonesSettings(hrZonesManager.getSummary());
 }).catch(() => {});
 
@@ -3814,12 +4138,7 @@ function cycleTheme() {
   showHudToast(`Theme: ${THEME_NAMES[nextTheme] || nextTheme}`);
 }
 
-// Quick cycle button listeners (both in header and within cockpit HUD)
-const btnQuickTheme = document.getElementById("btn-quick-theme");
-if (btnQuickTheme) {
-  btnQuickTheme.addEventListener("click", cycleTheme);
-}
-
+// Cockpit HUD quick theme cycle button listener
 const btnHudCycleTheme = document.getElementById("hud-cycle-theme-btn");
 if (btnHudCycleTheme) {
   btnHudCycleTheme.addEventListener("click", cycleTheme);
