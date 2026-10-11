@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=mobile-touch-guard-v48">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=ios-portrait-fix-v49">
   <script>
     (function() {
       try {
@@ -65,6 +65,7 @@
         <span class="status-text">HR Disconnected</span>
       </div>
       <!-- Athlete Profile Switcher Dropdown -->
+      <div id="athlete-dropdown-backdrop" class="athlete-dropdown-backdrop" style="display: none;"></div>
       <div class="hud-dropdown-wrapper athlete-profile-dropdown-wrapper" id="athlete-dropdown-wrapper">
         <button id="btn-active-athlete" class="status-pill athlete-pill hud-picker-btn" type="button" title="Switch Athlete Profile" aria-haspopup="true" aria-expanded="false">
           <span id="athlete-avatar-badge" class="athlete-avatar-badge" style="background-color: #38bdf8;">A</span>
@@ -1304,6 +1305,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=mobile-touch-guard-v48"></script>
+  <script type="module" src="js/app.js?v=ios-portrait-fix-v49"></script>
 </body>
 </html>

@@ -3660,6 +3660,7 @@ function toggleAthleteDropdown(e) {
   }
   const menu = document.getElementById("athlete-dropdown-menu");
   const btn = document.getElementById("btn-active-athlete");
+  const backdrop = document.getElementById("athlete-dropdown-backdrop");
   if (!menu) return;
   const isShown = menu.style.display === "flex";
   if (isShown) {
@@ -3670,19 +3671,22 @@ function toggleAthleteDropdown(e) {
 
     renderAthleteHeaderDropdown();
     menu.style.display = "flex";
+    if (backdrop) backdrop.style.display = "block";
     athleteDropdownOpenedAt = Date.now();
     if (btn) btn.setAttribute("aria-expanded", "true");
   }
 }
 
 function closeAthleteDropdown(force = false) {
-  // Mobile guard: prevent outside clicks or ghost touchup within 350ms of opening
-  if (!force && Date.now() - athleteDropdownOpenedAt < 350) {
+  // Mobile guard: prevent outside clicks or ghost touchup within 250ms of opening
+  if (!force && Date.now() - athleteDropdownOpenedAt < 250) {
     return;
   }
   const menu = document.getElementById("athlete-dropdown-menu");
   const btn = document.getElementById("btn-active-athlete");
+  const backdrop = document.getElementById("athlete-dropdown-backdrop");
   if (menu) menu.style.display = "none";
+  if (backdrop) backdrop.style.display = "none";
   if (btn) btn.setAttribute("aria-expanded", "false");
 }
 
@@ -3807,6 +3811,19 @@ if (btnActiveAthlete) {
 const athleteDropdownMenu = document.getElementById("athlete-dropdown-menu");
 if (athleteDropdownMenu) {
   athleteDropdownMenu.addEventListener("click", (e) => e.stopPropagation());
+}
+
+const athleteBackdrop = document.getElementById("athlete-dropdown-backdrop");
+if (athleteBackdrop) {
+  athleteBackdrop.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeAthleteDropdown(true);
+  });
+  athleteBackdrop.addEventListener("touchend", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    closeAthleteDropdown(true);
+  });
 }
 
 // Close on outside click

@@ -2069,7 +2069,7 @@ body.in-fullscreen .app-header {
     padding-right: max(0.4rem, env(safe-area-inset-right));
     max-width: 100vw;
     box-sizing: border-box;
-    overflow-x: clip;
+    overflow: visible !important;
   }
   .brand {
     font-size: 0.9rem;
@@ -6156,9 +6156,26 @@ body[data-theme="nordic"],
   transform: scale(1.1);
 }
 
+.athlete-dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 998;
+  background: transparent;
+  display: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.athlete-pill * {
+  pointer-events: none;
+}
+
 /* Responsive Collapsing for Athlete Selector (Mobile Portrait & Compact Viewports) */
 @media (max-width: 768px), (orientation: portrait) and (max-width: 900px) {
   .athlete-pill {
+    position: relative !important;
     padding: 2px !important;
     gap: 0 !important;
     width: 28px !important;
@@ -6169,6 +6186,17 @@ body[data-theme="nordic"],
     box-sizing: border-box !important;
     touch-action: manipulation !important;
     -webkit-tap-highlight-color: transparent !important;
+  }
+
+  /* Expand hit target to 44x44px for reliable finger touch on iOS */
+  .athlete-pill::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    bottom: -8px;
+    left: -8px;
+    right: -8px;
+    border-radius: 50%;
   }
 
   .athlete-pill .athlete-name-text,
@@ -6185,10 +6213,13 @@ body[data-theme="nordic"],
   }
 
   .athlete-dropdown-menu {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
     min-width: 230px !important;
     max-width: min(300px, calc(100vw - 1rem)) !important;
     right: 0 !important;
     left: auto !important;
+    z-index: 1000 !important;
   }
 }
 
