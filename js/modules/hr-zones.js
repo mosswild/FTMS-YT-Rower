@@ -8,7 +8,7 @@
  * 4. Resolving zone targets for structured workouts (e.g. target hr_zone: 2 -> [minBpm, maxBpm]).
  */
 
-class HrZonesManager {
+export class HrZonesManager {
   constructor(options = {}) {
     this.options = options;
     this.onProfileChange = options.onProfileChange || null;
@@ -292,10 +292,8 @@ class HrZonesManager {
   }
 }
 
-// Export for module systems or attach to window
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = { HrZonesManager };
-}
+export default HrZonesManager;
+
 if (typeof window !== "undefined") {
   window.HrZonesManager = HrZonesManager;
 }

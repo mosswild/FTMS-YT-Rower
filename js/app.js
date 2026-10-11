@@ -1,16 +1,16 @@
-import { RowerBLE } from "./modules/ble-rower.js?v=spm-cal-v41";
-import { HeartRateBLE } from "./modules/ble-heartrate.js?v=spm-cal-v41";
-import { RateController } from "./modules/rate-controller.js?v=spm-cal-v41";
-import { AudioEngine } from "./modules/audio-engine.js?v=spm-cal-v41";
-import { PM5Hud } from "./modules/hud.js?v=spm-cal-v41";
-import { SessionTracker } from "./modules/session-tracker.js?v=spm-cal-v41";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=spm-cal-v41";
-import { MediaManager } from "./modules/media-manager.js?v=spm-cal-v41";
-import { TrackController } from "./modules/track-controller.js?v=spm-cal-v41";
-import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=spm-cal-v41";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=spm-cal-v41";
-import { KeepAwake } from "./modules/keep-awake.js?v=nosleep-v42";
-import { HrZonesManager } from "./modules/hr-zones.js?v=ot-cal-v1";
+import { RowerBLE } from "./modules/ble-rower.js?v=hr-buf-v43";
+import { HeartRateBLE } from "./modules/ble-heartrate.js?v=hr-buf-v43";
+import { RateController } from "./modules/rate-controller.js?v=hr-buf-v43";
+import { AudioEngine } from "./modules/audio-engine.js?v=hr-buf-v43";
+import { PM5Hud } from "./modules/hud.js?v=hr-buf-v43";
+import { SessionTracker } from "./modules/session-tracker.js?v=hr-buf-v43";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=hr-buf-v43";
+import { MediaManager } from "./modules/media-manager.js?v=hr-buf-v43";
+import { TrackController } from "./modules/track-controller.js?v=hr-buf-v43";
+import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=hr-buf-v43";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=hr-buf-v43";
+import { KeepAwake } from "./modules/keep-awake.js?v=hr-buf-v43";
+import { HrZonesManager } from "./modules/hr-zones.js?v=hr-buf-v43";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
