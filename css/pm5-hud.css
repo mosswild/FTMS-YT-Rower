@@ -152,7 +152,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1rem;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -2473,15 +2473,50 @@ body.in-fullscreen .app-header {
    -------------------------------------------------------------------------- */
 @media (max-width: 640px) and (orientation: portrait), (max-width: 500px) {
   .cockpit-view {
-    padding: 0.5rem 0.35rem;
+    padding-top: max(0.5rem, env(safe-area-inset-top)) !important;
+    padding-right: max(0.35rem, env(safe-area-inset-right)) !important;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom)) !important;
+    padding-left: max(0.35rem, env(safe-area-inset-left)) !important;
   }
 
   .scenic-viewport-container {
     border-radius: 8px;
   }
 
+  .scenic-viewport-container:not(.is-fullscreen) {
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 1rem);
+  }
+
   .pm5-hud-overlay {
     padding: 0.45rem;
+  }
+
+  .scenic-viewport-container.is-fullscreen .pm5-hud-overlay {
+    padding-top: max(0.75rem, env(safe-area-inset-top)) !important;
+    padding-right: max(0.75rem, env(safe-area-inset-right)) !important;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom)) !important;
+    padding-left: max(0.75rem, env(safe-area-inset-left)) !important;
+  }
+
+  .hud-cockpit-bar {
+    gap: 0.35rem !important;
+    min-height: 38px !important;
+  }
+
+  .hud-back-btn {
+    padding: 6px 10px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .hud-active-workout-badge {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+    min-width: 0 !important;
+    flex-shrink: 1 !important;
+  }
+
+  .hud-right-actions {
+    gap: 0.25rem !important;
   }
 
   /* 2-tier Dedicated Rows for Top Bar */
@@ -6609,6 +6644,13 @@ body.in-cockpit {
   overflow: hidden !important;
 }
 
+body.in-cockpit .cockpit-view {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+  padding-right: max(0.35rem, env(safe-area-inset-right));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  padding-left: max(0.35rem, env(safe-area-inset-left));
+}
+
 /* ----------------- Home View Styling ----------------- */
 .view-home {
   max-width: 1200px;
@@ -7174,6 +7216,8 @@ body.in-cockpit {
   padding: 6px 14px;
   border-radius: 8px;
   max-width: 480px;
+  min-width: 0;
+  flex-shrink: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
