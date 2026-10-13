@@ -9,9 +9,10 @@ DB_PATH = os.path.join(DATA_DIR, "sessions.db")
 
 def get_db_connection():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
     return conn
 
 def init_db():
@@ -132,9 +133,24 @@ def init_db():
     except Exception:
         pass
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS quick_workouts (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        title TEXT NOT NULL,
+        description TEXT,
+        track_id TEXT NOT NULL,
+        workout_id TEXT,
+        is_default INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT,
+        FOREIGN KEY (user_id) REFERENCES user_profiles (id) ON DELETE CASCADE
+    )
+    """)
+
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_samples_workout ON workout_samples(workout_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_workouts_profile ON workouts(profile_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tracks_video ON tracks(video_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_quick_workouts_user ON quick_workouts(user_id)")
     conn.commit()
     conn.close()
 

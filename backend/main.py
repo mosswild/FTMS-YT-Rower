@@ -26,6 +26,7 @@ from backend.streaming import range_streaming_response
 from backend.tcx_generator import generate_tcx, generate_multi_tcx
 import backend.workout_manager as workout_mgr
 import backend.hr_calibration as hr_calib
+import backend.quick_workouts_manager as quick_workouts_mgr
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -33,6 +34,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    quick_workouts_mgr.ensure_default_quick_workouts()
     yield
 
 app = FastAPI(title="FTMS Modern Rower Dashboard", lifespan=lifespan)
@@ -706,6 +708,55 @@ async def delete_single_track(track_id: str):
     success = delete_track(track_id)
     if not success:
         raise HTTPException(status_code=404, detail="Track not found")
+    return {"deleted": True}
+
+
+# ----------------- Quick Workouts Endpoints -----------------
+class QuickWorkoutModel(BaseModel):
+    id: Optional[str] = None
+    user_id: Optional[str] = None
+    title: str = Field(..., min_length=1)
+    description: Optional[str] = ""
+    track_id: str = Field(..., min_length=1)
+    workout_id: Optional[str] = "free_row"
+
+
+@app.get("/api/quick-workouts")
+async def get_quick_workouts(user_id: Optional[str] = None):
+    cards = quick_workouts_mgr.list_quick_workouts(user_id=user_id)
+    return {"cards": cards}
+
+
+@app.post("/api/quick-workouts")
+async def create_quick_workout_endpoint(req: QuickWorkoutModel):
+    card = quick_workouts_mgr.create_quick_workout(req.model_dump())
+    return {"card": card}
+
+
+@app.get("/api/quick-workouts/{card_id}")
+async def get_single_quick_workout(card_id: str):
+    card = quick_workouts_mgr.get_quick_workout(card_id)
+    if not card:
+        raise HTTPException(status_code=404, detail="Quick workout card not found")
+    return card
+
+
+@app.put("/api/quick-workouts/{card_id}")
+async def update_quick_workout_endpoint(card_id: str, req: QuickWorkoutModel):
+    card = quick_workouts_mgr.update_quick_workout(card_id, req.model_dump())
+    if not card:
+        raise HTTPException(status_code=404, detail="Quick workout card not found")
+    return {"card": card}
+
+
+@app.delete("/api/quick-workouts/{card_id}")
+async def delete_quick_workout_endpoint(card_id: str):
+    try:
+        success = quick_workouts_mgr.delete_quick_workout(card_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if not success:
+        raise HTTPException(status_code=404, detail="Quick workout card not found")
     return {"deleted": True}
 
 

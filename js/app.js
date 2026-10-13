@@ -754,16 +754,30 @@ wsTelemetry.connect();
 
 // ----------------- View Navigation -----------------
 const views = {
+  home: document.getElementById("view-home"),
   cockpit: document.getElementById("view-cockpit"),
   media: document.getElementById("view-media"),
   history: document.getElementById("view-history"),
   workouts: document.getElementById("view-workouts"),
 };
 
+let currentOriginView = "home";
+
 function switchView(viewName) {
+  if (!views[viewName]) {
+    viewName = "home";
+  }
+
+  if (viewName !== "cockpit") {
+    currentOriginView = viewName;
+  }
+
+  document.body.classList.toggle("in-cockpit", viewName === "cockpit");
+
   Object.keys(views).forEach(key => {
     if (views[key]) {
       views[key].style.display = (key === viewName) ? "block" : "none";
+      views[key].classList.toggle("active", key === viewName);
     }
   });
 
@@ -771,7 +785,9 @@ function switchView(viewName) {
     btn.classList.toggle("active", btn.dataset.view === viewName);
   });
 
-  if (viewName === "media") {
+  if (viewName === "home") {
+    loadHomeUI();
+  } else if (viewName === "media") {
     loadLibraryUI();
     loadTracksUI();
   } else if (viewName === "history") {
@@ -781,9 +797,447 @@ function switchView(viewName) {
   }
 }
 
-document.querySelectorAll(".nav-btn[data-view]").forEach(btn => {
+document.querySelectorAll("[data-view]").forEach(btn => {
   btn.addEventListener("click", () => switchView(btn.dataset.view));
 });
+
+// ==========================================================================
+// Mobile-First Home Dashboard & Quick Workouts Launcher
+// ==========================================================================
+let cachedQuickWorkouts = [];
+
+async function loadHomeUI() {
+  const athleteNameEl = document.getElementById("home-athlete-name");
+  if (athleteNameEl) {
+    const p = (window.hrZonesManager && window.hrZonesManager.profile) || {};
+    athleteNameEl.textContent = p.name || "Athlete";
+  }
+
+  // 1. Fetch & render Quick Workouts for active athlete
+  try {
+    const activeUserId = (window.hrZonesManager && window.hrZonesManager.activeProfileId) || "default";
+    const res = await fetch(`/api/quick-workouts?user_id=${encodeURIComponent(activeUserId)}`);
+    if (res.ok) {
+      const data = await res.json();
+      cachedQuickWorkouts = data.quick_workouts || [];
+      renderQuickWorkouts(cachedQuickWorkouts);
+    }
+  } catch (err) {
+    console.error("[Home UI] Failed to load quick workouts:", err);
+  }
+
+  // 2. Render Scenic Free Rows
+  renderHomeTracks(cachedTracks || []);
+
+  // 3. Render Recent Activity preview
+  loadHomeRecentActivity();
+}
+
+function renderQuickWorkouts(cards) {
+  const container = document.getElementById("quick-workouts-container");
+  if (!container) return;
+
+  if (cards.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); background: var(--surface-card); border-radius: 12px; border: 1px dashed var(--surface-border);">
+        <p style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text-main); font-weight: 600;">No workout cards yet</p>
+        <p style="font-size: 0.85rem; margin-bottom: 1rem;">Create a 1-tap card pairing your favorite scenic track with a structured interval program.</p>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-empty-create-card">+ Create Workout Card</button>
+      </div>
+    `;
+    const emptyBtn = document.getElementById("btn-empty-create-card");
+    if (emptyBtn) emptyBtn.addEventListener("click", () => openCardBuilderModal());
+    return;
+  }
+
+  container.innerHTML = cards.map(card => {
+    const track = card.track || {};
+    const workout = card.workout || {};
+    const thumbUrl = track.video_id ? `/api/media/thumbnail/${track.video_id}` : "";
+    const isFreeRow = !card.workout_id || card.workout_id === "free_row";
+
+    // Track duration calculation
+    let trackDurStr = "";
+    if (track.end_time && track.start_time !== undefined && track.end_time > track.start_time) {
+      trackDurStr = pm5Hud.formatTime(track.end_time - track.start_time);
+    } else if (track.duration) {
+      trackDurStr = pm5Hud.formatTime(track.duration);
+    }
+
+    // Workout details
+    let workoutBadgeStr = isFreeRow ? "Free Row" : (workout.difficulty || "Program");
+    let workoutMetaStr = "";
+    if (!isFreeRow && workout.estimates) {
+      const durMins = Math.round((workout.estimates.estimated_duration_seconds || 0) / 60);
+      workoutMetaStr = `~${durMins} min • ${workout.step_count || 0} steps`;
+    } else if (isFreeRow && trackDurStr) {
+      workoutMetaStr = trackDurStr;
+    }
+
+    return `
+      <div class="quick-workout-card" data-id="${card.id}">
+        <div class="quick-workout-thumb-wrapper">
+          ${thumbUrl ? `<img src="${thumbUrl}" alt="" class="quick-workout-thumb" onerror="this.style.display='none'">` : ''}
+          <div class="quick-workout-thumb-overlay"></div>
+          <div class="quick-workout-badges">
+            <span class="card-badge category">${escapeHtml(track.name || "Scenic Track")}</span>
+            <span class="card-badge ${isFreeRow ? 'builtin' : 'difficulty'}">${workoutBadgeStr}</span>
+          </div>
+          ${!card.is_default ? `
+            <div class="quick-card-menu-btns">
+              <button type="button" class="quick-card-icon-btn btn-edit-card" data-id="${card.id}" title="Edit Card">✎</button>
+              <button type="button" class="quick-card-icon-btn btn-delete-card" data-id="${card.id}" title="Delete Card">🗑</button>
+            </div>
+          ` : ''}
+        </div>
+        <div class="quick-workout-body">
+          <h3 class="quick-workout-title">${escapeHtml(card.title)}</h3>
+          <p class="quick-workout-desc">${escapeHtml(card.description || (isFreeRow ? "Scenic free row with open pacing." : (workout.description || "")))}</p>
+          <div class="quick-workout-meta">
+            ${workoutMetaStr ? `<span>⏱ ${workoutMetaStr}</span>` : ''}
+            <span>🎬 ${escapeHtml(track.name || "Scenic Track")}</span>
+          </div>
+        </div>
+        <div class="quick-workout-footer">
+          <button type="button" class="btn btn-primary btn-sm btn-start-quick-card" data-id="${card.id}">
+            ${isFreeRow ? 'Start Free Row →' : 'Start Workout →'}
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  // Attach card event listeners
+  container.querySelectorAll(".btn-start-quick-card").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const card = cachedQuickWorkouts.find(c => c.id === id);
+      if (card) launchQuickWorkout(card);
+    });
+  });
+
+  container.querySelectorAll(".btn-edit-card").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const card = cachedQuickWorkouts.find(c => c.id === id);
+      if (card) openCardBuilderModal(card);
+    });
+  });
+
+  container.querySelectorAll(".btn-delete-card").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const card = cachedQuickWorkouts.find(c => c.id === id);
+      if (!card) return;
+      const confirmed = await showConfirmDialog({
+        title: "Delete Workout Card",
+        message: `Are you sure you want to delete <strong>${escapeHtml(card.title)}</strong>?`,
+        confirmBtnText: "Delete",
+        isDanger: true
+      });
+      if (confirmed) {
+        try {
+          const res = await fetch(`/api/quick-workouts/${id}`, { method: "DELETE" });
+          if (res.ok) {
+            showHudToast("Workout card deleted");
+            await loadHomeUI();
+          }
+        } catch (err) {
+          alert(`Failed to delete card: ${err}`);
+        }
+      }
+    });
+  });
+}
+
+function renderHomeTracks(tracks) {
+  const container = document.getElementById("home-tracks-container");
+  if (!container) return;
+
+  if (tracks.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 2rem 1rem; color: var(--text-muted); background: var(--surface-card); border-radius: 12px; border: 1px dashed var(--surface-border);">
+        <p style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-main);">No scenic tracks configured yet</p>
+        <p style="font-size: 0.8rem; margin-bottom: 0.75rem;">Download scenic videos in the Media Center to create custom tracks.</p>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="switchView('media')">Go to Media Center →</button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = tracks.map(t => {
+    const thumbUrl = t.video_id ? `/api/media/thumbnail/${t.video_id}` : "";
+    let durStr = "";
+    if (t.end_time && t.start_time !== undefined && t.end_time > t.start_time) {
+      durStr = pm5Hud.formatTime(t.end_time - t.start_time);
+    }
+
+    return `
+      <div class="home-track-card" data-id="${t.id}">
+        <div class="home-track-thumb-wrapper">
+          ${thumbUrl ? `<img src="${thumbUrl}" alt="" class="home-track-thumb" onerror="this.style.display='none'">` : ''}
+          <div class="home-track-overlay"></div>
+          ${durStr ? `<span class="home-track-dur-badge">${durStr}</span>` : ''}
+        </div>
+        <div class="home-track-body">
+          <h4 class="home-track-title">${escapeHtml(t.name)}</h4>
+          <p class="home-track-sub">${t.fixed_speed ? 'Steady 1.0× Ambient Video' : 'Dynamic Speed Modulation'}</p>
+        </div>
+        <div class="home-track-footer">
+          <button type="button" class="btn btn-secondary btn-sm btn-start-home-track" data-id="${t.id}">
+            Free Row →
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  container.querySelectorAll(".btn-start-home-track").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const track = (cachedTracks || []).find(t => t.id === id);
+      if (track) launchFreeRow(track);
+    });
+  });
+}
+
+async function loadHomeRecentActivity() {
+  const container = document.getElementById("home-recent-activity");
+  if (!container) return;
+
+  try {
+    const activeUserId = (window.hrZonesManager && window.hrZonesManager.activeProfileId) || "default";
+    const res = await fetch(`/api/sessions?profile_id=${encodeURIComponent(activeUserId)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const sessions = (data.sessions || []).slice(0, 3);
+
+    if (sessions.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted); background: var(--surface-card); border-radius: 12px; border: 1px solid var(--surface-border);">
+          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🚣‍♂️</div>
+          <div style="font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">No workouts recorded yet</div>
+          <div style="font-size: 0.82rem; color: var(--text-dim);">Pick a workout card above or launch a scenic free row to log your first session!</div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem;">
+        ${sessions.map(s => {
+          const dateStr = s.start_time ? new Date(s.start_time).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "--";
+          const durStr = pm5Hud.formatTime(s.duration_seconds || 0);
+          const splitStr = s.avg_split > 0 ? pm5Hud.formatSplit(s.avg_split) : "--";
+          const pts = s.intensity_points !== undefined ? s.intensity_points : (s.splat_points || 0);
+
+          return `
+            <div style="background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.4rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">${escapeHtml(s.notes || s.workout_name || "Rowing Session")}</span>
+                <span style="font-size: 0.75rem; color: var(--text-dim);">${dateStr}</span>
+              </div>
+              <div style="display: flex; gap: 0.75rem; font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-dim); margin-top: 0.2rem;">
+                <span style="color: var(--accent-blue); font-weight: 700;">${Math.round(s.distance_meters || 0).toLocaleString()}m</span>
+                <span>⏱ ${durStr}</span>
+                <span>⚡ ${splitStr}</span>
+                ${pts > 0 ? `<span style="color: #f97316; font-weight: 700;">🔥 ${pts} pts</span>` : ''}
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+  } catch (err) {
+    console.warn("[Home Activity] Could not load sessions:", err);
+  }
+}
+
+async function launchQuickWorkout(card) {
+  if (typeof keepAwake !== "undefined" && keepAwake.preArm) keepAwake.preArm();
+
+  // 1. Cleanly finish existing session if active
+  if (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) {
+    await sessionTracker.finish();
+    sessionTracker.reset();
+  }
+
+  // 2. Load the Scenic Track
+  const track = card.track || (cachedTracks || []).find(t => t.id === card.track_id);
+  if (track) {
+    loadTrackIntoCockpit(track, false);
+  } else if (cachedTracks && cachedTracks.length > 0) {
+    loadTrackIntoCockpit(cachedTracks[0], false);
+  }
+
+  // 3. Load or reset structured program
+  if (card.workout_id && card.workout_id !== "free_row") {
+    await loadWorkoutInCockpit(card.workout_id);
+  } else {
+    if (workoutEngine && workoutEngine.isRunning) {
+      workoutEngine.stop();
+    }
+    if (workoutEngine) workoutEngine.workout = null;
+    pm5Hud.setWorkoutMode(null);
+    pm5Hud.showWorkoutBar(false);
+    pm5Hud.clearWorkoutCompliance();
+  }
+
+  // 4. Update HUD title badge
+  const titleBadge = document.getElementById("hud-active-card-title");
+  if (titleBadge) {
+    titleBadge.textContent = card.title;
+  }
+
+  // 5. Switch to Cockpit
+  switchView("cockpit");
+  showHudToast(`Loaded: ${card.title}`);
+}
+
+async function launchFreeRow(track) {
+  if (typeof keepAwake !== "undefined" && keepAwake.preArm) keepAwake.preArm();
+
+  if (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) {
+    await sessionTracker.finish();
+    sessionTracker.reset();
+  }
+
+  if (workoutEngine && workoutEngine.isRunning) {
+    workoutEngine.stop();
+  }
+  if (workoutEngine) workoutEngine.workout = null;
+  pm5Hud.setWorkoutMode(null);
+  pm5Hud.showWorkoutBar(false);
+  pm5Hud.clearWorkoutCompliance();
+
+  loadTrackIntoCockpit(track, false);
+
+  const titleBadge = document.getElementById("hud-active-card-title");
+  if (titleBadge) {
+    titleBadge.textContent = `${track.name} • Free Row`;
+  }
+
+  switchView("cockpit");
+  showHudToast(`Free Row: ${track.name}`);
+}
+
+// ----------------- Card Builder Modal -----------------
+function openCardBuilderModal(card = null) {
+  const modal = document.getElementById("modal-create-quick-workout");
+  if (!modal) return;
+
+  const idInput = document.getElementById("input-card-id");
+  const titleInput = document.getElementById("input-card-title");
+  const descInput = document.getElementById("input-card-desc");
+  const trackSelect = document.getElementById("select-card-track");
+  const workoutSelect = document.getElementById("select-card-workout");
+  const modalTitle = document.getElementById("modal-card-builder-title");
+  const submitBtn = document.getElementById("btn-submit-create-card");
+
+  // Populate track options
+  if (trackSelect) {
+    if ((cachedTracks || []).length === 0) {
+      trackSelect.innerHTML = `<option value="">No scenic tracks available</option>`;
+    } else {
+      trackSelect.innerHTML = cachedTracks.map(t => {
+        return `<option value="${t.id}">${escapeHtml(t.name)}</option>`;
+      }).join("");
+    }
+  }
+
+  // Populate workout options
+  if (workoutSelect) {
+    let opts = `<option value="free_row">Free Row (No Target Intervals)</option>`;
+    (cachedWorkouts || []).forEach(w => {
+      const durM = Math.round(((w.estimates && w.estimates.estimated_duration_seconds) || 0) / 60);
+      opts += `<option value="${w.id}">${escapeHtml(w.title)} (~${durM}m • ${w.step_count} steps)</option>`;
+    });
+    workoutSelect.innerHTML = opts;
+  }
+
+  if (card && card.id) {
+    if (modalTitle) modalTitle.textContent = "Edit Workout Card";
+    if (submitBtn) submitBtn.textContent = "Save Changes";
+    if (idInput) idInput.value = card.id;
+    if (titleInput) titleInput.value = card.title || "";
+    if (descInput) descInput.value = card.description || "";
+    if (trackSelect && card.track_id) trackSelect.value = card.track_id;
+    if (workoutSelect && card.workout_id) workoutSelect.value = card.workout_id;
+  } else {
+    if (modalTitle) modalTitle.textContent = "Create Workout Card";
+    if (submitBtn) submitBtn.textContent = "Save Workout Card";
+    if (idInput) idInput.value = "";
+    if (titleInput) titleInput.value = card?.title || "";
+    if (descInput) descInput.value = card?.description || "";
+    if (trackSelect && card?.track_id) trackSelect.value = card.track_id;
+    if (workoutSelect && card?.workout_id) workoutSelect.value = card.workout_id;
+  }
+
+  modal.classList.add("open");
+}
+
+function closeCardBuilderModal() {
+  const modal = document.getElementById("modal-create-quick-workout");
+  if (modal) modal.classList.remove("open");
+}
+
+document.getElementById("home-btn-create-card")?.addEventListener("click", () => openCardBuilderModal());
+document.getElementById("btn-close-create-card")?.addEventListener("click", closeCardBuilderModal);
+document.getElementById("btn-cancel-create-card")?.addEventListener("click", closeCardBuilderModal);
+
+const formCreateCard = document.getElementById("form-create-quick-workout");
+if (formCreateCard) {
+  formCreateCard.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const id = document.getElementById("input-card-id")?.value;
+    const title = document.getElementById("input-card-title")?.value.trim();
+    const description = document.getElementById("input-card-desc")?.value.trim();
+    const track_id = document.getElementById("select-card-track")?.value;
+    const workout_id = document.getElementById("select-card-workout")?.value;
+
+    if (!title || !track_id) {
+      alert("Please provide a title and select a scenic track.");
+      return;
+    }
+
+    const payload = {
+      user_id: (window.hrZonesManager && window.hrZonesManager.activeProfileId) || "default",
+      title,
+      description: description || null,
+      track_id,
+      workout_id: workout_id || "free_row",
+      sort_order: 0
+    };
+
+    try {
+      const url = id ? `/api/quick-workouts/${id}` : "/api/quick-workouts";
+      const method = id ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed to save card");
+      }
+      const savedCard = await res.json();
+      closeCardBuilderModal();
+      await loadHomeUI();
+      showHudToast(id ? "Workout card updated" : "Workout card created");
+
+      if (!id && savedCard) {
+        launchQuickWorkout(savedCard);
+      }
+    } catch (err) {
+      alert(`Could not save card: ${err.message}`);
+    }
+  });
+}
 
 // ----------------- Confirmation Modal Helper -----------------
 function escapeHtml(str) {
@@ -3483,17 +3937,38 @@ if (toggleWorkoutBtn) {
 
 // ----------------- Settings Modal & Config -----------------
 const settingsModal = document.getElementById("modal-settings");
-document.getElementById("btn-open-settings").addEventListener("click", () => {
+
+function openSettingsModal() {
   const volInput = document.getElementById("setting-soundtrack-volume");
   const volVal = document.getElementById("setting-soundtrack-volume-val");
   if (volInput && typeof audioEngine !== "undefined") {
     volInput.value = audioEngine.volume;
     if (volVal) volVal.textContent = `${Math.round(audioEngine.volume * 100)}%`;
   }
-  settingsModal.classList.add("open");
+  if (settingsModal) settingsModal.classList.add("open");
+}
+
+document.getElementById("btn-open-settings")?.addEventListener("click", openSettingsModal);
+document.getElementById("btn-bottom-nav-settings")?.addEventListener("click", openSettingsModal);
+document.getElementById("btn-close-settings")?.addEventListener("click", () => {
+  if (settingsModal) settingsModal.classList.remove("open");
 });
-document.getElementById("btn-close-settings").addEventListener("click", () => {
-  settingsModal.classList.remove("open");
+
+// Settings Tab Bar Switcher
+document.querySelectorAll(".settings-tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const targetTab = btn.dataset.tab;
+    document.querySelectorAll(".settings-tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    document.querySelectorAll(".settings-tab-panel").forEach(panel => {
+      panel.classList.toggle("active", panel.id === `tab-panel-${targetTab}`);
+    });
+
+    if (targetTab === "athlete") {
+      renderSettingsAthleteTab();
+    }
+  });
 });
 
 const settingBaselineSpm = document.getElementById("setting-baseline-spm");
@@ -3640,12 +4115,12 @@ if (settingShowResistance) {
 }
 
 // ----------------- Multi-Athlete Profile Header & Switcher UI -----------------
+// ----------------- Multi-Athlete Profile Header, Picker Modal & Editor -----------------
 function renderAthleteHeaderDropdown() {
   const p = hrZonesManager.profile || {};
-  const profiles = hrZonesManager.profilesList || [];
   const activeId = hrZonesManager.activeProfileId || "default";
 
-  // Update header pill without needlessly churning DOM nodes
+  // Update header pill without churning DOM nodes
   const avatarBadge = document.getElementById("athlete-avatar-badge");
   const nameText = document.getElementById("athlete-name-text");
   const targetInitial = (p.name || "A").trim().charAt(0).toUpperCase();
@@ -3666,102 +4141,295 @@ function renderAthleteHeaderDropdown() {
   if (btnActive) {
     btnActive.title = `Active Athlete: ${p.name || 'Athlete'} (Click to switch)`;
   }
-
-  // Populate header dropdown list
-  const listContainer = document.getElementById("athlete-profiles-list");
-  if (listContainer) {
-    if (profiles.length === 0) {
-      listContainer.innerHTML = `<div style="padding: 0.75rem; text-align: center; color: var(--text-dim); font-size: 0.8rem;">No profiles found</div>`;
-    } else {
-      listContainer.innerHTML = profiles.map(prof => {
-        const isActive = prof.id === activeId;
-        const initial = (prof.name || "A").trim().charAt(0).toUpperCase();
-        const color = prof.avatar_color || "#38bdf8";
-        const count = prof.workout_count !== undefined ? prof.workout_count : 0;
-        return `
-          <button type="button" class="athlete-dropdown-item ${isActive ? 'active' : ''}" data-id="${prof.id}">
-            <div style="display: flex; align-items: center; gap: 0.5rem; min-width: 0;">
-              <span class="athlete-avatar-badge" style="background-color: ${color};">${initial}</span>
-              <div style="display: flex; flex-direction: column; min-width: 0;">
-                <span style="font-weight: 600; font-size: 0.82rem; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${prof.name}</span>
-                <span style="font-size: 0.7rem; color: var(--text-dim);">${Math.round(prof.active_max_hr || 187)} BPM &bull; ${count} rows</span>
-              </div>
-            </div>
-            ${isActive ? '<span style="color: var(--accent-blue); font-weight: bold; font-size: 0.9rem;">✓</span>' : ''}
-          </button>
-        `;
-      }).join("");
-
-      listContainer.querySelectorAll(".athlete-dropdown-item").forEach(item => {
-        item.addEventListener("click", async (e) => {
-          e.stopPropagation();
-          const id = item.dataset.id;
-          if (id && id !== hrZonesManager.activeProfileId) {
-            await hrZonesManager.switchProfile(id);
-            sessionTracker.setProfileId(id);
-            closeAthleteDropdown(true);
-            showHudToast(`Switched athlete: ${hrZonesManager.profile.name}`);
-          } else {
-            closeAthleteDropdown(true);
-          }
-        });
-      });
-    }
-  }
-
-  // Update Settings modal athlete dropdown
-  const settingsSelect = document.getElementById("settings-athlete-select");
-  if (settingsSelect && profiles.length > 0) {
-    settingsSelect.innerHTML = profiles.map(prof => {
-      return `<option value="${prof.id}" ${prof.id === activeId ? 'selected' : ''}>${prof.name} (${Math.round(prof.active_max_hr || 187)} BPM Max)</option>`;
-    }).join("");
-  }
-
-  // Update delete button state in Settings modal
-  const btnDelete = document.getElementById("btn-settings-delete-athlete");
-  if (btnDelete) {
-    btnDelete.disabled = profiles.length <= 1;
-    btnDelete.title = profiles.length <= 1 ? "Cannot delete the only athlete profile" : "Delete this profile";
-  }
 }
 
-let athleteDropdownOpenedAt = 0;
-
-function toggleAthleteDropdown(e) {
-  if (e) {
-    e.stopPropagation();
-    e.preventDefault();
-  }
-  const menu = document.getElementById("athlete-dropdown-menu");
-  const btn = document.getElementById("btn-active-athlete");
-  const backdrop = document.getElementById("athlete-dropdown-backdrop");
-  if (!menu) return;
-  const isShown = menu.style.display === "flex";
-  if (isShown) {
-    closeAthleteDropdown(true);
-  } else {
-    // Close other HUD dropdowns first
-    closeHudDropdowns();
-
-    renderAthleteHeaderDropdown();
-    menu.style.display = "flex";
-    if (backdrop) backdrop.style.display = "block";
-    athleteDropdownOpenedAt = Date.now();
-    if (btn) btn.setAttribute("aria-expanded", "true");
-  }
+// Profile Picker Modal Functions
+function openProfilePickerModal() {
+  renderProfilePickerModal();
+  const modal = document.getElementById("modal-profile-picker");
+  if (modal) modal.classList.add("open");
 }
 
-function closeAthleteDropdown(force = false) {
-  // Mobile guard: prevent outside clicks or ghost touchup within 250ms of opening
-  if (!force && Date.now() - athleteDropdownOpenedAt < 250) {
+function closeProfilePickerModal() {
+  const modal = document.getElementById("modal-profile-picker");
+  if (modal) modal.classList.remove("open");
+}
+
+function renderProfilePickerModal() {
+  const container = document.getElementById("profile-picker-list");
+  if (!container) return;
+  const profiles = hrZonesManager.profilesList || [];
+  const activeId = hrZonesManager.activeProfileId || "default";
+
+  if (profiles.length === 0) {
+    container.innerHTML = `<div style="padding: 1.5rem; text-align: center; color: var(--text-dim);">No athlete profiles found.</div>`;
     return;
   }
-  const menu = document.getElementById("athlete-dropdown-menu");
-  const btn = document.getElementById("btn-active-athlete");
-  const backdrop = document.getElementById("athlete-dropdown-backdrop");
-  if (menu) menu.style.display = "none";
-  if (backdrop) backdrop.style.display = "none";
-  if (btn) btn.setAttribute("aria-expanded", "false");
+
+  container.innerHTML = profiles.map(prof => {
+    const isActive = prof.id === activeId;
+    const initial = (prof.name || "A").trim().charAt(0).toUpperCase();
+    const color = prof.avatar_color || "#38bdf8";
+    const count = prof.workout_count !== undefined ? prof.workout_count : 0;
+    const maxHr = Math.round(prof.active_max_hr || 187);
+
+    return `
+      <div class="profile-picker-item ${isActive ? 'active' : ''}" data-id="${prof.id}">
+        <div class="profile-picker-info">
+          <span class="athlete-avatar-badge" style="background-color: ${color}; width: 40px; height: 40px; font-size: 1.1rem;">${initial}</span>
+          <div class="profile-picker-text">
+            <span class="profile-picker-name">${escapeHtml(prof.name)} ${isActive ? '<span style="color: var(--accent-blue); font-size: 0.8rem; margin-left: 4px;">(Active)</span>' : ''}</span>
+            <span class="profile-picker-meta">Age: ${prof.age || 30} • Max HR: ${maxHr} BPM • ${count} workouts</span>
+          </div>
+        </div>
+        <div class="profile-picker-actions">
+          <button type="button" class="btn btn-secondary btn-sm btn-edit-profile-action" data-id="${prof.id}" title="Edit Profile Details">✎ Edit</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  container.querySelectorAll(".profile-picker-item").forEach(item => {
+    item.addEventListener("click", async (e) => {
+      if (e.target.closest(".btn-edit-profile-action")) return;
+      const id = item.dataset.id;
+      if (id) {
+        if (id !== hrZonesManager.activeProfileId) {
+          await hrZonesManager.switchProfile(id);
+          sessionTracker.setProfileId(id);
+          renderAthleteHeaderDropdown();
+          await loadHomeUI();
+          showHudToast(`Active Athlete: ${hrZonesManager.profile.name}`);
+        }
+        closeProfilePickerModal();
+      }
+    });
+  });
+
+  container.querySelectorAll(".btn-edit-profile-action").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      closeProfilePickerModal();
+      openEditAthleteModal(id);
+    });
+  });
+}
+
+// Dedicated Athlete Profile Editor Modal
+let editAthleteSelectedColor = "#38bdf8";
+
+function openEditAthleteModal(profileId) {
+  const modal = document.getElementById("modal-edit-athlete");
+  if (!modal) return;
+  const profiles = hrZonesManager.profilesList || [];
+  const prof = profiles.find(p => p.id === profileId) || hrZonesManager.profile;
+  if (!prof) return;
+
+  const idInput = document.getElementById("edit-athlete-id");
+  const nameInput = document.getElementById("edit-athlete-name");
+  const ageInput = document.getElementById("edit-athlete-age");
+  const ageVal = document.getElementById("edit-athlete-age-val");
+  const restHrInput = document.getElementById("edit-athlete-rest-hr");
+  const manualDisplay = document.getElementById("edit-manual-hr-display");
+  const manualContainer = document.getElementById("edit-manual-hr-container");
+  const btnDelete = document.getElementById("btn-edit-delete-athlete");
+  const titleEl = document.getElementById("modal-edit-athlete-title");
+
+  if (titleEl) titleEl.textContent = `Edit Profile: ${prof.name}`;
+  if (idInput) idInput.value = prof.id;
+  if (nameInput) nameInput.value = prof.name;
+  if (ageInput) ageInput.value = prof.age || 30;
+  if (ageVal) ageVal.textContent = prof.age || 30;
+  if (restHrInput) restHrInput.value = prof.rest_hr || 60;
+
+  editAthleteSelectedColor = prof.avatar_color || "#38bdf8";
+  document.querySelectorAll("#edit-athlete-color-palette .color-swatch-btn").forEach(swatch => {
+    swatch.classList.toggle("active", swatch.dataset.color === editAthleteSelectedColor);
+  });
+
+  const curMode = prof.calibration_mode || "auto";
+  document.querySelectorAll("#edit-calib-mode-selector .btn-calib-choice").forEach(b => {
+    b.classList.toggle("active", b.dataset.mode === curMode);
+  });
+
+  if (manualContainer) {
+    manualContainer.style.display = curMode === "manual" ? "block" : "none";
+  }
+  if (manualDisplay) {
+    manualDisplay.textContent = `${Math.round(prof.manual_max_hr || prof.active_max_hr || 187)} bpm`;
+  }
+
+  if (btnDelete) {
+    const isOnly = (hrZonesManager.profilesList || []).length <= 1;
+    btnDelete.disabled = isOnly;
+    btnDelete.title = isOnly ? "Cannot delete the only athlete profile" : "Delete profile";
+  }
+
+  modal.classList.add("open");
+}
+
+function closeEditAthleteModal() {
+  const modal = document.getElementById("modal-edit-athlete");
+  if (modal) modal.classList.remove("open");
+}
+
+// Athlete Editor Event Listeners
+document.querySelectorAll("#edit-athlete-color-palette .color-swatch-btn").forEach(swatch => {
+  swatch.addEventListener("click", () => {
+    const color = swatch.dataset.color;
+    if (color) {
+      document.querySelectorAll("#edit-athlete-color-palette .color-swatch-btn").forEach(s => s.classList.remove("active"));
+      swatch.classList.add("active");
+      editAthleteSelectedColor = color;
+    }
+  });
+});
+
+document.getElementById("edit-athlete-age")?.addEventListener("input", (e) => {
+  const val = e.target.value;
+  const ageVal = document.getElementById("edit-athlete-age-val");
+  if (ageVal) ageVal.textContent = val;
+});
+
+document.querySelectorAll("#edit-calib-mode-selector .btn-calib-choice").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#edit-calib-mode-selector .btn-calib-choice").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const mode = btn.dataset.mode;
+    const manualContainer = document.getElementById("edit-manual-hr-container");
+    if (manualContainer) {
+      manualContainer.style.display = mode === "manual" ? "block" : "none";
+    }
+  });
+});
+
+document.getElementById("btn-edit-nudge-hr-down")?.addEventListener("click", () => {
+  const manualDisplay = document.getElementById("edit-manual-hr-display");
+  if (manualDisplay) {
+    const cur = parseInt(manualDisplay.textContent, 10) || 187;
+    manualDisplay.textContent = `${Math.max(120, cur - 1)} bpm`;
+  }
+});
+
+document.getElementById("btn-edit-nudge-hr-up")?.addEventListener("click", () => {
+  const manualDisplay = document.getElementById("edit-manual-hr-display");
+  if (manualDisplay) {
+    const cur = parseInt(manualDisplay.textContent, 10) || 187;
+    manualDisplay.textContent = `${Math.min(225, cur + 1)} bpm`;
+  }
+});
+
+document.getElementById("btn-close-edit-athlete")?.addEventListener("click", closeEditAthleteModal);
+document.getElementById("btn-cancel-edit-athlete")?.addEventListener("click", closeEditAthleteModal);
+
+const formEditAthlete = document.getElementById("form-edit-athlete");
+if (formEditAthlete) {
+  formEditAthlete.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const id = document.getElementById("edit-athlete-id")?.value;
+    const name = document.getElementById("edit-athlete-name")?.value.trim();
+    const age = parseInt(document.getElementById("edit-athlete-age")?.value, 10) || 30;
+    const rest_hr = parseInt(document.getElementById("edit-athlete-rest-hr")?.value, 10) || 60;
+    const activeModeBtn = document.querySelector("#edit-calib-mode-selector .btn-calib-choice.active");
+    const calibration_mode = activeModeBtn ? activeModeBtn.dataset.mode : "auto";
+    const manualDisplay = document.getElementById("edit-manual-hr-display");
+    const manual_max_hr = manualDisplay ? parseInt(manualDisplay.textContent, 10) : 187;
+
+    const updates = {
+      name,
+      age,
+      rest_hr,
+      avatar_color: editAthleteSelectedColor,
+      calibration_mode,
+      manual_max_hr
+    };
+
+    try {
+      const res = await fetch(`/api/profile/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      });
+      if (!res.ok) throw new Error("Failed to update profile");
+      const data = await res.json();
+
+      if (id === hrZonesManager.activeProfileId) {
+        hrZonesManager.applyProfileData(data);
+      }
+      await hrZonesManager.fetchProfiles();
+      renderAthleteHeaderDropdown();
+      await loadHomeUI();
+      closeEditAthleteModal();
+      showHudToast(`Profile updated: ${name}`);
+    } catch (err) {
+      alert(`Could not save profile: ${err.message}`);
+    }
+  });
+}
+
+document.getElementById("btn-edit-delete-athlete")?.addEventListener("click", async () => {
+  const id = document.getElementById("edit-athlete-id")?.value;
+  if ((hrZonesManager.profilesList || []).length <= 1) {
+    alert("Cannot delete the only athlete profile.");
+    return;
+  }
+  const prof = (hrZonesManager.profilesList || []).find(p => p.id === id);
+  const confirmed = await showConfirmDialog({
+    title: "Delete Athlete Profile",
+    message: `Are you sure you want to delete profile <strong>${escapeHtml(prof ? prof.name : "this athlete")}</strong>? Workouts will be preserved.`,
+    confirmBtnText: "Delete Profile",
+    isDanger: true
+  });
+  if (confirmed) {
+    const res = await hrZonesManager.deleteProfile(id);
+    if (res.success) {
+      closeEditAthleteModal();
+      renderAthleteHeaderDropdown();
+      await loadHomeUI();
+      showHudToast("Profile deleted");
+    } else {
+      alert(res.error || "Failed to delete profile");
+    }
+  }
+});
+
+// Profile Picker Trigger Listeners
+document.getElementById("btn-active-athlete")?.addEventListener("click", openProfilePickerModal);
+document.getElementById("btn-close-profile-picker")?.addEventListener("click", closeProfilePickerModal);
+document.getElementById("btn-picker-close")?.addEventListener("click", closeProfilePickerModal);
+document.getElementById("btn-picker-add-athlete")?.addEventListener("click", () => {
+  closeProfilePickerModal();
+  openCreateAthleteModal();
+});
+
+// Settings Athlete Tab Actions
+document.getElementById("btn-settings-open-edit-athlete")?.addEventListener("click", () => {
+  if (settingsModal) settingsModal.classList.remove("open");
+  openEditAthleteModal(hrZonesManager.activeProfileId);
+});
+document.getElementById("btn-settings-open-switch-athlete")?.addEventListener("click", () => {
+  if (settingsModal) settingsModal.classList.remove("open");
+  openProfilePickerModal();
+});
+
+function renderSettingsAthleteTab() {
+  const p = hrZonesManager.profile || {};
+  const avatarEl = document.getElementById("settings-tab-athlete-avatar");
+  const nameEl = document.getElementById("settings-tab-athlete-name");
+  const metaEl = document.getElementById("settings-tab-athlete-meta");
+
+  if (avatarEl) {
+    avatarEl.textContent = (p.name || "A").trim().charAt(0).toUpperCase();
+    avatarEl.style.backgroundColor = p.avatar_color || "#38bdf8";
+  }
+  if (nameEl) {
+    nameEl.textContent = p.name || "Athlete";
+  }
+  if (metaEl) {
+    const maxBpm = Math.round(hrZonesManager.activeMaxHr || p.active_max_hr || 187);
+    metaEl.textContent = `Age: ${p.age || 30} • Rest HR: ${p.rest_hr || 60} bpm • Max: ${maxBpm} bpm`;
+  }
 }
 
 // ----------------- Heart Rate Zones & Adaptive Calibration Settings -----------------
@@ -3770,58 +4438,9 @@ function renderHrZonesSettings(summary) {
   const p = summary.profile || {};
   const maxHr = summary.activeMaxHr || p.active_max_hr || 187;
 
-  // Render header dropdown and badges
+  // Render header badge and settings tab
   renderAthleteHeaderDropdown();
-
-  // Athlete Name input
-  const nameInput = document.getElementById("profile-name-input");
-  if (nameInput && p.name !== undefined && document.activeElement !== nameInput) {
-    nameInput.value = p.name;
-  }
-
-  // Avatar Color Palette in Settings
-  const curColor = p.avatar_color || "#38bdf8";
-  document.querySelectorAll("#athlete-color-palette .color-swatch-btn").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.color === curColor);
-  });
-
-  // Active Max HR Badge
-  const badge = document.getElementById("profile-active-hr-badge");
-  if (badge) {
-    badge.textContent = `${Math.round(maxHr)} BPM Max`;
-  }
-
-  // Age input
-  const ageRange = document.getElementById("profile-age-range");
-  const ageVal = document.getElementById("profile-age-val");
-  if (ageRange && p.age !== undefined && document.activeElement !== ageRange) {
-    ageRange.value = p.age;
-    if (ageVal) ageVal.textContent = p.age;
-  }
-
-  // Rest HR input
-  const restHrInput = document.getElementById("profile-rest-hr");
-  if (restHrInput && p.rest_hr !== undefined && document.activeElement !== restHrInput) {
-    restHrInput.value = p.rest_hr;
-  }
-
-  // Calibration mode choice buttons
-  const curMode = p.calibration_mode || "auto";
-  document.querySelectorAll(".btn-calib-choice").forEach(btn => {
-    btn.classList.toggle("active", btn.getAttribute("data-mode") === curMode);
-  });
-
-  // Manual override section visibility and display
-  const manualContainer = document.getElementById("manual-hr-container");
-  if (manualContainer) {
-    manualContainer.style.display = curMode === "manual" ? "block" : "none";
-  }
-
-  const manualDisplay = document.getElementById("manual-hr-display");
-  if (manualDisplay) {
-    const manualHr = p.manual_max_hr || maxHr;
-    manualDisplay.textContent = `${Math.round(manualHr)} bpm`;
-  }
+  renderSettingsAthleteTab();
 
   // Calibration status banner & progress bar
   const calibText = document.getElementById("calibration-badge-text");
@@ -3876,60 +4495,8 @@ function renderHrZonesSettings(summary) {
   }
 }
 
-// ----------------- Wire Athlete Switcher & Settings Listeners -----------------
-const btnActiveAthlete = document.getElementById("btn-active-athlete");
-if (btnActiveAthlete) {
-  btnActiveAthlete.addEventListener("click", toggleAthleteDropdown);
-}
-
-const athleteDropdownMenu = document.getElementById("athlete-dropdown-menu");
-if (athleteDropdownMenu) {
-  athleteDropdownMenu.addEventListener("click", (e) => e.stopPropagation());
-}
-
-const athleteBackdrop = document.getElementById("athlete-dropdown-backdrop");
-if (athleteBackdrop) {
-  athleteBackdrop.addEventListener("click", (e) => {
-    e.stopPropagation();
-    closeAthleteDropdown(true);
-  });
-  athleteBackdrop.addEventListener("touchend", (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    closeAthleteDropdown(true);
-  });
-}
-
-// Close on outside click
-document.addEventListener("click", (e) => {
-  const wrapper = document.getElementById("athlete-dropdown-wrapper");
-  if (!wrapper) return;
-  if (e.target && e.target.closest && e.target.closest("#athlete-dropdown-wrapper")) {
-    return;
-  }
-  if (wrapper.contains(e.target)) {
-    return;
-  }
-  closeAthleteDropdown(false);
-});
-
-// Manage athletes button in dropdown
-const btnManageAthletes = document.getElementById("btn-manage-athletes");
-if (btnManageAthletes) {
-  btnManageAthletes.addEventListener("click", () => {
-    closeAthleteDropdown(true);
-    const modalSettings = document.getElementById("modal-settings");
-    if (modalSettings) {
-      modalSettings.classList.add("open");
-      const athleteBar = document.querySelector(".athlete-mgmt-bar");
-      if (athleteBar) athleteBar.scrollIntoView({ behavior: "smooth" });
-    }
-  });
-}
-
 // Create Athlete Modal Triggers
 function openCreateAthleteModal() {
-  closeAthleteDropdown(true);
   const modal = document.getElementById("modal-create-athlete");
   if (modal) {
     modal.classList.add("open");
@@ -4067,6 +4634,7 @@ window.addEventListener("athlete-profile-changed", (e) => {
   renderAthleteHeaderDropdown();
   renderHrZonesSettings(hrZonesManager.getSummary());
   loadHistoryUI();
+  loadHomeUI();
 });
 
 // Wire settings listeners
@@ -4247,6 +4815,121 @@ function cycleTheme() {
   const nextTheme = THEMES[nextIdx];
   applyTheme(nextTheme);
   showHudToast(`Theme: ${THEME_NAMES[nextTheme] || nextTheme}`);
+}
+
+// Cockpit HUD Back Button & Exit Safety
+const hudBackBtn = document.getElementById("hud-back-btn");
+const modalExitWorkout = document.getElementById("modal-confirm-exit-workout");
+const btnExitSaveWorkout = document.getElementById("btn-exit-save-workout");
+const btnExitDiscardWorkout = document.getElementById("btn-exit-discard-workout");
+const btnExitCancel = document.getElementById("btn-exit-cancel");
+const btnCloseExitWorkout = document.getElementById("btn-close-exit-workout");
+
+function isRowingActive() {
+  const isTracking = sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused");
+  const isEngine = workoutEngine && workoutEngine.isRunning;
+  const isSim = typeof simulator !== "undefined" && simulator && simulator.isRunning;
+  return Boolean(isTracking || isEngine || isSim);
+}
+
+if (hudBackBtn) {
+  hudBackBtn.addEventListener("click", () => {
+    if (isRowingActive()) {
+      if (modalExitWorkout) modalExitWorkout.classList.add("open");
+    } else {
+      switchView(currentOriginView || "home");
+    }
+  });
+}
+
+function closeExitSafetyModal() {
+  if (modalExitWorkout) modalExitWorkout.classList.remove("open");
+}
+
+if (btnExitCancel) btnExitCancel.addEventListener("click", closeExitSafetyModal);
+if (btnCloseExitWorkout) btnCloseExitWorkout.addEventListener("click", closeExitSafetyModal);
+
+if (btnExitSaveWorkout) {
+  btnExitSaveWorkout.addEventListener("click", async () => {
+    closeExitSafetyModal();
+    if (workoutEngine && workoutEngine.isRunning) workoutEngine.stop();
+    if (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) {
+      await sessionTracker.finish();
+      sessionTracker.reset();
+    }
+    if (typeof simulator !== "undefined" && simulator && simulator.isRunning) {
+      simulator.stop();
+      updateRowerStatus(false, "Simulator Stopped");
+      applySimulatorConnectionStatus();
+    }
+    if (videoEl && !videoEl.paused) videoEl.pause();
+    if (audioEngine) audioEngine.pause();
+    if (rateController) rateController.setWorkoutLive(false);
+
+    pm5Hud.setActiveSession(false);
+    pm5Hud.showWorkoutBar(false);
+    pm5Hud.clearWorkoutCompliance();
+    switchView(currentOriginView || "home");
+    showHudToast("Workout saved to History");
+  });
+}
+
+if (btnExitDiscardWorkout) {
+  btnExitDiscardWorkout.addEventListener("click", () => {
+    closeExitSafetyModal();
+    if (workoutEngine && workoutEngine.isRunning) workoutEngine.stop();
+    if (sessionTracker) {
+      sessionTracker.state = "idle";
+      sessionTracker.reset();
+    }
+    if (typeof simulator !== "undefined" && simulator && simulator.isRunning) {
+      simulator.stop();
+      updateRowerStatus(false, "Simulator Stopped");
+      applySimulatorConnectionStatus();
+    }
+    if (videoEl && !videoEl.paused) videoEl.pause();
+    if (audioEngine) audioEngine.pause();
+    if (rateController) rateController.setWorkoutLive(false);
+
+    pm5Hud.setActiveSession(false);
+    pm5Hud.showWorkoutBar(false);
+    pm5Hud.clearWorkoutCompliance();
+    switchView(currentOriginView || "home");
+    showHudToast("Workout discarded");
+  });
+}
+
+// Cockpit HUD 1-Tap Speed Mode Cycling
+const btnHudSpeedToggle = document.getElementById("hud-speed-toggle-btn");
+const hudSpeedBadgeText = document.getElementById("hud-speed-badge-text");
+
+function syncSpeedBadgeUI(mode) {
+  if (!hudSpeedBadgeText) return;
+  const labels = {
+    zones: "1.00× [Zones]",
+    ambient: "1.00× [Ambient]",
+    continuous: "1.00× [Continuous]"
+  };
+  hudSpeedBadgeText.textContent = labels[mode] || "1.00× [Speed]";
+}
+
+if (btnHudSpeedToggle) {
+  syncSpeedBadgeUI(rateController ? rateController.speedMode : "zones");
+
+  btnHudSpeedToggle.addEventListener("click", () => {
+    if (!rateController) return;
+    const current = rateController.speedMode || "zones";
+    let next = "zones";
+    if (current === "zones") next = "ambient";
+    else if (current === "ambient") next = "continuous";
+    else next = "zones";
+
+    rateController.setSpeedMode(next);
+    localStorage.setItem("ftms_speed_mode", next);
+    audioEngine.setAmbientMode(next === "ambient" || rateController.isFixedSpeed);
+    syncSpeedBadgeUI(next);
+    showHudToast(`Speed: ${next.toUpperCase()}`);
+  });
 }
 
 // Cockpit HUD quick theme cycle button listener
@@ -5278,11 +5961,16 @@ if (btnClosePreviewWorkout) btnClosePreviewWorkout.addEventListener("click", clo
 if (btnClosePreviewBtn) btnClosePreviewBtn.addEventListener("click", closeWorkoutPreviewModal);
 if (btnStartPreviewWorkout) {
   btnStartPreviewWorkout.addEventListener("click", () => {
-    keepAwake.preArm();
+    if (typeof keepAwake !== "undefined" && keepAwake.preArm) keepAwake.preArm();
     if (previewWorkoutData) {
-      const id = previewWorkoutData.id;
+      const prog = previewWorkoutData;
       closeWorkoutPreviewModal();
-      loadWorkoutInCockpit(id);
+      openCardBuilderModal({
+        title: prog.title,
+        description: prog.description || "",
+        workout_id: prog.id,
+        track_id: cachedTracks && cachedTracks[0] ? cachedTracks[0].id : ""
+      });
     }
   });
 }
@@ -5443,6 +6131,7 @@ async function initApp() {
   try {
     applyTheme(getActiveTheme());
     applyHudScale(getActiveHudScale());
+    await hrZonesManager.init();
     await loadLibraryUI();
     await loadTracksUI();
     await loadWorkoutsUI();
@@ -5456,6 +6145,10 @@ async function initApp() {
       const first = cachedLibrary.videos[0];
       loadVideoIntoCockpit(first.id, first.title, false);
     }
+
+    // Initialize and display Home landing screen
+    await loadHomeUI();
+    switchView("home");
 
     pollDownloads();
   } catch (err) {
