@@ -919,16 +919,30 @@ function renderQuickWorkouts(cards) {
           </div>
 
           <span class="quick-card-track-pill">${escapeHtml(trackName)}</span>
-
-          ${!card.is_default ? `
-            <div class="quick-card-menu-btns">
-              <button type="button" class="quick-card-icon-btn btn-edit-card" data-id="${card.id}" title="Edit Card">✎</button>
-              <button type="button" class="quick-card-icon-btn btn-delete-card" data-id="${card.id}" title="Delete Card">🗑</button>
-            </div>
-          ` : ''}
         </div>
         <div class="quick-workout-body">
-          <span class="quick-workout-program-tag">${escapeHtml(programTag)}</span>
+          <div class="quick-workout-header-row">
+            <span class="quick-workout-program-tag">${escapeHtml(programTag)}</span>
+            <div class="quick-card-menu-container">
+              <button type="button" class="quick-card-more-btn" data-id="${card.id}" aria-label="Card Options" title="Card Options">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="5" cy="12" r="2.2"/>
+                  <circle cx="12" cy="12" r="2.2"/>
+                  <circle cx="19" cy="12" r="2.2"/>
+                </svg>
+              </button>
+              <div class="quick-card-dropdown-menu" id="quick-card-menu-${card.id}">
+                <button type="button" class="quick-card-dropdown-item btn-edit-card" data-id="${card.id}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  <span>Edit Card</span>
+                </button>
+                <button type="button" class="quick-card-dropdown-item danger btn-delete-card" data-id="${card.id}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  <span>Delete Card</span>
+                </button>
+              </div>
+            </div>
+          </div>
           <h3 class="quick-workout-title">${escapeHtml(card.title)}</h3>
           <p class="quick-workout-desc">${escapeHtml(card.description || (isFreeRow ? "Scenic free row with open pacing." : (card.workout_title || "")))}</p>
         </div>
@@ -965,6 +979,36 @@ function renderQuickWorkouts(cards) {
     };
   }
 
+  // Handle "..." more button dropdown toggle
+  container.querySelectorAll(".quick-card-more-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const menu = document.getElementById(`quick-card-menu-${id}`);
+      const wasOpen = menu && menu.classList.contains("show");
+      
+      // Close all dropdowns first
+      document.querySelectorAll(".quick-card-dropdown-menu.show").forEach(m => m.classList.remove("show"));
+      document.querySelectorAll(".quick-card-more-btn.active").forEach(b => b.classList.remove("active"));
+      
+      if (menu && !wasOpen) {
+        menu.classList.add("show");
+        btn.classList.add("active");
+      }
+    });
+  });
+
+  // Global listener to close dropdowns when clicking outside
+  if (!window._quickCardDropdownOutsideBound) {
+    window._quickCardDropdownOutsideBound = true;
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".quick-card-menu-container")) {
+        document.querySelectorAll(".quick-card-dropdown-menu.show").forEach(m => m.classList.remove("show"));
+        document.querySelectorAll(".quick-card-more-btn.active").forEach(b => b.classList.remove("active"));
+      }
+    });
+  }
+
   // Attach card event listeners
   container.querySelectorAll(".btn-start-quick-card").forEach(btn => {
     btn.addEventListener("click", (e) => {
@@ -978,6 +1022,8 @@ function renderQuickWorkouts(cards) {
   container.querySelectorAll(".btn-edit-card").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
+      document.querySelectorAll(".quick-card-dropdown-menu.show").forEach(m => m.classList.remove("show"));
+      document.querySelectorAll(".quick-card-more-btn.active").forEach(b => b.classList.remove("active"));
       const id = btn.dataset.id;
       const card = cachedQuickWorkouts.find(c => c.id === id);
       if (card) openCardBuilderModal(card);
@@ -987,6 +1033,8 @@ function renderQuickWorkouts(cards) {
   container.querySelectorAll(".btn-delete-card").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
+      document.querySelectorAll(".quick-card-dropdown-menu.show").forEach(m => m.classList.remove("show"));
+      document.querySelectorAll(".quick-card-more-btn.active").forEach(b => b.classList.remove("active"));
       const id = btn.dataset.id;
       const card = cachedQuickWorkouts.find(c => c.id === id);
       if (!card) return;
@@ -1002,6 +1050,9 @@ function renderQuickWorkouts(cards) {
           if (res.ok) {
             showHudToast("Workout card deleted");
             await loadHomeUI();
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            alert(`Failed to delete card: ${errData.detail || "Server error"}`);
           }
         } catch (err) {
           alert(`Failed to delete card: ${err}`);

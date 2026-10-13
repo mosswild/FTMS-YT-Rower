@@ -9,6 +9,17 @@ from backend.main import app
 class TestQuickWorkouts(unittest.TestCase):
     def setUp(self):
         init_db()
+        from backend.database import get_db_connection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM quick_workouts")
+        try:
+            cursor.execute("DELETE FROM app_metadata WHERE key = 'default_quick_workouts_seeded'")
+        except Exception:
+            pass
+        conn.commit()
+        conn.close()
+
         # Seed test tracks if needed
         save_track({
             "id": "test-track-glacier",
@@ -32,6 +43,17 @@ class TestQuickWorkouts(unittest.TestCase):
             delete_user_profile("athlete_custom_test")
         except Exception:
             pass
+        from backend.database import get_db_connection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM quick_workouts")
+        try:
+            cursor.execute("DELETE FROM app_metadata WHERE key = 'default_quick_workouts_seeded'")
+        except Exception:
+            pass
+        conn.commit()
+        conn.close()
+        ensure_default_quick_workouts()
 
     def test_list_default_cards(self):
         resp = self.client.get("/api/quick-workouts")
@@ -87,9 +109,10 @@ class TestQuickWorkouts(unittest.TestCase):
         self.assertEqual(put_resp.status_code, 200)
         self.assertEqual(put_resp.json()["card"]["title"], "Updated Interval Row")
 
-        # Deleting default card should fail
+        # Deleting default card should now succeed
         del_default = self.client.delete("/api/quick-workouts/thames-zone2-cruise")
-        self.assertEqual(del_default.status_code, 400)
+        self.assertEqual(del_default.status_code, 200)
+        self.assertTrue(del_default.json()["deleted"])
 
         # Deleting custom card should succeed
         del_custom = self.client.delete(f"/api/quick-workouts/{card_id}")

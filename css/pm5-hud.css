@@ -5183,6 +5183,41 @@ body[data-theme="nordic"],
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
 }
 
+[data-theme="nordic"] .quick-card-more-btn {
+  color: #64748b !important;
+}
+
+[data-theme="nordic"] .quick-card-more-btn:hover,
+[data-theme="nordic"] .quick-card-more-btn.active {
+  color: #0f172a !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="nordic"] .quick-card-dropdown-menu {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="nordic"] .quick-card-dropdown-item {
+  color: #334155 !important;
+}
+
+[data-theme="nordic"] .quick-card-dropdown-item:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="nordic"] .quick-card-dropdown-item.danger {
+  color: #dc2626 !important;
+}
+
+[data-theme="nordic"] .quick-card-dropdown-item.danger:hover {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
 [data-theme="nordic"] .quick-card-icon-btn {
   background: #f1f5f9 !important;
   border: 1px solid #cbd5e1 !important;
@@ -7237,11 +7272,111 @@ body.in-cockpit .cockpit-view {
   background: rgba(30, 41, 59, 0.95);
 }
 
+.quick-workout-card:has(.quick-card-dropdown-menu.show) {
+  z-index: 40;
+}
+
 .quick-workout-body {
   padding: 1.1rem 1.25rem;
   display: flex;
   flex-direction: column;
   flex: 1;
+  position: relative;
+}
+
+.quick-workout-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.quick-workout-header-row .quick-workout-program-tag {
+  margin-bottom: 0;
+}
+
+.quick-card-menu-container {
+  position: relative;
+}
+
+.quick-card-more-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #94a3b8;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.quick-card-more-btn:hover,
+.quick-card-more-btn.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.quick-card-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 140px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  padding: 5px;
+  z-index: 60;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-card-dropdown-menu.show {
+  display: flex;
+}
+
+.quick-card-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: #f1f5f9;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
+  user-select: none;
+}
+
+.quick-card-dropdown-item svg {
+  flex-shrink: 0;
+}
+
+.quick-card-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.quick-card-dropdown-item.danger {
+  color: #f87171;
+}
+
+.quick-card-dropdown-item.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
 }
 
 .quick-workout-program-tag {

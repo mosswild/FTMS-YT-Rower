@@ -48,9 +48,16 @@ def _match_track_id(tracks: List[Dict[str, Any]], hint: str, fallback_id: str, i
 
 
 def ensure_default_quick_workouts() -> None:
-    """Seeds the 4 default Quick Workout cards if no defaults exist."""
+    """Seeds the default Quick Workout cards if defaults have never been seeded."""
     conn = get_db_connection()
     cursor = conn.cursor()
+    cursor.execute("CREATE TABLE IF NOT EXISTS app_metadata (key TEXT PRIMARY KEY, val TEXT)")
+    cursor.execute("SELECT val FROM app_metadata WHERE key = 'default_quick_workouts_seeded'")
+    seeded = cursor.fetchone()
+    if seeded:
+        conn.close()
+        return
+
     cursor.execute("SELECT COUNT(*) FROM quick_workouts WHERE is_default = 1")
     count = cursor.fetchone()[0]
 
@@ -72,8 +79,9 @@ def ensure_default_quick_workouts() -> None:
                 cfg["workout_id"],
                 now_iso
             ))
-        conn.commit()
 
+    cursor.execute("INSERT OR REPLACE INTO app_metadata (key, val) VALUES ('default_quick_workouts_seeded', '1')")
+    conn.commit()
     conn.close()
 
 
@@ -227,17 +235,14 @@ def update_quick_workout(card_id: str, data: Dict[str, Any]) -> Optional[Dict[st
 
 
 def delete_quick_workout(card_id: str) -> bool:
-    """Deletes a quick workout card. Default system cards cannot be deleted."""
+    """Deletes a quick workout card."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT is_default FROM quick_workouts WHERE id = ?", (card_id,))
+    cursor.execute("SELECT id FROM quick_workouts WHERE id = ?", (card_id,))
     row = cursor.fetchone()
     if not row:
         conn.close()
         return False
-    if row["is_default"] == 1:
-        conn.close()
-        raise ValueError("Cannot delete system default quick workout cards.")
 
     cursor.execute("DELETE FROM quick_workouts WHERE id = ?", (card_id,))
     conn.commit()
