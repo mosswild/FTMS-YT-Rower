@@ -8,14 +8,6 @@ import backend.workout_manager as workout_mgr
 
 DEFAULT_QUICK_CARDS = [
     {
-        "id": "glacier-lake-primer",
-        "title": "Glacier Lake Primer",
-        "description": "10m technique warmup on serene glacial water.",
-        "track_hint": "glacier",
-        "fallback_track_id": "track-glacier",
-        "workout_id": "10m-stroke-technique-primer",
-    },
-    {
         "id": "thames-zone2-cruise",
         "title": "Thames Zone 2 Cruise",
         "description": "Steady 30-minute aerobic endurance base building.",

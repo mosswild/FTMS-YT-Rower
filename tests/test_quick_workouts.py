@@ -38,18 +38,17 @@ class TestQuickWorkouts(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertIn("cards", data)
-        self.assertGreaterEqual(len(data["cards"]), 4)
+        self.assertGreaterEqual(len(data["cards"]), 3)
         card_ids = [c["id"] for c in data["cards"]]
-        self.assertIn("glacier-lake-primer", card_ids)
+        self.assertNotIn("glacier-lake-primer", card_ids)
         self.assertIn("thames-zone2-cruise", card_ids)
         self.assertIn("fast-water-hiit", card_ids)
         self.assertIn("classic-2k-benchmark", card_ids)
 
         # Check enrichment
-        primer = next(c for c in data["cards"] if c["id"] == "glacier-lake-primer")
-        self.assertTrue(primer["is_default"])
-        self.assertEqual(primer["workout_id"], "10m-stroke-technique-primer")
-        self.assertIn("10-Minute Stroke & Rhythm Primer", primer["workout_title"])
+        thames = next(c for c in data["cards"] if c["id"] == "thames-zone2-cruise")
+        self.assertTrue(thames["is_default"])
+        self.assertEqual(thames["workout_id"], "30m-zone2-aerobic-base")
 
     def test_create_and_manage_custom_card(self):
         # Create custom card
@@ -89,7 +88,7 @@ class TestQuickWorkouts(unittest.TestCase):
         self.assertEqual(put_resp.json()["card"]["title"], "Updated Interval Row")
 
         # Deleting default card should fail
-        del_default = self.client.delete("/api/quick-workouts/glacier-lake-primer")
+        del_default = self.client.delete("/api/quick-workouts/thames-zone2-cruise")
         self.assertEqual(del_default.status_code, 400)
 
         # Deleting custom card should succeed

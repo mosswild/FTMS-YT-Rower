@@ -6234,10 +6234,19 @@ body[data-theme="nordic"],
 }
 
 .athlete-dropdown-menu {
-  min-width: 260px;
+  position: absolute;
+  top: calc(100% + 6px);
   right: 0;
   left: auto;
+  min-width: 260px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
   z-index: 1000;
+  overflow: hidden;
 }
 
 .athlete-dropdown-item {
@@ -6567,164 +6576,163 @@ body.in-cockpit {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45), 0 0 15px rgba(56, 189, 248, 0.15);
 }
 
-.quick-card-media-banner {
-  height: 110px;
+.quick-workout-thumb-wrapper {
   position: relative;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
+  width: 100%;
+  height: 140px;
+  background: #090d16;
   overflow: hidden;
   display: flex;
-  align-items: flex-end;
-  padding: 0.75rem 1rem;
+  align-items: center;
+  justify-content: center;
 }
 
-.quick-card-media-bg {
+.quick-workout-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.quick-workout-card:hover .quick-workout-thumb {
+  transform: scale(1.04);
+}
+
+.quick-workout-thumb-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.35;
-  filter: saturate(1.2);
+  inset: 0;
+  background: linear-gradient(to top, rgba(10, 14, 23, 0.95) 0%, rgba(10, 14, 23, 0.2) 60%, rgba(10, 14, 23, 0.4) 100%);
+  pointer-events: none;
 }
 
-.quick-card-overlay {
+.quick-workout-badges {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to top, rgba(18, 24, 38, 0.95) 0%, rgba(18, 24, 38, 0.2) 100%);
-}
-
-.quick-card-track-badge {
-  position: relative;
+  top: 10px;
+  left: 10px;
+  right: 48px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   z-index: 2;
-  font-size: 0.72rem;
+  pointer-events: none;
+}
+
+.quick-workout-badges .card-badge {
+  font-size: 0.7rem;
   font-weight: 700;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 2px 8px;
   border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 90%;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.quick-card-body {
-  padding: 1rem;
+.quick-workout-badges .card-badge.category {
+  color: var(--accent-cyan);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.quick-workout-badges .card-badge.difficulty {
+  color: #c084fc;
+  border-color: rgba(192, 132, 252, 0.3);
+}
+
+.quick-workout-badges .card-badge.builtin {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.quick-card-menu-btns {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 3;
+}
+
+.quick-card-icon-btn {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
+}
+
+.quick-card-icon-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.quick-workout-body {
+  padding: 1rem 1.1rem;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
-.quick-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.5rem;
-  margin-bottom: 0.35rem;
-}
-
-.quick-card-title {
+.quick-workout-title {
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--text-main);
+  margin-bottom: 0.4rem;
   line-height: 1.3;
 }
 
-.quick-card-actions {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.quick-card-action-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 4px;
-  transition: color 0.15s;
-}
-
-.quick-card-action-btn:hover {
-  color: var(--accent-rose);
-}
-
-.quick-card-desc {
-  font-size: 0.8rem;
+.quick-workout-desc {
+  font-size: 0.82rem;
   color: var(--text-muted);
-  line-height: 1.4;
-  margin-bottom: 0.85rem;
+  line-height: 1.45;
+  margin-bottom: 0.75rem;
   flex: 1;
 }
 
-.quick-card-meta {
+.quick-workout-meta {
   display: flex;
-  gap: 0.5rem;
   flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  margin-bottom: 0.25rem;
 }
 
-.quick-meta-pill {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-muted);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.quick-workout-footer {
+  padding: 0 1.1rem 1.1rem 1.1rem;
 }
 
-.quick-meta-pill.difficulty-beginner {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.quick-meta-pill.difficulty-intermediate {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.3);
-}
-
-.quick-meta-pill.difficulty-advanced {
-  background: rgba(244, 63, 94, 0.15);
-  color: #fb7185;
-  border-color: rgba(244, 63, 94, 0.3);
-}
-
-.quick-card-launch-btn {
+.quick-workout-footer .btn {
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-weight: 700;
-  font-size: 0.88rem;
-  padding: 0.65rem 1rem;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
 }
 
-.quick-card-launch-btn:hover {
-  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
-  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
-  transform: translateY(-1px);
+/* Card Builder Preview Box */
+.card-builder-preview-box {
+  background: rgba(18, 24, 38, 0.9);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.card-builder-preview-box .quick-workout-thumb-wrapper {
+  height: 120px;
 }
 
 /* Scenic Free Rows Grid */
@@ -6750,22 +6758,50 @@ body.in-cockpit {
   border-color: rgba(56, 189, 248, 0.35);
 }
 
-.home-track-thumb-box {
-  height: 95px;
+.home-track-thumb-wrapper {
   position: relative;
-  background: #000;
+  width: 100%;
+  height: 110px;
+  background: #090d16;
   overflow: hidden;
 }
 
-.home-track-thumb-img {
+.home-track-thumb {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.8;
+  object-position: center;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.home-track-card:hover .home-track-thumb {
+  transform: scale(1.04);
+}
+
+.home-track-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(10, 14, 23, 0.9) 0%, rgba(10, 14, 23, 0.1) 60%);
+  pointer-events: none;
+}
+
+.home-track-dur-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 2;
 }
 
 .home-track-body {
-  padding: 0.85rem;
+  padding: 0.85rem 1rem;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -6786,6 +6822,14 @@ body.in-cockpit {
   color: var(--text-dim);
   font-family: var(--font-mono);
   margin-bottom: 0.75rem;
+}
+
+.home-track-footer {
+  padding: 0 1rem 1rem 1rem;
+}
+
+.home-track-footer .btn {
+  width: 100%;
 }
 
 .home-track-launch-btn {
