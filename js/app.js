@@ -1503,7 +1503,7 @@ async function loadLibraryUI() {
         return `
         <div class="media-card">
           <div class="media-thumb-box" data-id="${v.id}" title="Click to preview & trim video">
-            <img src="/api/media/thumbnail/${v.id}" alt="${v.title}" class="media-thumb" onerror="this.src='/api/placeholder/320/180'">
+            <img src="/api/media/thumbnail/${v.id}" alt="${v.title}" class="media-thumb media-thumb-img" onerror="this.src='/api/placeholder/320/180'">
             <div class="media-thumb-play-overlay">
               <div class="media-thumb-play-btn">▶</div>
             </div>

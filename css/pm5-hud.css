@@ -1635,10 +1635,16 @@ body.in-fullscreen .app-header {
   overflow: hidden;
 }
 
-.media-thumb-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.media-thumb,
+.media-thumb-img,
+.media-thumb-box img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  display: block !important;
 }
 
 .media-thumb-fallback {
