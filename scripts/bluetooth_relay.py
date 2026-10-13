@@ -505,14 +505,14 @@ class RelayState:
 
         # Heart rate enabled if CLI flag passed OR saved HR device exists
         hr_cli = bool(args.hr or args.hr_name or args.hr_address)
-        saved_hr_exists = bool(self.saved_devices.get("hr", {}).get("address")) and not args.forget
+        saved_hr_exists = bool(self.saved_devices.get("hr", {}).get("address") or self.saved_devices.get("hr", {}).get("name")) and not args.forget
         self.hr_enabled = hr_cli or saved_hr_exists
         self.hr_target_address = args.hr_address or (self.saved_devices.get("hr", {}).get("address") if saved_hr_exists else None)
         self.hr_target_name = args.hr_name or (self.saved_devices.get("hr", {}).get("name") if saved_hr_exists else None)
 
         # Active status
         self.rower_connected = False
-        self.rower_name = "FTMS Rower"
+        self.rower_name = self.rower_target_name or "FTMS Rower"
         self.rower_status_line = "Scanning Rower" if self.rower_enabled else "Standby"
         self.active_rower_client = None
         self.rower_paused = False
@@ -522,8 +522,8 @@ class RelayState:
         self.spm_multiplier = getattr(args, "spm_multiplier", 0.5) if args else 0.5
 
         self.hr_connected = False
-        self.hr_name = "HR Monitor"
-        self.hr_status_line = "HR Scanning" if self.hr_enabled else "HR Disabled"
+        self.hr_name = self.hr_target_name or "HR Monitor"
+        self.hr_status_line = f"HR Scanning ({self.hr_name})" if (self.hr_enabled and self.hr_target_name) else ("HR Scanning" if self.hr_enabled else "HR Disabled")
         self.active_hr_client = None
         self.hr_paused = False
         self.hr_enable_event = asyncio.Event()
@@ -648,22 +648,35 @@ async def rower_loop(
                 hud.update(format_idle_status(state, not args.no_interactive and sys.stdin.isatty()))
 
             if state.rower_target_address:
-                target_device = await coordinator.find_by_address(state.rower_target_address, timeout=4.0)
-            else:
-                items = await coordinator.discover(timeout=4.0)
-                for d, adv in items:
-                    name, uuids = extract_device_info(d, adv)
-                    name_lower = name.lower()
+                try:
+                    target_device = await coordinator.find_by_address(state.rower_target_address, timeout=2.5)
+                except Exception as addr_err:
+                    logger.debug(f"rower find_by_address error: {addr_err}")
+                    target_device = None
 
-                    if state.rower_target_name and state.rower_target_name.lower() in name_lower:
-                        target_device = d
-                        break
+            # Fallback to discover if find_by_address did not find the device or if address not known
+            if not target_device:
+                items = await coordinator.discover(timeout=3.5)
+                # First pass: match target name or saved rower name
+                if state.rower_target_name:
+                    r_target_lower = state.rower_target_name.lower()
+                    for d, adv in items:
+                        name, uuids = extract_device_info(d, adv)
+                        name_lower = name.lower()
+                        if r_target_lower in name_lower or (name and name_lower in r_target_lower):
+                            target_device = d
+                            break
 
-                    if any("1826" in u for u in uuids) or any(k in name_lower for k in [
-                        "merach", "mr-", "mrk", "q1", "rower", "pm5", "concept2", "waterrower", "iconsole", "ftms"
-                    ]):
-                        target_device = d
-                        break
+                # Second pass: match FTMS service or known rower brand keywords
+                if not target_device and not state.rower_target_name:
+                    for d, adv in items:
+                        name, uuids = extract_device_info(d, adv)
+                        name_lower = name.lower()
+                        if any("1826" in u for u in uuids) or any(k in name_lower for k in [
+                            "merach", "mr-", "mrk", "q1", "rower", "pm5", "concept2", "waterrower", "iconsole", "ftms"
+                        ]):
+                            target_device = d
+                            break
 
             if not target_device:
                 if not state.interactive_mode and not state.hr_connected and not args.verbose:
@@ -671,7 +684,10 @@ async def rower_loop(
                 await asyncio.sleep(2.0)
                 continue
 
-            state.rower_name = target_device.name or "FTMS Rower"
+            state.rower_name = target_device.name or state.rower_target_name or "FTMS Rower"
+            if target_device.address != state.rower_target_address:
+                state.rower_target_address = target_device.address
+                save_saved_device("rower", state.rower_name, target_device.address)
             hud.log(f"-> Discovered {state.rower_name} ({target_device.address})! Connecting...")
 
             async with BleakClient(target_device) as client:
@@ -833,33 +849,52 @@ async def hr_loop(
             continue
 
         target_device = None
-        state.hr_status_line = "HR Scanning"
+        state.hr_status_line = f"HR Scanning ({state.hr_name})" if state.hr_target_name else "HR Scanning"
 
         try:
             if state.hr_target_address:
-                target_device = await coordinator.find_by_address(state.hr_target_address, timeout=4.0)
-            else:
-                items = await coordinator.discover(timeout=4.0)
-                for d, adv in items:
-                    name, uuids = extract_device_info(d, adv)
-                    name_lower = name.lower()
+                try:
+                    target_device = await coordinator.find_by_address(state.hr_target_address, timeout=2.5)
+                except Exception as addr_err:
+                    logger.debug(f"hr find_by_address notice: {addr_err}")
+                    target_device = None
 
-                    if state.hr_target_name and state.hr_target_name.lower() in name_lower:
-                        target_device = d
-                        break
+            # Fallback to active discover() scan:
+            # On macOS, Garmin and Apple Watches rotate Private Random Addresses (RPA) between sessions,
+            # and CoreBluetooth requires an active discovery scan to see devices that just began broadcasting.
+            if not target_device:
+                items = await coordinator.discover(timeout=3.5)
+                # First pass: match target name or saved HR device name (e.g. Garmin, Polar, Instinct)
+                if state.hr_target_name:
+                    target_lower = state.hr_target_name.lower()
+                    for d, adv in items:
+                        name, uuids = extract_device_info(d, adv)
+                        name_lower = name.lower()
+                        if target_lower in name_lower or (name and name_lower in target_lower):
+                            target_device = d
+                            break
 
-                    # Match 0x180D or common HR monitor brand names
-                    if any("180d" in u for u in uuids) or any(k in name_lower for k in [
-                        "hr", "polar", "garmin", "wahoo", "heart", "tickr", "coospo", "hrm", "scosche"
-                    ]):
-                        target_device = d
-                        break
+                # Second pass: if no specific target name (e.g. --hr used without name filter), match 0x180D or HR brands
+                if not target_device and not state.hr_target_name:
+                    for d, adv in items:
+                        name, uuids = extract_device_info(d, adv)
+                        name_lower = name.lower()
+                        if any("180d" in u for u in uuids) or any(k in name_lower for k in [
+                            "hr", "polar", "garmin", "wahoo", "heart", "tickr", "coospo", "hrm", "scosche", "instinct"
+                        ]):
+                            target_device = d
+                            break
 
             if not target_device:
                 await asyncio.sleep(2.5)
                 continue
 
-            state.hr_name = target_device.name or "HR Monitor"
+            state.hr_name = target_device.name or state.hr_target_name or "HR Monitor"
+            # Update target address if it rotated (e.g. Garmin watch broadcasting session)
+            if target_device.address != state.hr_target_address:
+                state.hr_target_address = target_device.address
+                save_saved_device("hr", state.hr_name, target_device.address)
+
             hud.log(f"-> Discovered HR Monitor {state.hr_name} ({target_device.address})! Connecting...")
 
             async with BleakClient(target_device) as client:

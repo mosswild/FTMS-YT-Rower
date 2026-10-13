@@ -596,6 +596,105 @@ class TestBluetoothRelay(unittest.TestCase):
         parsed_valid = parse_hr_measurement(data_valid_hr)
         self.assertEqual(parsed_valid["hr"], 145)
 
+    def test_saved_hr_device_auto_enables(self):
+        """Test that saved HR monitor in device config automatically enables HR scanning without --hr CLI flag."""
+        import argparse
+        save_saved_device("hr", "Garmin Instinct 3", "AA:BB:CC:DD:EE:FF")
+
+        args = argparse.Namespace(
+            server="http://localhost:8000",
+            address=None,
+            name=None,
+            hr=False,
+            hr_name=None,
+            hr_address=None,
+            forget=False,
+            idle_timeout=300,
+            silence_window=360,
+            spm_multiplier=0.5,
+            no_interactive=False,
+            auto=False,
+            verbose=False,
+        )
+        state = RelayState(args)
+        self.assertTrue(state.hr_enabled)
+        self.assertEqual(state.hr_target_name, "Garmin Instinct 3")
+        self.assertEqual(state.hr_target_address, "AA:BB:CC:DD:EE:FF")
+        self.assertIn("Garmin Instinct 3", state.hr_status_line)
+
+    def test_hr_loop_fallback_to_name_discovery(self):
+        """Test that hr_loop falls back to discover() and matches by name when address has rotated."""
+        import asyncio
+        import argparse
+        from unittest.mock import AsyncMock
+        from scripts.bluetooth_relay import hr_loop
+
+        save_saved_device("hr", "Garmin Instinct 3", "OLD:ADDRESS:11:22")
+
+        args = argparse.Namespace(
+            server="http://localhost:8000",
+            address=None,
+            name=None,
+            hr=False,
+            hr_name=None,
+            hr_address=None,
+            forget=False,
+            idle_timeout=300,
+            silence_window=360,
+            spm_multiplier=0.5,
+            no_interactive=True,
+            auto=False,
+            verbose=False,
+        )
+        state = RelayState(args)
+
+        mock_old_addr_dev = None
+        mock_new_dev = MagicMock()
+        mock_new_dev.address = "NEW:ROTATED:ADDRESS:33:44"
+        mock_new_dev.name = "Garmin Instinct 3"
+
+        mock_adv = MagicMock()
+        mock_adv.local_name = "Garmin Instinct 3"
+        mock_adv.service_uuids = ["0000180d-0000-1000-8000-00805f9b34fb"]
+
+        coordinator = MagicMock()
+        # Old address returns None
+        coordinator.find_by_address = AsyncMock(return_value=None)
+        # Active discovery finds watch with new rotated address
+        coordinator.discover = AsyncMock(return_value=[(mock_new_dev, mock_adv)])
+
+        publisher = MagicMock()
+        hud = MagicMock()
+
+        async def run_test():
+            # Run one iteration of search then stop state
+            async def stop_after_found():
+                while not state.stop_event.is_set():
+                    if state.hr_target_address == "NEW:ROTATED:ADDRESS:33:44" or state.hr_connected:
+                        state.stop()
+                        break
+                    await asyncio.sleep(0.02)
+
+            # Mock BleakClient context manager
+            with patch("scripts.bluetooth_relay.BleakClient") as mock_client_cls:
+                mock_client = MagicMock()
+                mock_client.is_connected = True
+                mock_client.start_notify = AsyncMock()
+                mock_client.disconnect = AsyncMock()
+                mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+                mock_client_cls.return_value.__aexit__ = AsyncMock()
+
+                loop_task = asyncio.create_task(hr_loop(state, coordinator, publisher, hud, args))
+                stopper = asyncio.create_task(stop_after_found())
+
+                await asyncio.wait_for(asyncio.gather(loop_task, stopper), timeout=4.0)
+
+            self.assertEqual(state.hr_target_address, "NEW:ROTATED:ADDRESS:33:44")
+            saved = load_saved_devices()
+            self.assertEqual(saved["hr"]["address"], "NEW:ROTATED:ADDRESS:33:44")
+
+        asyncio.run(run_test())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -349,7 +349,8 @@ export class SessionTracker {
       const response = await fetch("/api/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        keepalive: true
       });
       const result = await response.json();
       console.log("[SessionTracker] Workout persisted to SQLite:", result);

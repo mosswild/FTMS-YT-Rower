@@ -289,7 +289,7 @@ export class WorkoutEngine {
     this.stepBaselineTime = telem.elapsedSeconds || 0;
     this.stepBaselineStrokes = telem.totalStrokes || 0;
 
-    this.options.onStepChange(step, this.currentStepIndex, this.steps.length);
+    this.options.onStepChange(step, this.currentStepIndex, this.steps.length, this.steps);
 
     // Initial cue
     if (step.cues && step.cues.on_start) {
@@ -619,12 +619,37 @@ export class WorkoutEngine {
       remainingText = `[PAUSED] ${remainingText}`;
     }
 
+    let totalEstDuration = 0;
+    let elapsedPriorDuration = 0;
+    let hasDurations = false;
+    if (this.steps && this.steps.length > 0) {
+      for (let i = 0; i < this.steps.length; i++) {
+        const s = this.steps[i];
+        if (s.exit && s.exit.duration) {
+          hasDurations = true;
+          totalEstDuration += s.exit.duration;
+          if (i < this.currentStepIndex) {
+            elapsedPriorDuration += s.exit.duration;
+          }
+        }
+      }
+    }
+    const currentStepDur = (step.exit && step.exit.duration) ? step.exit.duration : 0;
+    const totalElapsedSec = elapsedPriorDuration + Math.min(currentStepDur, this.stepElapsedSeconds);
+    const totalRemainingSec = Math.max(0, Math.ceil(totalEstDuration - totalElapsedSec));
+    const totalRemM = Math.floor(totalRemainingSec / 60);
+    const totalRemS = totalRemainingSec % 60;
+    const totalRemainingText = hasDurations ? `${String(totalRemM).padStart(2, "0")}:${String(totalRemS).padStart(2, "0")}` : null;
+    const totalPercent = totalEstDuration > 0 ? Math.min(100, Math.max(0, (totalElapsedSec / totalEstDuration) * 100)) : 0;
+
     this.options.onTick({
       stepIndex: this.currentStepIndex,
       totalSteps: this.steps.length,
       step: step,
       percent: percent,
       remainingText: remainingText,
+      totalRemainingText: totalRemainingText,
+      totalPercent: totalPercent,
       stepElapsedSeconds: this.stepElapsedSeconds,
       stepDistanceMeters: this.stepDistanceMeters,
       stepStrokes: this.stepStrokes,

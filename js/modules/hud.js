@@ -29,6 +29,7 @@ export class PM5Hud {
       fullscreenBtn: document.getElementById("hud-fullscreen-btn"),
       noticeToast: document.getElementById("hud-notice-toast"),
       workoutBar: document.getElementById("hud-workout-bar"),
+      workoutProgressTrack: document.getElementById("workout-progress-track"),
       workoutStepBadge: document.getElementById("workout-step-badge"),
       workoutStepTitle: document.getElementById("workout-step-title"),
       workoutTargetSummary: document.getElementById("workout-target-summary"),
@@ -513,9 +514,68 @@ export class PM5Hud {
     }
   }
 
-  setWorkoutStep(step, index, total) {
+  setWorkoutTimeline(steps) {
+    this.workoutSteps = steps;
+    if (!this.elements.workoutProgressTrack) {
+      this.elements.workoutProgressTrack = document.getElementById("workout-progress-track");
+    }
+    if (!this.elements.workoutProgressTrack) return;
+
+    if (!steps || !Array.isArray(steps) || steps.length === 0) {
+      this.elements.workoutProgressTrack.innerHTML = '<div id="workout-progress-fill" class="workout-progress-fill" style="width: 0%;"></div>';
+      this.elements.workoutProgressFill = document.getElementById("workout-progress-fill");
+      this.timelineSegments = null;
+      this.elements.workoutProgressTrack.classList.remove("segmented");
+      return;
+    }
+
+    this.elements.workoutProgressTrack.innerHTML = "";
+    this.elements.workoutProgressTrack.classList.add("segmented");
+    this.timelineSegments = [];
+    const totalSteps = steps.length;
+
+    steps.forEach((st, idx) => {
+      const seg = document.createElement("div");
+      const type = (st.type || "work").toLowerCase();
+      seg.className = `hud-timeline-seg ${type} upcoming`;
+      seg.dataset.stepIndex = idx;
+
+      let weight = 1;
+      if (st.exit && st.exit.duration) {
+        weight = Math.max(1, Math.round(st.exit.duration));
+      } else if (st.exit && st.exit.distance) {
+        weight = Math.max(1, Math.round(st.exit.distance / 2));
+      } else if (st.exit && st.exit.strokes) {
+        weight = Math.max(1, Math.round(st.exit.strokes * 2.5));
+      }
+      seg.style.flex = `${weight} 1 0%`;
+
+      const durStr = st.exit && st.exit.duration ? ` (${Math.round(st.exit.duration)}s)` : (st.exit && st.exit.distance ? ` (${st.exit.distance}m)` : "");
+      seg.title = `${st.title || `Interval ${idx + 1}`} [${type.toUpperCase()}]${durStr}`;
+
+      const fill = document.createElement("div");
+      fill.className = "hud-seg-fill";
+      seg.appendChild(fill);
+
+      seg.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.showWorkoutCue(`${st.title || `Interval ${idx + 1}/${totalSteps}`} [${type.toUpperCase()}]${durStr}`);
+      });
+
+      this.elements.workoutProgressTrack.appendChild(seg);
+      this.timelineSegments.push({ seg, fill, step: st });
+    });
+  }
+
+  setWorkoutStep(step, index, total, steps = null) {
     if (!this.elements.workoutBar) return;
     this.showWorkoutBar(true);
+
+    if (steps && Array.isArray(steps) && steps.length > 0) {
+      if (!this.timelineSegments || this.timelineSegments.length !== steps.length) {
+        this.setWorkoutTimeline(steps);
+      }
+    }
 
     if (this.elements.workoutStepBadge) {
       this.elements.workoutStepBadge.textContent = (step.type || "WORK").toUpperCase();
@@ -566,11 +626,38 @@ export class PM5Hud {
 
   updateWorkoutProgress(progress) {
     if (this.elements.workoutCountdown && progress.remainingText) {
-      if (this.elements.workoutCountdown.textContent !== progress.remainingText) {
-        this.elements.workoutCountdown.textContent = progress.remainingText;
+      let countdownStr = progress.remainingText;
+      if (progress.totalRemainingText && !progress.remainingText.includes("[PAUSED]")) {
+        countdownStr = `${progress.remainingText} • ${progress.totalRemainingText} total`;
+      }
+      if (this.elements.workoutCountdown.textContent !== countdownStr) {
+        this.elements.workoutCountdown.textContent = countdownStr;
       }
     }
-    if (this.elements.workoutProgressFill && progress.percent !== undefined) {
+
+    if (this.timelineSegments && this.timelineSegments.length > 0) {
+      const activeIdx = progress.stepIndex !== undefined ? progress.stepIndex : 0;
+      const curPct = Math.min(100, Math.max(0, progress.percent || 0));
+
+      this.timelineSegments.forEach((item, idx) => {
+        if (idx < activeIdx) {
+          if (!item.seg.classList.contains("completed")) {
+            item.seg.className = `hud-timeline-seg ${(item.step.type || "work").toLowerCase()} completed`;
+            item.fill.style.width = "100%";
+          }
+        } else if (idx === activeIdx) {
+          if (!item.seg.classList.contains("active")) {
+            item.seg.className = `hud-timeline-seg ${(item.step.type || "work").toLowerCase()} active`;
+          }
+          item.fill.style.width = `${curPct}%`;
+        } else {
+          if (!item.seg.classList.contains("upcoming")) {
+            item.seg.className = `hud-timeline-seg ${(item.step.type || "work").toLowerCase()} upcoming`;
+            item.fill.style.width = "0%";
+          }
+        }
+      });
+    } else if (this.elements.workoutProgressFill && progress.percent !== undefined) {
       const scaleVal = Math.min(1, Math.max(0, (progress.percent || 0) / 100));
       const transformStr = `scaleX(${scaleVal})`;
       if (this.elements.workoutProgressFill.style.transform !== transformStr) {

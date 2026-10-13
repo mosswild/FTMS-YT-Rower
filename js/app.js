@@ -1,16 +1,16 @@
-import { RowerBLE } from "./modules/ble-rower.js?v=multi-athlete-v45";
-import { HeartRateBLE } from "./modules/ble-heartrate.js?v=multi-athlete-v45";
-import { RateController } from "./modules/rate-controller.js?v=multi-athlete-v45";
-import { AudioEngine } from "./modules/audio-engine.js?v=multi-athlete-v45";
-import { PM5Hud } from "./modules/hud.js?v=multi-athlete-v45";
-import { SessionTracker } from "./modules/session-tracker.js?v=multi-athlete-v45";
-import { VirtualRowerSimulator } from "./modules/simulator.js?v=multi-athlete-v45";
-import { MediaManager } from "./modules/media-manager.js?v=multi-athlete-v45";
-import { TrackController } from "./modules/track-controller.js?v=multi-athlete-v45";
-import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=multi-athlete-v45";
-import { WorkoutEngine } from "./modules/workout-engine.js?v=multi-athlete-v45";
-import { KeepAwake } from "./modules/keep-awake.js?v=multi-athlete-v45";
-import { HrZonesManager } from "./modules/hr-zones.js?v=multi-athlete-v45";
+import { RowerBLE } from "./modules/ble-rower.js?v=workout-improvements-v50";
+import { HeartRateBLE } from "./modules/ble-heartrate.js?v=workout-improvements-v50";
+import { RateController } from "./modules/rate-controller.js?v=workout-improvements-v50";
+import { AudioEngine } from "./modules/audio-engine.js?v=workout-improvements-v50";
+import { PM5Hud } from "./modules/hud.js?v=workout-improvements-v50";
+import { SessionTracker } from "./modules/session-tracker.js?v=workout-improvements-v50";
+import { VirtualRowerSimulator } from "./modules/simulator.js?v=workout-improvements-v50";
+import { MediaManager } from "./modules/media-manager.js?v=workout-improvements-v50";
+import { TrackController } from "./modules/track-controller.js?v=workout-improvements-v50";
+import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=workout-improvements-v50";
+import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-improvements-v50";
+import { KeepAwake } from "./modules/keep-awake.js?v=workout-improvements-v50";
+import { HrZonesManager } from "./modules/hr-zones.js?v=workout-improvements-v50";
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -378,6 +378,10 @@ const workoutEngine = new WorkoutEngine({
     if (status === "ready") {
       const title = meta && meta.workout ? meta.workout.title : (workoutEngine.workout ? workoutEngine.workout.title : "Workout");
       pm5Hud.setWorkoutMode(title);
+      const steps = workoutEngine.steps || (workoutEngine.workout && (workoutEngine.workout.timeline || workoutEngine.workout.steps));
+      if (steps) {
+        pm5Hud.setWorkoutTimeline(steps);
+      }
       pm5Hud.showNotice(`Loaded: ${title}. Press 'Start Workout' or 'Start Simulator'.`, 4000);
       pm5Hud.showWorkoutBar(true);
     } else if (status === "countdown") {
@@ -398,19 +402,20 @@ const workoutEngine = new WorkoutEngine({
       pm5Hud.showWorkoutBar(false);
       pm5Hud.setWorkoutMode(null);
     } else if (status === "completed") {
-      pm5Hud.showNotice("🎉 Workout Complete! Great row!", 4000);
+      pm5Hud.showNotice("🎉 Workout Complete! Session automatically saved to History.", 5000);
       pm5Hud.showWorkoutBar(false);
       pm5Hud.setWorkoutMode(null);
     }
   },
-  onStepChange: (step, index, total) => {
+  onStepChange: (step, index, total, steps) => {
     if (typeof simulator !== "undefined" && simulator) {
       simulator.onWorkoutStepChange(step, index, total);
     }
     if (typeof sessionTracker !== "undefined" && sessionTracker && sessionTracker.state === "active") {
       sessionTracker.startLap(step, index, total);
     }
-    pm5Hud.setWorkoutStep(step, index, total);
+    const allSteps = steps || workoutEngine.steps || (workoutEngine.workout && (workoutEngine.workout.timeline || workoutEngine.workout.steps));
+    pm5Hud.setWorkoutStep(step, index, total, allSteps);
   },
   onTick: (progress) => {
     pm5Hud.updateWorkoutProgress(progress);
@@ -421,11 +426,43 @@ const workoutEngine = new WorkoutEngine({
   onCue: (text) => {
     pm5Hud.showWorkoutCue(text);
   },
-  onWorkoutComplete: (summary) => {
+  onWorkoutComplete: async (summary) => {
     if (typeof sessionTracker !== "undefined" && sessionTracker) {
       sessionTracker.endLap();
+      if (sessionTracker.state === "active" || sessionTracker.state === "paused") {
+        await sessionTracker.finish();
+      }
     }
-    pm5Hud.showNotice("🎉 Workout Finished!", 4000);
+    if (typeof rateController !== "undefined" && rateController) {
+      rateController.isWorkoutLive = false;
+    }
+    if (typeof videoEl !== "undefined" && videoEl && !videoEl.paused) {
+      videoEl.pause();
+    }
+    if (typeof audioEngine !== "undefined" && audioEngine) {
+      audioEngine.pause();
+    }
+    if (typeof simulator !== "undefined" && simulator && simulator.isRunning) {
+      simulator.stop();
+      const simBtn = document.getElementById("btn-sim-toggle");
+      if (simBtn) {
+        simBtn.textContent = "Start Simulator";
+        simBtn.className = "btn btn-primary btn-sm";
+      }
+      if (typeof updateRowerStatus === "function") {
+        updateRowerStatus(false, "Workout Finished");
+      }
+      if (typeof applySimulatorConnectionStatus === "function") {
+        applySimulatorConnectionStatus();
+      }
+      handleTelemetryPacket({ strokeRate: 0, instantaneousPace: 0, watts: 0 });
+    }
+    syncWorkoutPauseButton();
+    pm5Hud.setActiveSession(false);
+    pm5Hud.clearWorkoutCompliance();
+    pm5Hud.showWorkoutBar(false);
+    pm5Hud.setWorkoutMode(null);
+    pm5Hud.showNotice("🎉 Workout Complete! Session automatically saved to History.", 5000);
   }
 });
 
@@ -5053,6 +5090,7 @@ async function loadWorkoutInCockpit(workoutId) {
 
     workoutEngine.loadWorkout(workoutData);
     pm5Hud.setWorkoutMode(workoutData.title);
+    pm5Hud.setWorkoutTimeline(workoutEngine.steps || workoutData.timeline || workoutData.steps);
     pm5Hud.clearWorkoutCompliance();
     if (selectSimWorkout) {
       selectSimWorkout.value = workoutId;
@@ -5355,6 +5393,13 @@ if (btnOpenImportWorkout && inputImportWorkoutFile) {
     reader.readAsText(file);
   });
 }
+
+// Automatically persist active workout session if user closes window or navigates away
+window.addEventListener("pagehide", () => {
+  if (typeof sessionTracker !== "undefined" && sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) {
+    sessionTracker.finish();
+  }
+});
 
 // Initialize on page load
 async function initApp() {
