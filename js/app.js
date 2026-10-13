@@ -755,6 +755,7 @@ wsTelemetry.connect();
 // ----------------- View Navigation -----------------
 const views = {
   home: document.getElementById("view-home"),
+  profiles: document.getElementById("view-profiles"),
   cockpit: document.getElementById("view-cockpit"),
   media: document.getElementById("view-media"),
   history: document.getElementById("view-history"),
@@ -785,7 +786,9 @@ function switchView(viewName) {
     btn.classList.toggle("active", btn.dataset.view === viewName);
   });
 
-  if (viewName === "home") {
+  if (viewName === "profiles") {
+    loadProfilesUI();
+  } else if (viewName === "home") {
     loadHomeUI();
   } else if (viewName === "media") {
     loadLibraryUI();
@@ -4340,34 +4343,118 @@ function renderAthleteHeaderDropdown() {
 
 let athleteDropdownOpenedAt = 0;
 
-function toggleAthleteDropdown(e) {
-  if (e) {
-    e.stopPropagation();
-    e.preventDefault();
-  }
-  const menu = document.getElementById("athlete-dropdown-menu");
-  const btn = document.getElementById("btn-active-athlete");
-  if (!menu) return;
-  const isShown = menu.style.display === "block" || menu.style.display === "flex";
-  if (isShown) {
-    closeAthleteDropdown(true);
-  } else {
-    closeHudDropdowns();
-    renderAthleteHeaderDropdown();
-    menu.style.display = "block";
-    athleteDropdownOpenedAt = Date.now();
-    if (btn) btn.setAttribute("aria-expanded", "true");
-  }
-}
-
 function closeAthleteDropdown(force = false) {
-  if (!force && Date.now() - athleteDropdownOpenedAt < 350) {
-    return;
-  }
   const menu = document.getElementById("athlete-dropdown-menu");
   const btn = document.getElementById("btn-active-athlete");
   if (menu) menu.style.display = "none";
   if (btn) btn.setAttribute("aria-expanded", "false");
+}
+
+// ==========================================================================
+// Dedicated Athlete Profile Selection View ("Who is rowing today?")
+// ==========================================================================
+async function loadProfilesUI() {
+  const container = document.getElementById("profiles-grid");
+  if (!container) return;
+
+  await hrZonesManager.fetchProfiles();
+  const profiles = hrZonesManager.profilesList || [];
+  const activeId = hrZonesManager.activeProfileId || (profiles[0] && profiles[0].id) || "default";
+
+  if (profiles.length === 0) {
+    container.innerHTML = `
+      <div class="empty-profiles-notice" style="grid-column: 1 / -1; text-align: center; padding: 3rem 1.5rem; background: rgba(18, 24, 38, 0.6); border: 1.5px dashed rgba(255, 107, 53, 0.5); border-radius: 28px; max-width: 520px; margin: 0 auto;">
+        <div style="font-size: 2.8rem; margin-bottom: 0.75rem;">🚣</div>
+        <h2 style="font-size: 1.5rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">No Athlete Profiles Found</h2>
+        <p style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.5;">Welcome to FTMS Rower! Create your first rower profile to personalize your target heart rate zones, power metrics, and workout progress.</p>
+        <button id="btn-create-first-profile" class="btn-mockup-orange" type="button" style="padding: 0.85rem 2rem; font-size: 0.95rem; font-weight: 800; border-radius: 9999px;">
+          + CREATE YOUR PROFILE
+        </button>
+      </div>
+    `;
+    document.getElementById("btn-create-first-profile")?.addEventListener("click", () => {
+      openCreateAthleteModal();
+    });
+    return;
+  }
+
+  container.innerHTML = profiles.map(prof => {
+    const isActive = prof.id === activeId;
+    const initial = (prof.name || "A").trim().charAt(0).toUpperCase();
+    const color = prof.avatar_color || "#38bdf8";
+    const workoutCount = prof.workout_count !== undefined ? prof.workout_count : 0;
+    const age = prof.age || 30;
+    const mode = prof.calibration_mode || "auto";
+
+    return `
+      <div class="profile-orb-card ${isActive ? 'active' : ''}" data-id="${prof.id}" role="button" tabindex="0">
+        <div class="profile-orb-avatar-wrapper">
+          <div class="profile-orb-halo" style="background: radial-gradient(circle, ${color}33 0%, transparent 70%);"></div>
+          <div class="profile-orb-avatar" style="background-color: ${color};">
+            ${initial}
+          </div>
+          ${isActive ? '<div class="profile-orb-active-badge">✓</div>' : ''}
+        </div>
+        <div class="profile-orb-name">${escapeHtml(prof.name || 'Athlete')}</div>
+        <div class="profile-orb-stats">
+          <span>${workoutCount} workout${workoutCount === 1 ? '' : 's'}</span>
+          <span>${age} yrs • ${mode.toUpperCase()} HR</span>
+        </div>
+        <div class="profile-orb-card-actions">
+          <button type="button" class="btn-profile-card-edit" data-id="${prof.id}" title="Edit Profile Details">
+            Edit Profile
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("") + `
+    <div class="profile-orb-card add-athlete-orb-card" id="btn-profiles-add-new" role="button" tabindex="0">
+      <div class="profile-orb-avatar-wrapper">
+        <div class="profile-orb-avatar add-avatar">
+          +
+        </div>
+      </div>
+      <div class="profile-orb-name">Add Athlete</div>
+      <div class="profile-orb-stats">
+        <span>Create new profile</span>
+        <span>Custom HR zones</span>
+      </div>
+      <div class="profile-orb-card-actions">
+        <span class="btn-profile-card-edit">+ Add</span>
+      </div>
+    </div>
+  `;
+
+  // Wire profile card clicks
+  container.querySelectorAll(".profile-orb-card:not(.add-athlete-orb-card)").forEach(card => {
+    card.addEventListener("click", async (e) => {
+      if (e.target.closest(".btn-profile-card-edit")) return;
+      const id = card.dataset.id;
+      if (id) {
+        await hrZonesManager.switchProfile(id);
+        sessionTracker.setProfileId(id);
+        localStorage.setItem("ftms_profile_selected", "true");
+        renderAthleteHeaderDropdown();
+        await loadHomeUI();
+        showHudToast(`Welcome back, ${hrZonesManager.profile.name}!`);
+        switchView("home");
+      }
+    });
+  });
+
+  // Wire edit buttons
+  container.querySelectorAll(".btn-profile-card-edit").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      if (id) openEditAthleteModal(id);
+    });
+  });
+
+  // Wire add athlete card
+  document.getElementById("btn-profiles-add-new")?.addEventListener("click", () => {
+    openCreateAthleteModal();
+  });
 }
 
 // Profile Picker Modal Functions
@@ -4586,6 +4673,7 @@ if (formEditAthlete) {
       }
       await hrZonesManager.fetchProfiles();
       renderAthleteHeaderDropdown();
+      await loadProfilesUI();
       await loadHomeUI();
       closeEditAthleteModal();
       showHudToast(`Profile updated: ${name}`);
@@ -4613,6 +4701,7 @@ document.getElementById("btn-edit-delete-athlete")?.addEventListener("click", as
     if (res.success) {
       closeEditAthleteModal();
       renderAthleteHeaderDropdown();
+      await loadProfilesUI();
       await loadHomeUI();
       showHudToast("Profile deleted");
     } else {
@@ -4621,20 +4710,27 @@ document.getElementById("btn-edit-delete-athlete")?.addEventListener("click", as
   }
 });
 
-// Profile Dropdown & Picker Trigger Listeners
-document.getElementById("btn-active-athlete")?.addEventListener("click", toggleAthleteDropdown);
+// Profile Selection & Management Listeners
+document.getElementById("btn-active-athlete")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  e.preventDefault();
+  closeAthleteDropdown(true);
+  switchView("profiles");
+});
+
+document.getElementById("btn-profiles-start-session")?.addEventListener("click", () => {
+  localStorage.setItem("ftms_profile_selected", "true");
+  switchView("home");
+});
+
+document.getElementById("btn-profiles-manage-settings")?.addEventListener("click", () => {
+  openSettingsModal();
+});
+
 document.getElementById("btn-manage-athletes")?.addEventListener("click", (e) => {
   e.stopPropagation();
   closeAthleteDropdown(true);
-  openProfilePickerModal();
-});
-
-// Close athlete dropdown on outside click
-document.addEventListener("click", (e) => {
-  const wrapper = document.getElementById("athlete-dropdown-wrapper");
-  if (!wrapper) return;
-  if (e.target && e.target.closest && e.target.closest("#athlete-dropdown-wrapper")) return;
-  closeAthleteDropdown(false);
+  switchView("profiles");
 });
 
 document.getElementById("btn-close-profile-picker")?.addEventListener("click", closeProfilePickerModal);
@@ -4804,7 +4900,12 @@ document.getElementById("btn-submit-create-athlete")?.addEventListener("click", 
   if (res.success) {
     closeCreateAthleteModal();
     sessionTracker.setProfileId(hrZonesManager.activeProfileId);
+    localStorage.setItem("ftms_profile_selected", "true");
+    renderAthleteHeaderDropdown();
+    await loadProfilesUI();
+    await loadHomeUI();
     showHudToast(`Athlete created: ${name}`);
+    switchView("home");
   } else {
     alert(res.error || "Failed to create athlete");
   }
@@ -6388,9 +6489,19 @@ async function initApp() {
       loadVideoIntoCockpit(first.id, first.title, false);
     }
 
-    // Initialize and display Home landing screen
-    await loadHomeUI();
-    switchView("home");
+    // Initial Route Check:
+    // If the user hasn't selected an active profile yet, or if there are no athlete profiles created,
+    // land directly on the dedicated profile setup/selection page ("Who is rowing today?").
+    const hasSelectedProfile = localStorage.getItem("ftms_profile_selected");
+    const profilesList = hrZonesManager.profilesList || [];
+
+    if (!hasSelectedProfile || profilesList.length === 0) {
+      await loadProfilesUI();
+      switchView("profiles");
+    } else {
+      await loadHomeUI();
+      switchView("home");
+    }
 
     pollDownloads();
   } catch (err) {
