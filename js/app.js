@@ -819,7 +819,7 @@ async function loadHomeUI() {
     const res = await fetch(`/api/quick-workouts?user_id=${encodeURIComponent(activeUserId)}`);
     if (res.ok) {
       const data = await res.json();
-      cachedQuickWorkouts = data.quick_workouts || [];
+      cachedQuickWorkouts = data.quick_workouts || data.cards || [];
       renderQuickWorkouts(cachedQuickWorkouts);
     }
   } catch (err) {
@@ -851,9 +851,11 @@ function renderQuickWorkouts(cards) {
   }
 
   container.innerHTML = cards.map(card => {
-    const track = card.track || {};
-    const workout = card.workout || {};
-    const thumbUrl = track.video_id ? `/api/media/thumbnail/${track.video_id}` : "";
+    const track = card.track || (cachedTracks || []).find(t => t.id === card.track_id) || {};
+    const workout = card.workout || (cachedWorkouts || []).find(w => w.id === card.workout_id) || {};
+    const videoId = card.video_id || track.video_id;
+    const trackName = card.track_name || track.name || "Scenic Track";
+    const thumbUrl = videoId ? `/api/media/thumbnail/${videoId}` : "";
     const isFreeRow = !card.workout_id || card.workout_id === "free_row";
 
     // Track duration calculation
@@ -865,11 +867,15 @@ function renderQuickWorkouts(cards) {
     }
 
     // Workout details
-    let workoutBadgeStr = isFreeRow ? "Free Row" : (workout.difficulty || "Program");
+    const workoutDifficulty = card.workout_difficulty || workout.difficulty || "Program";
+    let workoutBadgeStr = isFreeRow ? "Free Row" : workoutDifficulty;
     let workoutMetaStr = "";
-    if (!isFreeRow && workout.estimates) {
-      const durMins = Math.round((workout.estimates.estimated_duration_seconds || 0) / 60);
-      workoutMetaStr = `~${durMins} min • ${workout.step_count || 0} steps`;
+    const durSec = card.estimated_duration_seconds || (workout.estimates && workout.estimates.estimated_duration_seconds) || 0;
+    const stepCount = card.total_steps || workout.step_count || 0;
+
+    if (!isFreeRow && durSec > 0) {
+      const durMins = Math.round(durSec / 60);
+      workoutMetaStr = `~${durMins} min • ${stepCount} steps`;
     } else if (isFreeRow && trackDurStr) {
       workoutMetaStr = trackDurStr;
     }
@@ -880,7 +886,7 @@ function renderQuickWorkouts(cards) {
           ${thumbUrl ? `<img src="${thumbUrl}" alt="" class="quick-workout-thumb" onerror="this.style.display='none'">` : ''}
           <div class="quick-workout-thumb-overlay"></div>
           <div class="quick-workout-badges">
-            <span class="card-badge category">${escapeHtml(track.name || "Scenic Track")}</span>
+            <span class="card-badge category">${escapeHtml(trackName)}</span>
             <span class="card-badge ${isFreeRow ? 'builtin' : 'difficulty'}">${workoutBadgeStr}</span>
           </div>
           ${!card.is_default ? `
@@ -892,10 +898,10 @@ function renderQuickWorkouts(cards) {
         </div>
         <div class="quick-workout-body">
           <h3 class="quick-workout-title">${escapeHtml(card.title)}</h3>
-          <p class="quick-workout-desc">${escapeHtml(card.description || (isFreeRow ? "Scenic free row with open pacing." : (workout.description || "")))}</p>
+          <p class="quick-workout-desc">${escapeHtml(card.description || (isFreeRow ? "Scenic free row with open pacing." : (card.workout_title || "")))}</p>
           <div class="quick-workout-meta">
             ${workoutMetaStr ? `<span>⏱ ${workoutMetaStr}</span>` : ''}
-            <span>🎬 ${escapeHtml(track.name || "Scenic Track")}</span>
+            <span>🎬 ${escapeHtml(trackName)}</span>
           </div>
         </div>
         <div class="quick-workout-footer">
