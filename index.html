@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=ui-overhaul-v66">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=ui-overhaul-v67">
   <script>
     (function() {
       try {
@@ -243,7 +243,12 @@
                 </div>
               </div>
             </div>
-            <button id="btn-close-sim-panel" class="hud-icon-btn" style="width: 28px; height: 28px; margin-left: auto; border-radius: 4px;" title="Hide Simulator Controls">&times;</button>
+            <button id="btn-close-sim-panel" class="btn-close-sim-panel" type="button" title="Hide Simulator Controls">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -1513,6 +1518,6 @@
   </nav>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=ui-overhaul-v66"></script>
+  <script type="module" src="js/app.js?v=ui-overhaul-v67"></script>
 </body>
 </html>
