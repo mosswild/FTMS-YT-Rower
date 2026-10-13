@@ -19,7 +19,7 @@ segments:
     exit:
       duration: "1m"
     targets:
-      spm: [18, 20]
+      spm: [18, 22]
     cues:
       on_start: "Settle into an easy, comfortable rowing rhythm."
 
@@ -32,9 +32,9 @@ segments:
         exit:
           duration: "1m"
         targets:
-          spm: [22, 24]
+          spm: [22, 26]
         cues:
-          on_start: "Pick up the rate slightly to 22-24 SPM. Keep strokes smooth and relaxed."
+          on_start: "Pick up the rate slightly to 22-26 SPM. Keep strokes smooth and relaxed."
           at_midpoint: "30 seconds left! Stay rhythmic and breathe steadily."
 
       - type: "rest"
@@ -44,7 +44,7 @@ segments:
         exit:
           duration: "1m"
         targets:
-          spm: [16, 18]
+          spm: [16, 20]
         cues:
           on_start: "Breathe deeply and paddle easily. Let your heart rate settle."
 
@@ -53,6 +53,6 @@ segments:
     exit:
       duration: "1m"
     targets:
-      spm: [16, 18]
+      spm: [16, 20]
     cues:
       on_start: "Nice job completing your intervals! Smooth, light paddling to finish."

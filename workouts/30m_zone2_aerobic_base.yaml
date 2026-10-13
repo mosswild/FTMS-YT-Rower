@@ -19,7 +19,7 @@ segments:
     exit:
       duration: "5m"
     targets:
-      spm: [18, 20]
+      spm: [18, 22]
       hr: [110, 125]
       hr_zone: 1
     cues:
@@ -43,7 +43,7 @@ segments:
     exit:
       duration: "5m"
     targets:
-      spm: [16, 18]
+      spm: [16, 20]
       hr: [100, 120]
       hr_zone: 1
     cues:

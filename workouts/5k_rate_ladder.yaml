@@ -19,43 +19,43 @@ segments:
     exit:
       duration: "3m"
     targets:
-      spm: [18, 20]
+      spm: [18, 22]
 
   - type: "work"
     title: "0 – 1000m (Settle In)"
     exit:
       distance: "1000m"
     targets:
-      spm: [20, 22]
+      spm: [20, 23]
     cues:
-      on_start: "Find a long, rhythmic catch. Hold 20–22 SPM."
+      on_start: "Find a long, rhythmic catch. Hold 20–23 SPM."
 
   - type: "work"
     title: "1000 – 2000m (Base Pace)"
     exit:
       distance: "1000m"
     targets:
-      spm: [22, 24]
+      spm: [22, 25]
     cues:
-      on_start: "Step it up to 22–24 SPM. Keep recovery relaxed."
+      on_start: "Step it up to 22–25 SPM. Keep recovery relaxed."
 
   - type: "work"
     title: "2000 – 3000m (Tempo Surge)"
     exit:
       distance: "1000m"
     targets:
-      spm: [24, 26]
+      spm: [24, 27]
     cues:
-      on_start: "Halfway through! Step up to 24–26 SPM."
+      on_start: "Halfway through! Step up to 24–27 SPM."
 
   - type: "work"
     title: "3000 – 4000m (Hold Pressure)"
     exit:
       distance: "1000m"
     targets:
-      spm: [26, 28]
+      spm: [26, 29]
     cues:
-      on_start: "Drive through the legs. Build to 26–28 SPM."
+      on_start: "Drive through the legs. Build to 26–29 SPM."
 
   - type: "work"
     title: "4000 – 5000m (Sprint Finish)"
@@ -71,4 +71,4 @@ segments:
     exit:
       duration: "3m"
     targets:
-      spm: [16, 18]
+      spm: [16, 20]

@@ -47,7 +47,7 @@ segments:
         exit:
           duration: "1m"
         targets:
-          spm: [18, 20]
+          spm: [18, 22]
           hr_zone: 2
         cues:
           on_start: "Keep moving! Light paddle strokes to flush lactic acid and lower heart rate."
@@ -57,7 +57,7 @@ segments:
     exit:
       duration: "2m"
     targets:
-      spm: [16, 18]
+      spm: [16, 20]
       hr_zone: 1
     cues:
       on_start: "Light, relaxed strokes to recover. Great high-intensity session!"

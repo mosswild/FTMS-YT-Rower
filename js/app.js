@@ -45,6 +45,8 @@ const trackTimeDisplay = document.getElementById("track-time-display");
 
 // Initialize PM5 HUD
 const pm5Hud = new PM5Hud(viewportContainer);
+const savedShowResistance = localStorage.getItem("ftms_show_resistance_badge") === "true";
+pm5Hud.setShowResistanceBadge(savedShowResistance);
 
 // Initialize Heart Rate Zones & Adaptive Calibration Manager
 const hrZonesManager = new HrZonesManager({
@@ -3482,6 +3484,12 @@ if (toggleWorkoutBtn) {
 // ----------------- Settings Modal & Config -----------------
 const settingsModal = document.getElementById("modal-settings");
 document.getElementById("btn-open-settings").addEventListener("click", () => {
+  const volInput = document.getElementById("setting-soundtrack-volume");
+  const volVal = document.getElementById("setting-soundtrack-volume-val");
+  if (volInput && typeof audioEngine !== "undefined") {
+    volInput.value = audioEngine.volume;
+    if (volVal) volVal.textContent = `${Math.round(audioEngine.volume * 100)}%`;
+  }
   settingsModal.classList.add("open");
 });
 document.getElementById("btn-close-settings").addEventListener("click", () => {
@@ -3599,6 +3607,35 @@ if (settingCadenceSensitivity) {
       localStorage.setItem("ftms_cadence_audio_sensitivity", val.toString());
     } catch (err) {}
     renderHudAudioDropdown();
+  });
+}
+
+const settingSoundtrackVolume = document.getElementById("setting-soundtrack-volume");
+const settingSoundtrackVolumeVal = document.getElementById("setting-soundtrack-volume-val");
+if (settingSoundtrackVolume) {
+  settingSoundtrackVolume.value = audioEngine.volume;
+  if (settingSoundtrackVolumeVal) {
+    settingSoundtrackVolumeVal.textContent = `${Math.round(audioEngine.volume * 100)}%`;
+  }
+  settingSoundtrackVolume.addEventListener("input", (e) => {
+    const val = parseFloat(e.target.value);
+    audioEngine.setVolume(val);
+    if (settingSoundtrackVolumeVal) {
+      settingSoundtrackVolumeVal.textContent = `${Math.round(val * 100)}%`;
+    }
+    if (audioVolumeSlider) audioVolumeSlider.value = val;
+  });
+}
+
+const settingShowResistance = document.getElementById("setting-show-resistance-badge");
+if (settingShowResistance) {
+  settingShowResistance.checked = savedShowResistance;
+  settingShowResistance.addEventListener("change", (e) => {
+    const enabled = e.target.checked;
+    try {
+      localStorage.setItem("ftms_show_resistance_badge", enabled ? "true" : "false");
+    } catch (err) {}
+    pm5Hud.setShowResistanceBadge(enabled);
   });
 }
 

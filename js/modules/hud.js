@@ -61,6 +61,9 @@ export class PM5Hud {
     this.userScale = "auto";
     this.isWorkoutBarVisible = false;
 
+    this.showResistanceBadge = false;
+    this.lastResistance = null;
+
     this.lastHeartRate = null;
     this.lastHeartRateTime = 0;
     this.hrTimeoutMs = 10000; // 10s sample-and-hold threshold for intermittent HR broadcasts (e.g. Garmin)
@@ -157,11 +160,25 @@ export class PM5Hud {
     if (this.elements.time) this.elements.time.textContent = "00:00";
   }
 
+  setShowResistanceBadge(enabled) {
+    this.showResistanceBadge = !!enabled;
+    if (!this.showResistanceBadge) {
+      if (this.elements.resistanceBadge) {
+        this.elements.resistanceBadge.style.display = "none";
+      }
+    } else if (this.lastResistance !== undefined && this.lastResistance !== null && this.lastResistance > 0) {
+      this.updateResistance(this.lastResistance);
+    }
+  }
+
   updateResistance(level) {
+    this.lastResistance = level;
     if (this.elements.resistanceBadge && this.elements.resistanceVal) {
-      if (level !== undefined && level !== null && level > 0) {
+      if (this.showResistanceBadge && level !== undefined && level !== null && level > 0) {
         this.elements.resistanceBadge.style.display = "inline-flex";
         this.elements.resistanceVal.textContent = `Lvl ${level}`;
+      } else {
+        this.elements.resistanceBadge.style.display = "none";
       }
     }
   }

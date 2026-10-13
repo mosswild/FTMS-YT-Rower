@@ -54,6 +54,6 @@ segments:
     exit:
       duration: "4m"
     targets:
-      spm: [16, 18]
+      spm: [16, 20]
     cues:
       on_start: "Relaxed paddling to flush legs."

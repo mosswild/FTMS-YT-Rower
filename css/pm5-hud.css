@@ -260,11 +260,10 @@ body.in-fullscreen .app-header {
   width: 100%;
 }
 
-.hud-top-row-media #hud-track-dropdown-wrapper,
-.hud-top-row-media #hud-audio-dropdown-wrapper {
+.hud-top-row-media #hud-track-dropdown-wrapper {
   flex: 1 1 0;
   min-width: 0;
-  max-width: 280px;
+  max-width: 380px;
 }
 
 .hud-top-row-media #hud-track-dropdown-wrapper .hud-picker-btn,

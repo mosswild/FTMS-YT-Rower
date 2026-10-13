@@ -19,7 +19,7 @@ segments:
     exit:
       duration: "3m"
     targets:
-      spm: [18, 20]
+      spm: [18, 22]
     cues:
       on_start: "Start easy. Let your breathing settle and warm up the major muscle groups."
       at_midpoint: "Gradually build up to your cruising rhythm."
@@ -29,7 +29,7 @@ segments:
     exit:
       duration: "14m"
     targets:
-      spm: [20, 22]
+      spm: [20, 24]
     cues:
       on_start: "Find a rhythm you could hold comfortably for an hour. Conversational, enjoyable pace."
       at_midpoint: "7 minutes to go! Keep your grip relaxed on the handle and drive evenly with both legs."
@@ -41,7 +41,7 @@ segments:
     exit:
       duration: "3m"
     targets:
-      spm: [16, 18]
+      spm: [16, 20]
     cues:
       on_start: "Ease off the pressure. Light paddle to lower heart rate and stretch out."
       at_midpoint: "Deep nasal breathing. Great steady-state session today!"

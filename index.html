@@ -120,34 +120,6 @@
               </div>
             </div>
 
-            <!-- Audio Soundtrack Selector Dropdown -->
-            <div class="hud-dropdown-wrapper" id="hud-audio-dropdown-wrapper">
-              <button id="btn-hud-audio-picker" class="hud-info-badge hud-picker-btn" type="button" title="Select Audio Soundtrack & Volume" aria-haspopup="true" aria-expanded="false">
-                <svg class="hud-picker-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-                <span id="hud-audio-badge" class="hud-picker-text">Audio: Original 1.0×</span>
-                <svg class="hud-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <div id="hud-audio-dropdown-menu" class="hud-dropdown-menu" style="display: none;">
-                <div class="hud-dropdown-header">
-                  <span>Audio Soundtrack</span>
-                </div>
-                <div class="hud-dropdown-volume">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                  <input type="range" id="hud-audio-volume-slider" min="0" max="1" step="0.05" value="1.0" class="hud-volume-slider" title="Soundtrack Volume">
-                  <span id="hud-volume-val">100%</span>
-                </div>
-                <div class="hud-dropdown-toggle-row">
-                  <div class="hud-toggle-text">
-                    <span class="hud-toggle-title">Cadence Volume</span>
-                    <span class="hud-toggle-sub" id="hud-audio-cadence-vol-sub">Dips on rest, swells on sprint</span>
-                  </div>
-                  <input type="checkbox" id="hud-audio-cadence-vol-toggle" class="hud-checkbox-toggle" title="Dynamically modulate volume with cadence">
-                </div>
-                <div class="hud-dropdown-divider"></div>
-                <div id="hud-audio-list-container" class="hud-dropdown-list"></div>
-              </div>
-            </div>
-
             <!-- 3 Mini Action Buttons: Theme, Visibility, Fullscreen -->
             <div class="hud-right-actions">
               <button id="hud-cycle-theme-btn" class="hud-icon-btn" title="Cycle Theme (T)">
@@ -760,6 +732,23 @@
           <input type="range" id="setting-cadence-volume-sensitivity" min="0.25" max="2.50" value="1.00" step="0.25">
         </div>
         <p class="form-hint" style="margin-top: 0.4rem; margin-bottom: 0;">Controls the rate of volume change based on stroke cadence (0.5× = subtle modulation, 1.0× = standard, 1.5×–2.5× = dynamic surges & deeper rest dips).</p>
+      </div>
+
+      <div class="form-group" style="margin-top: 1.25rem;">
+        <label class="form-label">Soundtrack Master Volume</label>
+        <div class="range-with-val">
+          <input type="range" id="setting-soundtrack-volume" min="0" max="1" step="0.05" value="1.0">
+          <span id="setting-soundtrack-volume-val" class="range-val-badge">100%</span>
+        </div>
+        <p class="form-hint">Adjust playback volume of scenic track soundtracks.</p>
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 1.25rem;">
+        <div>
+          <label class="form-label" style="margin-bottom: 0;">Show Resistance / Damper Badge</label>
+          <p class="form-hint">Display live resistance level badge (Lvl X) in HUD top bar for electronic-resistance rowers. (Disabled by default).</p>
+        </div>
+        <input type="checkbox" id="setting-show-resistance-badge" style="width: 20px; height: 20px; accent-color: var(--accent-blue);">
       </div>
 
       <!-- ATHLETE PROFILE & HEART RATE CALIBRATION -->

@@ -19,7 +19,7 @@ segments:
     exit:
       duration: "5m"
     targets:
-      spm: [20, 22]
+      spm: [18, 22]
 
   - type: "work"
     title: "Step 1: 250m Blast"
