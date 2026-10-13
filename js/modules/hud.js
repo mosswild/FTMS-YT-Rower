@@ -435,6 +435,10 @@ export class PM5Hud {
       }
     };
 
+    this.enterFullscreen = enterFullscreen;
+    this.exitFullscreen = exitFullscreen;
+    this.isFullscreen = () => isNativeFullscreenActive() || (this.container && this.container.classList.contains("is-fullscreen"));
+
     this.elements.fullscreenBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();

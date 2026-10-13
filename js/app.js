@@ -762,6 +762,37 @@ const views = {
   workouts: document.getElementById("view-workouts"),
 };
 
+// ----------------- Fullscreen Helper -----------------
+async function exitAnyFullscreen() {
+  if (typeof pm5Hud !== "undefined" && pm5Hud && typeof pm5Hud.exitFullscreen === "function") {
+    try {
+      await pm5Hud.exitFullscreen();
+    } catch (e) {}
+  }
+  const isNative = !!(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement
+  );
+  if (isNative) {
+    const efs = document.exitFullscreen ||
+      document.webkitExitFullscreen ||
+      document.mozCancelFullScreen ||
+      document.msExitFullscreen;
+    if (efs) {
+      try {
+        const res = efs.call(document);
+        if (res && res.catch) await res.catch(() => {});
+      } catch (err) {}
+    }
+  }
+  document.body.classList.remove("in-fullscreen");
+  document.documentElement.classList.remove("in-fullscreen");
+  const viewport = document.getElementById("viewport-container");
+  if (viewport) viewport.classList.remove("is-fullscreen");
+}
+
 let currentOriginView = "home";
 
 function switchView(viewName) {
@@ -771,6 +802,7 @@ function switchView(viewName) {
 
   if (viewName !== "cockpit") {
     currentOriginView = viewName;
+    exitAnyFullscreen();
   }
 
   document.body.classList.toggle("in-cockpit", viewName === "cockpit");
@@ -5175,7 +5207,18 @@ function isRowingActive() {
 }
 
 if (hudBackBtn) {
-  hudBackBtn.addEventListener("click", () => {
+  hudBackBtn.addEventListener("click", async () => {
+    // 1. If currently in fullscreen mode (native or CSS), exit fullscreen first
+    const isFs = (typeof pm5Hud !== "undefined" && pm5Hud && typeof pm5Hud.isFullscreen === "function" && pm5Hud.isFullscreen()) ||
+      Boolean(document.fullscreenElement || document.webkitFullscreenElement || document.body.classList.contains("in-fullscreen"));
+
+    if (isFs) {
+      await exitAnyFullscreen();
+      // Allow browser to complete fullscreen exit transition before showing confirmation modal or switching views
+      await new Promise(r => setTimeout(r, 120));
+    }
+
+    // 2. Check if a workout or rowing session is active
     if (isRowingActive()) {
       if (modalExitWorkout) modalExitWorkout.classList.add("open");
     } else {
@@ -5194,6 +5237,7 @@ if (btnCloseExitWorkout) btnCloseExitWorkout.addEventListener("click", closeExit
 if (btnExitSaveWorkout) {
   btnExitSaveWorkout.addEventListener("click", async () => {
     closeExitSafetyModal();
+    await exitAnyFullscreen();
     if (workoutEngine && workoutEngine.isRunning) workoutEngine.stop();
     if (sessionTracker && (sessionTracker.state === "active" || sessionTracker.state === "paused")) {
       await sessionTracker.finish();
@@ -5217,8 +5261,9 @@ if (btnExitSaveWorkout) {
 }
 
 if (btnExitDiscardWorkout) {
-  btnExitDiscardWorkout.addEventListener("click", () => {
+  btnExitDiscardWorkout.addEventListener("click", async () => {
     closeExitSafetyModal();
+    await exitAnyFullscreen();
     if (workoutEngine && workoutEngine.isRunning) workoutEngine.stop();
     if (sessionTracker) {
       sessionTracker.state = "idle";
