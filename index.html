@@ -68,7 +68,10 @@
       <div id="athlete-dropdown-wrapper" style="position: relative;">
         <button id="btn-active-athlete" class="status-pill athlete-pill" type="button" title="Switch Athlete Profile" aria-haspopup="true" aria-expanded="false">
           <span id="athlete-avatar-badge" class="athlete-avatar-badge" style="background-color: #38bdf8;">A</span>
-          <span id="athlete-name-text" class="athlete-name-text">Athlete</span>
+          <div class="athlete-pill-text-group">
+            <span id="athlete-name-text" class="athlete-name-text">Athlete</span>
+            <span id="athlete-level-text" class="athlete-level-text">Ready to Row</span>
+          </div>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 2px; opacity: 0.7;"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div id="athlete-dropdown-menu" class="athlete-dropdown-menu" style="display: none;">
@@ -101,7 +104,7 @@
         <p class="home-hero-subtitle">Select a curated workout card below or embark on a scenic free row.</p>
       </div>
       <div class="home-hero-right">
-        <button id="home-btn-create-card" class="btn btn-primary btn-sm" type="button">
+        <button id="home-btn-create-card-hero" class="btn btn-primary btn-sm btn-create-card-trigger" type="button" style="border-radius: 9999px;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Create Workout Card
         </button>
@@ -112,27 +115,33 @@
     <div class="home-section">
       <div class="home-section-header">
         <div>
-          <h2 class="home-section-title">Quick Workouts</h2>
+          <h2 class="home-section-title">1. Quick Workouts</h2>
           <p class="home-section-subtitle">Paired scenic tracks and target programs ready for 1-tap rowing</p>
         </div>
+        <button id="home-btn-create-card" class="btn btn-secondary btn-sm btn-create-card-trigger" type="button" style="border-radius: 9999px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 4px; vertical-align: -1px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Card
+        </button>
       </div>
       <div id="quick-workouts-container" class="quick-workouts-grid">
         <!-- Rendered dynamically via JS -->
       </div>
+      <div id="quick-workouts-dots" class="carousel-dots"></div>
     </div>
 
     <!-- Free Row Scenic Tracks Section -->
     <div class="home-section" style="margin-top: 2rem;">
       <div class="home-section-header">
         <div>
-          <h2 class="home-section-title">Scenic Free Rows</h2>
+          <h2 class="home-section-title">2. Free Row</h2>
           <p class="home-section-subtitle">Row at your own pace across your offline scenic tracks library</p>
         </div>
-        <button id="home-btn-manage-media" class="btn btn-secondary btn-sm" data-view="media">Browse Media →</button>
+        <button id="home-btn-manage-media" class="btn btn-secondary btn-sm" data-view="media" style="border-radius: 9999px;">Browse Media →</button>
       </div>
       <div id="home-tracks-container" class="home-tracks-grid">
         <!-- Rendered dynamically via JS -->
       </div>
+      <div id="home-tracks-dots" class="carousel-dots"></div>
     </div>
 
     <!-- Recent Activity Preview -->

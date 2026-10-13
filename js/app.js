@@ -847,6 +847,8 @@ function renderQuickWorkouts(cards) {
     `;
     const emptyBtn = document.getElementById("btn-empty-create-card");
     if (emptyBtn) emptyBtn.addEventListener("click", () => openCardBuilderModal());
+    const dots = document.getElementById("quick-workouts-dots");
+    if (dots) dots.innerHTML = "";
     return;
   }
 
@@ -858,26 +860,16 @@ function renderQuickWorkouts(cards) {
     const thumbUrl = videoId ? `/api/media/thumbnail/${videoId}` : "";
     const isFreeRow = !card.workout_id || card.workout_id === "free_row";
 
-    // Track duration calculation
-    let trackDurStr = "";
-    if (track.end_time && track.start_time !== undefined && track.end_time > track.start_time) {
-      trackDurStr = pm5Hud.formatTime(track.end_time - track.start_time);
-    } else if (track.duration) {
-      trackDurStr = pm5Hud.formatTime(track.duration);
-    }
+    // Duration calculation for frosted duration box
+    const durSec = card.estimated_duration_seconds || (workout.estimates && workout.estimates.estimated_duration_seconds) || (track.duration) || 0;
+    const durMins = durSec > 0 ? Math.round(durSec / 60) : 20;
 
-    // Workout details
-    const workoutDifficulty = card.workout_difficulty || workout.difficulty || "Program";
-    let workoutBadgeStr = isFreeRow ? "Free Row" : workoutDifficulty;
-    let workoutMetaStr = "";
-    const durSec = card.estimated_duration_seconds || (workout.estimates && workout.estimates.estimated_duration_seconds) || 0;
-    const stepCount = card.total_steps || workout.step_count || 0;
-
-    if (!isFreeRow && durSec > 0) {
-      const durMins = Math.round(durSec / 60);
-      workoutMetaStr = `~${durMins} min • ${stepCount} steps`;
-    } else if (isFreeRow && trackDurStr) {
-      workoutMetaStr = trackDurStr;
+    // Program tag
+    let programTag = isFreeRow ? "Free Row" : (card.workout_difficulty || workout.difficulty || "Workout");
+    if (card.title && (card.title.toUpperCase().includes("Z2") || card.title.toUpperCase().includes("ENDURANCE"))) {
+      programTag = "Z2 Endurance";
+    } else if (card.title && card.title.toUpperCase().includes("HIIT")) {
+      programTag = "HIIT Interval";
     }
 
     return `
@@ -885,10 +877,14 @@ function renderQuickWorkouts(cards) {
         <div class="quick-workout-thumb-wrapper">
           ${thumbUrl ? `<img src="${thumbUrl}" alt="" class="quick-workout-thumb" onerror="this.style.display='none'">` : ''}
           <div class="quick-workout-thumb-overlay"></div>
-          <div class="quick-workout-badges">
-            <span class="card-badge category">${escapeHtml(trackName)}</span>
-            <span class="card-badge ${isFreeRow ? 'builtin' : 'difficulty'}">${workoutBadgeStr}</span>
+          
+          <div class="quick-card-dur-badge">
+            <span class="dur-number">${durMins}</span>
+            <span class="dur-unit">MIN</span>
           </div>
+
+          <span class="quick-card-track-pill">${escapeHtml(trackName)}</span>
+
           ${!card.is_default ? `
             <div class="quick-card-menu-btns">
               <button type="button" class="quick-card-icon-btn btn-edit-card" data-id="${card.id}" title="Edit Card">✎</button>
@@ -897,21 +893,42 @@ function renderQuickWorkouts(cards) {
           ` : ''}
         </div>
         <div class="quick-workout-body">
+          <span class="quick-workout-program-tag">${escapeHtml(programTag)}</span>
           <h3 class="quick-workout-title">${escapeHtml(card.title)}</h3>
           <p class="quick-workout-desc">${escapeHtml(card.description || (isFreeRow ? "Scenic free row with open pacing." : (card.workout_title || "")))}</p>
-          <div class="quick-workout-meta">
-            ${workoutMetaStr ? `<span>⏱ ${workoutMetaStr}</span>` : ''}
-            <span>🎬 ${escapeHtml(trackName)}</span>
-          </div>
         </div>
         <div class="quick-workout-footer">
-          <button type="button" class="btn btn-primary btn-sm btn-start-quick-card" data-id="${card.id}">
-            ${isFreeRow ? 'Start Free Row →' : 'Start Workout →'}
+          <button type="button" class="btn-mockup-orange btn-start-quick-card" data-id="${card.id}">
+            ${isFreeRow ? 'Start Free Row' : 'Start Workout'}
           </button>
         </div>
       </div>
     `;
   }).join("");
+
+  // Setup carousel dots
+  const dotsContainer = document.getElementById("quick-workouts-dots");
+  if (dotsContainer) {
+    dotsContainer.innerHTML = cards.map((_, i) => `<span class="dot ${i === 0 ? 'active' : ''}" data-idx="${i}"></span>`).join("");
+    dotsContainer.querySelectorAll(".dot").forEach(dot => {
+      dot.addEventListener("click", () => {
+        const idx = parseInt(dot.dataset.idx, 10);
+        const targetCard = container.children[idx];
+        if (targetCard) {
+          targetCard.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+        }
+      });
+    });
+
+    container.onscroll = () => {
+      const scrollPos = container.scrollLeft;
+      const cardWidth = container.firstElementChild ? container.firstElementChild.offsetWidth + 16 : 280;
+      const activeIndex = Math.min(Math.round(scrollPos / cardWidth), cards.length - 1);
+      dotsContainer.querySelectorAll(".dot").forEach((dot, idx) => {
+        dot.classList.toggle("active", idx === activeIndex);
+      });
+    };
+  }
 
   // Attach card event listeners
   container.querySelectorAll(".btn-start-quick-card").forEach(btn => {
@@ -971,6 +988,8 @@ function renderHomeTracks(tracks) {
         <button type="button" class="btn btn-secondary btn-sm" onclick="switchView('media')">Go to Media Center →</button>
       </div>
     `;
+    const dots = document.getElementById("home-tracks-dots");
+    if (dots) dots.innerHTML = "";
     return;
   }
 
@@ -979,6 +998,8 @@ function renderHomeTracks(tracks) {
     let durStr = "";
     if (t.end_time && t.start_time !== undefined && t.end_time > t.start_time) {
       durStr = pm5Hud.formatTime(t.end_time - t.start_time);
+    } else if (t.duration) {
+      durStr = pm5Hud.formatTime(t.duration);
     }
 
     return `
@@ -990,16 +1011,39 @@ function renderHomeTracks(tracks) {
         </div>
         <div class="home-track-body">
           <h4 class="home-track-title">${escapeHtml(t.name)}</h4>
-          <p class="home-track-sub">${t.fixed_speed ? 'Steady 1.0× Ambient Video' : 'Dynamic Speed Modulation'}</p>
+          <p class="home-track-sub">${t.fixed_speed ? 'Steady Ambient Video' : 'Dynamic Speed Modulation'}</p>
         </div>
         <div class="home-track-footer">
-          <button type="button" class="btn btn-secondary btn-sm btn-start-home-track" data-id="${t.id}">
-            Free Row →
+          <button type="button" class="btn-mockup-orange btn-start-home-track" data-id="${t.id}">
+            Free Row
           </button>
         </div>
       </div>
     `;
   }).join("");
+
+  const trackDots = document.getElementById("home-tracks-dots");
+  if (trackDots) {
+    trackDots.innerHTML = tracks.map((_, i) => `<span class="dot ${i === 0 ? 'active' : ''}" data-idx="${i}"></span>`).join("");
+    trackDots.querySelectorAll(".dot").forEach(dot => {
+      dot.addEventListener("click", () => {
+        const idx = parseInt(dot.dataset.idx, 10);
+        const targetCard = container.children[idx];
+        if (targetCard) {
+          targetCard.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+        }
+      });
+    });
+
+    container.onscroll = () => {
+      const scrollPos = container.scrollLeft;
+      const cardWidth = container.firstElementChild ? container.firstElementChild.offsetWidth + 16 : 240;
+      const activeIndex = Math.min(Math.round(scrollPos / cardWidth), tracks.length - 1);
+      trackDots.querySelectorAll(".dot").forEach((dot, idx) => {
+        dot.classList.toggle("active", idx === activeIndex);
+      });
+    };
+  }
 
   container.querySelectorAll(".btn-start-home-track").forEach(btn => {
     btn.addEventListener("click", (e) => {
@@ -4236,8 +4280,16 @@ function renderAthleteHeaderDropdown() {
       avatarBadge.style.backgroundColor = targetColor;
     }
   }
-  if (nameText && nameText.textContent !== (p.name || "Athlete")) {
-    nameText.textContent = p.name || "Athlete";
+  if (nameText) {
+    nameText.textContent = (p.name || "Athlete").toUpperCase();
+  }
+  const levelText = document.getElementById("athlete-level-text");
+  if (levelText) {
+    levelText.textContent = "Ready to Row";
+  }
+  const homeAthleteName = document.getElementById("home-athlete-name");
+  if (homeAthleteName) {
+    homeAthleteName.textContent = p.name || "Athlete";
   }
 
   const btnActive = document.getElementById("btn-active-athlete");
