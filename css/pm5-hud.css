@@ -2108,17 +2108,17 @@ body.in-fullscreen .app-header {
     flex-shrink: 1;
     min-width: 0;
   }
-  .nav-btn,
-  [data-theme="cyberpunk"] .nav-btn,
-  [data-theme="retro-pm5"] .nav-btn,
-  [data-theme="nordic"] .nav-btn {
+  .app-header .nav-btn,
+  [data-theme="cyberpunk"] .app-header .nav-btn,
+  [data-theme="retro-pm5"] .app-header .nav-btn,
+  [data-theme="nordic"] .app-header .nav-btn {
     padding: 0.28rem clamp(0.2rem, 0.8vw, 0.45rem) !important;
     font-size: clamp(0.68rem, 1.6vw, 0.78rem) !important;
     gap: 0.2rem;
     letter-spacing: 0.01em !important;
     white-space: nowrap !important;
   }
-  .nav-btn svg {
+  .app-header .nav-btn svg {
     width: 14px;
     height: 14px;
     flex-shrink: 0;
@@ -2156,10 +2156,10 @@ body.in-fullscreen .app-header {
   .nav-links {
     gap: clamp(0.1rem, 0.6vw, 0.22rem);
   }
-  .nav-btn,
-  [data-theme="cyberpunk"] .nav-btn,
-  [data-theme="retro-pm5"] .nav-btn,
-  [data-theme="nordic"] .nav-btn {
+  .app-header .nav-btn,
+  [data-theme="cyberpunk"] .app-header .nav-btn,
+  [data-theme="retro-pm5"] .app-header .nav-btn,
+  [data-theme="nordic"] .app-header .nav-btn {
     padding: 0.26rem clamp(0.18rem, 0.7vw, 0.38rem) !important;
     font-size: clamp(0.64rem, 1.5vw, 0.72rem) !important;
   }
@@ -2171,16 +2171,16 @@ body.in-fullscreen .app-header {
     padding-left: max(0.25rem, env(safe-area-inset-left));
     padding-right: max(0.25rem, env(safe-area-inset-right));
   }
-  .nav-btn span {
+  .app-header .nav-btn span {
     display: none;
   }
-  .nav-btn,
-  [data-theme="cyberpunk"] .nav-btn,
-  [data-theme="retro-pm5"] .nav-btn,
-  [data-theme="nordic"] .nav-btn {
+  .app-header .nav-btn,
+  [data-theme="cyberpunk"] .app-header .nav-btn,
+  [data-theme="retro-pm5"] .app-header .nav-btn,
+  [data-theme="nordic"] .app-header .nav-btn {
     padding: 0.32rem 0.42rem !important;
   }
-  .nav-btn svg {
+  .app-header .nav-btn svg {
     width: 15px;
     height: 15px;
     margin: 0;
@@ -2229,10 +2229,10 @@ body.in-fullscreen .app-header {
     min-width: 0;
   }
 
-  .nav-btn,
-  [data-theme="cyberpunk"] .nav-btn,
-  [data-theme="retro-pm5"] .nav-btn,
-  [data-theme="nordic"] .nav-btn {
+  .app-header .nav-btn,
+  [data-theme="cyberpunk"] .app-header .nav-btn,
+  [data-theme="retro-pm5"] .app-header .nav-btn,
+  [data-theme="nordic"] .app-header .nav-btn {
     padding: 0.22rem clamp(0.25rem, 0.6vw, 0.45rem) !important;
     font-size: 0.72rem !important;
     gap: 0.22rem;
@@ -2240,7 +2240,7 @@ body.in-fullscreen .app-header {
     white-space: nowrap !important;
   }
 
-  .nav-btn svg {
+  .app-header .nav-btn svg {
     width: 13px !important;
     height: 13px !important;
     flex-shrink: 0;
@@ -2472,11 +2472,12 @@ body.in-fullscreen .app-header {
    Ensures video overlay metrics fit inside 16:9 container without wrapping/clipping
    -------------------------------------------------------------------------- */
 @media (max-width: 640px) and (orientation: portrait), (max-width: 500px) {
-  .cockpit-view {
-    padding-top: max(0.5rem, env(safe-area-inset-top)) !important;
-    padding-right: max(0.35rem, env(safe-area-inset-right)) !important;
-    padding-bottom: max(0.5rem, env(safe-area-inset-bottom)) !important;
-    padding-left: max(0.35rem, env(safe-area-inset-left)) !important;
+  .cockpit-view,
+  body.in-cockpit .cockpit-view {
+    padding-top: max(env(safe-area-inset-top, 0px), 54px) !important;
+    padding-right: max(0.35rem, env(safe-area-inset-right, 0px)) !important;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: max(0.35rem, env(safe-area-inset-left, 0px)) !important;
   }
 
   .scenic-viewport-container {
@@ -2484,7 +2485,7 @@ body.in-fullscreen .app-header {
   }
 
   .scenic-viewport-container:not(.is-fullscreen) {
-    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 1rem);
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1rem);
   }
 
   .pm5-hud-overlay {
@@ -2492,20 +2493,21 @@ body.in-fullscreen .app-header {
   }
 
   .scenic-viewport-container.is-fullscreen .pm5-hud-overlay {
-    padding-top: max(0.75rem, env(safe-area-inset-top)) !important;
-    padding-right: max(0.75rem, env(safe-area-inset-right)) !important;
-    padding-bottom: max(0.75rem, env(safe-area-inset-bottom)) !important;
-    padding-left: max(0.75rem, env(safe-area-inset-left)) !important;
+    padding-top: max(env(safe-area-inset-top, 0px), 54px) !important;
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
   }
 
   .hud-cockpit-bar {
     gap: 0.35rem !important;
-    min-height: 38px !important;
+    min-height: 42px !important;
   }
 
   .hud-back-btn {
-    padding: 6px 10px !important;
-    font-size: 0.8rem !important;
+    padding: 8px 12px !important;
+    font-size: 0.82rem !important;
+    min-height: 38px !important;
   }
 
   .hud-active-workout-badge {
@@ -3740,6 +3742,37 @@ body.in-fullscreen .app-header {
   letter-spacing: 0.02em;
 }
 
+[data-theme="cyberpunk"] .mobile-bottom-nav {
+  background: rgba(10, 15, 29, 0.94) !important;
+  border: 1px solid rgba(0, 240, 255, 0.3) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 240, 255, 0.15) !important;
+}
+
+[data-theme="cyberpunk"] .mobile-bottom-nav .nav-btn.active::before {
+  background: #00f0ff !important;
+  box-shadow: 0 0 12px #00f0ff, 0 0 4px #00f0ff !important;
+}
+
+[data-theme="cyberpunk"] .mobile-bottom-nav .nav-btn.active {
+  color: #00f0ff !important;
+}
+
+[data-theme="cyberpunk"] .mobile-bottom-nav .nav-btn.active svg {
+  color: #00f0ff !important;
+  stroke: #00f0ff !important;
+  filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.85)) !important;
+}
+
+[data-theme="cyberpunk"] .mobile-bottom-nav .nav-btn.active svg[fill="currentColor"],
+[data-theme="cyberpunk"] .mobile-bottom-nav .nav-btn.active svg path[fill="currentColor"] {
+  fill: #00f0ff !important;
+}
+
+[data-theme="cyberpunk"] .mobile-bottom-nav .nav-btn.active span {
+  color: #00f0ff !important;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.6) !important;
+}
+
 /* --------------------------------------------------------------------------
    THEME 2: Retro Concept2 PM5 Monochrome LCD (Compact Sleek HUD)
    -------------------------------------------------------------------------- */
@@ -4149,6 +4182,38 @@ body.in-fullscreen .app-header {
 
 [data-theme="retro-pm5"] .sessions-table tr.selected td {
   background: rgba(184, 245, 114, 0.12) !important;
+}
+
+[data-theme="retro-pm5"] .mobile-bottom-nav {
+  background: rgba(18, 26, 18, 0.96) !important;
+  border: 1px solid rgba(74, 222, 128, 0.3) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 12px rgba(74, 222, 128, 0.15) !important;
+}
+
+[data-theme="retro-pm5"] .mobile-bottom-nav .nav-btn.active::before {
+  background: #4ade80 !important;
+  box-shadow: 0 0 10px #4ade80 !important;
+}
+
+[data-theme="retro-pm5"] .mobile-bottom-nav .nav-btn.active {
+  color: #4ade80 !important;
+}
+
+[data-theme="retro-pm5"] .mobile-bottom-nav .nav-btn.active svg {
+  color: #4ade80 !important;
+  stroke: #4ade80 !important;
+  filter: drop-shadow(0 0 6px rgba(74, 222, 128, 0.8)) !important;
+}
+
+[data-theme="retro-pm5"] .mobile-bottom-nav .nav-btn.active svg[fill="currentColor"],
+[data-theme="retro-pm5"] .mobile-bottom-nav .nav-btn.active svg path[fill="currentColor"] {
+  fill: #4ade80 !important;
+}
+
+[data-theme="retro-pm5"] .mobile-bottom-nav .nav-btn.active span {
+  color: #4ade80 !important;
+  text-shadow: 0 0 6px rgba(74, 222, 128, 0.5) !important;
+  font-family: var(--font-mono) !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -5016,6 +5081,262 @@ body[data-theme="nordic"],
 [data-theme="nordic"] #modal-audio-preview-bar {
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
+}
+
+/* Nordic Minimalist: Home Dashboard, Cards & Floating Bottom Navigation Dock */
+[data-theme="nordic"] .view-home {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme="nordic"] .home-section-title {
+  color: #0f172a !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="nordic"] .home-section-subtitle {
+  color: #64748b !important;
+}
+
+[data-theme="nordic"] .home-hero-banner {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(241, 245, 249, 0.95) 100%) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05) !important;
+}
+
+[data-theme="nordic"] .home-hero-badge {
+  background: #e0f2fe !important;
+  color: #0284c7 !important;
+  border: 1px solid #bae6fd !important;
+}
+
+[data-theme="nordic"] .home-hero-title {
+  color: #0f172a !important;
+  font-family: 'Outfit', sans-serif !important;
+}
+
+[data-theme="nordic"] .home-hero-title span {
+  color: #0284c7 !important;
+}
+
+[data-theme="nordic"] .home-hero-subtitle {
+  color: #64748b !important;
+}
+
+/* 1. Quick Workouts Cards in Nordic */
+[data-theme="nordic"] .quick-workout-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="nordic"] .quick-workout-card:hover {
+  transform: translateY(-4px);
+  border-color: #0284c7 !important;
+  box-shadow: 0 14px 32px rgba(2, 132, 199, 0.15) !important;
+}
+
+[data-theme="nordic"] .quick-workout-thumb-wrapper {
+  background: #f1f5f9 !important;
+}
+
+[data-theme="nordic"] .quick-workout-title {
+  color: #0f172a !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="nordic"] .quick-workout-desc {
+  color: #475569 !important;
+}
+
+[data-theme="nordic"] .quick-workout-meta {
+  color: #64748b !important;
+}
+
+[data-theme="nordic"] .quick-workout-program-tag {
+  background: #e0f2fe !important;
+  color: #0284c7 !important;
+  border: 1px solid #bae6fd !important;
+}
+
+[data-theme="nordic"] .quick-card-dur-badge {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="nordic"] .quick-card-dur-badge .dur-number {
+  color: #0f172a !important;
+}
+
+[data-theme="nordic"] .quick-card-dur-badge .dur-unit {
+  color: #64748b !important;
+}
+
+[data-theme="nordic"] .quick-card-track-pill {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #1e293b !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="nordic"] .quick-card-icon-btn {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+[data-theme="nordic"] .quick-card-icon-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* 2. Free Row Scenic Track Cards in Nordic */
+[data-theme="nordic"] .home-track-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="nordic"] .home-track-card:hover {
+  transform: translateY(-3px);
+  border-color: #0284c7 !important;
+  box-shadow: 0 14px 32px rgba(2, 132, 199, 0.15) !important;
+}
+
+[data-theme="nordic"] .home-track-thumb-wrapper {
+  background: #f1f5f9 !important;
+}
+
+[data-theme="nordic"] .home-track-title {
+  color: #0f172a !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="nordic"] .home-track-sub {
+  color: #64748b !important;
+}
+
+[data-theme="nordic"] .home-track-dur-badge {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* 3. Carousel Dots in Nordic */
+[data-theme="nordic"] .carousel-dots .dot {
+  background: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="nordic"] .carousel-dots .dot.active {
+  background: #0284c7 !important;
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.4) !important;
+}
+
+/* 4. Recent Activity Items in Nordic */
+[data-theme="nordic"] #home-recent-activity > div > div {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* 5. HUD Top Row Header in Cockpit (Nordic) */
+[data-theme="nordic"] .hud-back-btn {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="nordic"] .hud-back-btn:hover {
+  background: #f1f5f9 !important;
+  border-color: #0284c7 !important;
+  color: #0284c7 !important;
+}
+
+[data-theme="nordic"] .hud-active-workout-badge {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 6. Floating Bottom Navigation Dock in Nordic */
+[data-theme="nordic"] .mobile-bottom-nav {
+  background: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn {
+  color: #64748b !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn svg {
+  color: #64748b !important;
+  stroke: #64748b !important;
+}
+
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn svg[fill="currentColor"],
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn svg path[fill="currentColor"] {
+  fill: #64748b !important;
+}
+
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn span {
+  color: #64748b !important;
+}
+
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn:hover {
+  color: #0f172a !important;
+}
+
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn:hover svg {
+  color: #0f172a !important;
+  stroke: #0f172a !important;
+}
+
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn:hover span {
+  color: #0f172a !important;
+}
+
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn.active {
+  color: #0284c7 !important;
+  background: rgba(2, 132, 199, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn.active::before {
+  background: #0284c7 !important;
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.6) !important;
+}
+
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn.active svg {
+  color: #0284c7 !important;
+  stroke: #0284c7 !important;
+  filter: drop-shadow(0 2px 6px rgba(2, 132, 199, 0.4)) !important;
+}
+
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn.active svg[fill="currentColor"],
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn.active svg path[fill="currentColor"] {
+  fill: #0284c7 !important;
+}
+
+[data-theme="nordic"] .mobile-bottom-nav .nav-btn.active span {
+  color: #0284c7 !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
 }
 
 /* ----------------- Mobile / Touch / iPad Performance Optimizations ----------------- */
@@ -6530,7 +6851,7 @@ body[data-theme="nordic"],
   gap: 3px;
   background: transparent;
   border: none;
-  padding: 8px 12px;
+  padding: 6px 8px;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -6540,8 +6861,11 @@ body[data-theme="nordic"],
 }
 
 .mobile-bottom-nav .nav-btn svg {
+  width: 22px !important;
+  height: 22px !important;
   color: #94a3b8;
   stroke: currentColor;
+  flex-shrink: 0 !important;
   transition: all 0.2s ease;
 }
 
@@ -6550,12 +6874,15 @@ body[data-theme="nordic"],
 }
 
 .mobile-bottom-nav .nav-btn span {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  display: block !important;
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
   color: #94a3b8;
-  margin-top: 2px;
+  margin-top: 2px !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
   transition: all 0.2s ease;
 }
 
@@ -6609,7 +6936,7 @@ body[data-theme="nordic"],
 }
 
 body:not(.in-cockpit) {
-  padding-bottom: calc(85px + env(safe-area-inset-bottom)) !important;
+  padding-bottom: calc(85px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 @media (max-width: 768px) {
@@ -6623,10 +6950,20 @@ body:not(.in-cockpit) {
     right: 0 !important;
     width: 100% !important;
     transform: none !important;
-    border-radius: 24px 24px 0 0 !important;
+    border-radius: 20px 20px 0 0 !important;
     border-bottom: none !important;
-    height: calc(62px + env(safe-area-inset-bottom)) !important;
-    padding-bottom: env(safe-area-inset-bottom) !important;
+    height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 6px) !important;
+  }
+
+  .mobile-bottom-nav .nav-btn svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .mobile-bottom-nav .nav-btn span {
+    display: block !important;
+    font-size: 0.64rem !important;
   }
 }
 
@@ -6645,10 +6982,16 @@ body.in-cockpit {
 }
 
 body.in-cockpit .cockpit-view {
-  padding-top: max(0.5rem, env(safe-area-inset-top));
-  padding-right: max(0.35rem, env(safe-area-inset-right));
-  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
-  padding-left: max(0.35rem, env(safe-area-inset-left));
+  padding-top: max(env(safe-area-inset-top, 0px), 54px) !important;
+  padding-right: max(0.35rem, env(safe-area-inset-right, 0px));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(0.35rem, env(safe-area-inset-left, 0px));
+}
+
+@media (min-width: 769px) {
+  body.in-cockpit .cockpit-view {
+    padding-top: 1rem !important;
+  }
 }
 
 /* ----------------- Home View Styling ----------------- */
