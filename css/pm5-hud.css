@@ -40,9 +40,9 @@ body {
 .app-header {
   min-height: calc(60px + env(safe-area-inset-top));
   height: calc(60px + env(safe-area-inset-top));
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: #0f172a;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-bottom: 1px solid var(--surface-border);
   display: flex;
   align-items: center;
@@ -2472,24 +2472,36 @@ body.in-fullscreen .app-header {
    Ensures video overlay metrics fit inside 16:9 container without wrapping/clipping
    -------------------------------------------------------------------------- */
 @media (max-width: 640px) and (orientation: portrait), (max-width: 500px) {
-  .cockpit-view,
-  body.in-cockpit .cockpit-view {
-    padding-top: max(env(safe-area-inset-top, 0px), 54px) !important;
-    padding-right: max(0.35rem, env(safe-area-inset-right, 0px)) !important;
-    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px)) !important;
-    padding-left: max(0.35rem, env(safe-area-inset-left, 0px)) !important;
+  body.in-cockpit {
+    background: #000000 !important;
+    background-color: #000000 !important;
   }
 
-  .scenic-viewport-container {
-    border-radius: 8px;
+  .cockpit-view,
+  body.in-cockpit .cockpit-view {
+    padding-top: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+  }
+
+  body.in-cockpit .scenic-viewport-container {
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    border-radius: 0 0 10px 10px !important;
+    margin-top: 0 !important;
   }
 
   .scenic-viewport-container:not(.is-fullscreen) {
-    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1rem);
+    max-height: calc(100dvh - env(safe-area-inset-bottom, 0px) - 1rem);
   }
 
-  .pm5-hud-overlay {
-    padding: 0.45rem;
+  body.in-cockpit .pm5-hud-overlay {
+    padding-top: max(env(safe-area-inset-top, 0px), 54px) !important;
+    padding-right: max(0.45rem, env(safe-area-inset-right, 0px)) !important;
+    padding-bottom: 0.45rem !important;
+    padding-left: max(0.45rem, env(safe-area-inset-left, 0px)) !important;
   }
 
   .scenic-viewport-container.is-fullscreen .pm5-hud-overlay {
@@ -4533,11 +4545,11 @@ body[data-theme="nordic"],
    Nordic Minimalist Surrounding Website Controls (Bright & Clean)
    -------------------------------------------------------------------------- */
 [data-theme="nordic"] .app-header {
-  background: rgba(255, 255, 255, 0.94) !important;
-  backdrop-filter: blur(28px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   border-bottom: 1px solid #e2e8f0 !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04) !important;
 }
 
 [data-theme="nordic"] .brand {
@@ -7014,17 +7026,39 @@ body.in-cockpit .app-header {
 body.in-cockpit {
   padding-bottom: 0 !important;
   overflow: hidden !important;
+  background: #000000 !important;
+  background-color: #000000 !important;
 }
 
 body.in-cockpit .cockpit-view {
-  padding-top: max(env(safe-area-inset-top, 0px), 54px) !important;
-  padding-right: max(0.35rem, env(safe-area-inset-right, 0px));
+  padding-top: 0 !important;
+  padding-right: 0 !important;
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
-  padding-left: max(0.35rem, env(safe-area-inset-left, 0px));
+  padding-left: 0 !important;
+}
+
+body.in-cockpit .scenic-viewport-container {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+body.in-cockpit .pm5-hud-overlay {
+  padding-top: max(env(safe-area-inset-top, 0px), 54px) !important;
+  padding-right: max(0.45rem, env(safe-area-inset-right, 0px)) !important;
+  padding-bottom: max(0.45rem, env(safe-area-inset-bottom, 0px)) !important;
+  padding-left: max(0.45rem, env(safe-area-inset-left, 0px)) !important;
 }
 
 @media (min-width: 769px) {
   body.in-cockpit .cockpit-view {
+    padding-top: 1rem !important;
+    padding-right: 1rem !important;
+    padding-left: 1rem !important;
+  }
+  body.in-cockpit .scenic-viewport-container {
+    border-radius: 12px !important;
+  }
+  body.in-cockpit .pm5-hud-overlay {
     padding-top: 1rem !important;
   }
 }

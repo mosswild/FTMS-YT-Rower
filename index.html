@@ -17,14 +17,43 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=ui-overhaul-v69">
+  <meta name="theme-color" id="meta-theme-color" content="#ffffff">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=ui-overhaul-v70">
   <script>
     (function() {
       try {
         const theme = localStorage.getItem("ftms_hud_theme");
         if (theme && theme !== "default") document.documentElement.setAttribute("data-theme", theme);
+        const meta = document.getElementById("meta-theme-color");
+        if (meta) meta.content = (theme === "nordic" ? "#ffffff" : "#0f172a");
       } catch (e) {}
     })();
+
+    // iOS WebKit PWA top blur clearing trigger
+    function clearIosPwaTopBlur() {
+      try {
+        const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent) || 
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isStandalone = window.navigator.standalone === true || 
+          window.matchMedia('(display-mode: standalone)').matches;
+        if (!isIos || !isStandalone) return;
+
+        const panel = document.createElement('div');
+        panel.style.cssText = 'position:fixed;top:0;right:0;bottom:0;width:50%;z-index:999999;background:transparent;transform:translateX(105%);transition:transform 0.12s ease-out;pointer-events:none;';
+        document.body.appendChild(panel);
+        requestAnimationFrame(() => {
+          panel.style.transform = 'translateX(0%)';
+          setTimeout(() => {
+            panel.style.transform = 'translateX(105%)';
+            setTimeout(() => {
+              try { panel.remove(); } catch (e) {}
+            }, 150);
+          }, 60);
+        });
+      } catch (e) {}
+    }
+    window.addEventListener('load', clearIosPwaTopBlur);
+    window.addEventListener('pageshow', clearIosPwaTopBlur);
   </script>
 </head>
 <body>
