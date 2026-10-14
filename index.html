@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
   <meta name="theme-color" id="meta-theme-color" content="#ffffff">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=ui-overhaul-v73">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=ui-overhaul-v74">
   <script>
     (function() {
       try {
@@ -154,26 +154,9 @@
 
   <!-- VIEW 1: COCKPIT -->
   <main id="view-cockpit" class="cockpit-view" style="display: none;">
-    <!-- Ambient Mobile Cockpit Top Status Ribbon (Adds visual interest above the video on portrait screens) -->
-    <div class="cockpit-top-ribbon">
-      <div class="cockpit-ribbon-left">
-        <svg class="cockpit-ribbon-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <circle cx="12" cy="5" r="2.5"/>
-          <path d="M4 17l4-2 4 1 4-3 4 1"/>
-          <path d="M12 7.5v6l3 2"/>
-        </svg>
-        <span class="cockpit-ribbon-brand">FTMS HUD</span>
-      </div>
-      <div class="cockpit-ribbon-center">
-        <svg class="cockpit-pulse-wave" width="84" height="16" viewBox="0 0 84 16" fill="none">
-          <path class="pulse-line" d="M0 8h24l4-6 5 12 4-8 3 4 5-2h39" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle class="pulse-dot" cx="37" cy="8" r="2.2" fill="currentColor"/>
-        </svg>
-      </div>
-      <div class="cockpit-ribbon-right">
-        <span class="ribbon-live-dot"></span>
-        <span class="cockpit-ribbon-status">TELEMETRY LIVE</span>
-      </div>
+    <!-- Mobile Portrait Cockpit Top Gradient Canopy / Color Block -->
+    <div class="cockpit-top-banner" aria-hidden="true">
+      <img src="icon-192.png" alt="" class="cockpit-banner-logo">
     </div>
 
     <div id="viewport-container" class="scenic-viewport-container">
