@@ -828,10 +828,6 @@ function switchView(viewName) {
     }
   }
 
-  if (typeof clearIosPwaTopBlur === "function") {
-    clearIosPwaTopBlur();
-  }
-
   if (viewName === "profiles") {
     loadProfilesUI();
   } else if (viewName === "home") {
@@ -5184,10 +5180,6 @@ function applyTheme(themeId) {
     } else {
       metaTheme.content = themeId === "nordic" ? "#ffffff" : "#0f172a";
     }
-  }
-
-  if (typeof clearIosPwaTopBlur === "function") {
-    clearIosPwaTopBlur();
   }
 
   // Update active state in settings modal

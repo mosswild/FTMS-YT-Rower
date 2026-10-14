@@ -2084,10 +2084,10 @@ body.in-fullscreen .app-header {
 /* Mobile App Header (iPhone, Android, 768px and below) */
 @media (max-width: 768px) {
   .app-header {
-    min-height: calc(50px + env(safe-area-inset-top));
-    height: calc(50px + env(safe-area-inset-top));
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: 0;
+    min-height: calc(52px + max(env(safe-area-inset-top, 0px), 50px)) !important;
+    height: auto !important;
+    padding-top: max(env(safe-area-inset-top, 0px), 50px) !important;
+    padding-bottom: 6px !important;
     padding-left: max(0.4rem, env(safe-area-inset-left));
     padding-right: max(0.4rem, env(safe-area-inset-right));
     max-width: 100vw;
@@ -2472,36 +2472,24 @@ body.in-fullscreen .app-header {
    Ensures video overlay metrics fit inside 16:9 container without wrapping/clipping
    -------------------------------------------------------------------------- */
 @media (max-width: 640px) and (orientation: portrait), (max-width: 500px) {
-  body.in-cockpit {
-    background: #000000 !important;
-    background-color: #000000 !important;
-  }
-
   .cockpit-view,
   body.in-cockpit .cockpit-view {
-    padding-top: 0 !important;
-    padding-right: 0 !important;
+    padding-top: max(env(safe-area-inset-top, 0px), 54px) !important;
+    padding-right: max(0.35rem, env(safe-area-inset-right, 0px)) !important;
     padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px)) !important;
-    padding-left: 0 !important;
-    width: 100% !important;
+    padding-left: max(0.35rem, env(safe-area-inset-left, 0px)) !important;
   }
 
-  body.in-cockpit .scenic-viewport-container {
-    border-top-left-radius: 0 !important;
-    border-top-right-radius: 0 !important;
-    border-radius: 0 0 10px 10px !important;
-    margin-top: 0 !important;
+  .scenic-viewport-container {
+    border-radius: 8px;
   }
 
   .scenic-viewport-container:not(.is-fullscreen) {
-    max-height: calc(100dvh - env(safe-area-inset-bottom, 0px) - 1rem);
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1rem);
   }
 
-  body.in-cockpit .pm5-hud-overlay {
-    padding-top: max(env(safe-area-inset-top, 0px), 54px) !important;
-    padding-right: max(0.45rem, env(safe-area-inset-right, 0px)) !important;
-    padding-bottom: 0.45rem !important;
-    padding-left: max(0.45rem, env(safe-area-inset-left, 0px)) !important;
+  .pm5-hud-overlay {
+    padding: 0.45rem;
   }
 
   .scenic-viewport-container.is-fullscreen .pm5-hud-overlay {
@@ -7031,22 +7019,14 @@ body.in-cockpit {
 }
 
 body.in-cockpit .cockpit-view {
-  padding-top: 0 !important;
-  padding-right: 0 !important;
+  padding-top: max(env(safe-area-inset-top, 0px), 54px) !important;
+  padding-right: max(0.35rem, env(safe-area-inset-right, 0px));
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
-  padding-left: 0 !important;
-}
-
-body.in-cockpit .scenic-viewport-container {
-  border-top-left-radius: 0 !important;
-  border-top-right-radius: 0 !important;
+  padding-left: max(0.35rem, env(safe-area-inset-left, 0px));
 }
 
 body.in-cockpit .pm5-hud-overlay {
-  padding-top: max(env(safe-area-inset-top, 0px), 54px) !important;
-  padding-right: max(0.45rem, env(safe-area-inset-right, 0px)) !important;
-  padding-bottom: max(0.45rem, env(safe-area-inset-bottom, 0px)) !important;
-  padding-left: max(0.45rem, env(safe-area-inset-left, 0px)) !important;
+  padding: 0.45rem !important;
 }
 
 @media (min-width: 769px) {
