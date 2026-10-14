@@ -40,11 +40,10 @@ body {
 .app-header {
   min-height: calc(60px + env(safe-area-inset-top));
   height: calc(60px + env(safe-area-inset-top));
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0284c7 100%);
+  background: #0f172a;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.25);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  border-bottom: 1px solid var(--surface-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4534,50 +4533,50 @@ body[data-theme="nordic"],
    Nordic Minimalist Surrounding Website Controls (Bright & Clean)
    -------------------------------------------------------------------------- */
 [data-theme="nordic"] .app-header {
-  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #38bdf8 100%) !important;
+  background: #ffffff !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.35) !important;
-  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.25) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04) !important;
 }
 
-[data-theme="nordic"] .app-header .brand {
+[data-theme="nordic"] .brand {
   font-family: 'Outfit', sans-serif !important;
   font-weight: 700 !important;
   letter-spacing: -0.01em;
-  color: #ffffff !important;
+  color: #0f172a !important;
 }
 
-[data-theme="nordic"] .app-header .brand-icon {
-  color: #ffffff !important;
+[data-theme="nordic"] .brand-icon {
+  color: #0284c7 !important;
 }
 
-[data-theme="nordic"] .app-header .nav-btn {
+[data-theme="nordic"] .nav-btn {
   font-family: 'Outfit', sans-serif !important;
   font-weight: 500 !important;
-  color: rgba(255, 255, 255, 0.92) !important;
+  color: #475569 !important;
   border-radius: 20px !important;
   padding: 0.45rem 1rem !important;
   background: transparent !important;
   border: 1px solid transparent !important;
 }
 
-[data-theme="nordic"] .app-header .nav-btn:hover {
-  background: rgba(255, 255, 255, 0.22) !important;
-  color: #ffffff !important;
+[data-theme="nordic"] .nav-btn:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
 }
 
-[data-theme="nordic"] .app-header .nav-btn.active {
-  background: #ffffff !important;
-  border-color: #ffffff !important;
-  color: #0284c7 !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
+[data-theme="nordic"] .nav-btn.active {
+  background: #0284c7 !important;
+  border-color: #0284c7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3) !important;
 }
 
 [data-theme="nordic"] .athlete-pill {
-  background: rgba(255, 255, 255, 0.92) !important;
-  border: 1px solid rgba(255, 255, 255, 0.6) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
 }
 
 [data-theme="nordic"] .athlete-pill .athlete-name-text {
@@ -6795,7 +6794,10 @@ body[data-theme="nordic"],
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    height: calc(56px + env(safe-area-inset-top)) !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
     padding-left: max(0.6rem, env(safe-area-inset-left)) !important;
     padding-right: max(0.6rem, env(safe-area-inset-right)) !important;
     gap: 0.4rem !important;
@@ -7058,9 +7060,55 @@ body.in-cockpit .pm5-hud-overlay {
   }
 }
 
-/* ----------------- Mobile Portrait Cockpit Top Gradient Canopy ----------------- */
+/* ----------------- Global Mobile Top Gradient Canopy ----------------- */
+.app-top-color-banner,
 .cockpit-top-banner {
   display: none;
+}
+
+body.in-cockpit .app-top-color-banner {
+  display: none !important;
+}
+
+@media (max-width: 768px), (orientation: portrait) and (max-width: 900px) {
+  .app-top-color-banner {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    width: 100%;
+    margin: 0;
+    margin-bottom: 0;
+    padding-top: max(env(safe-area-inset-top, 0px), 8px);
+    padding-bottom: 8px;
+    min-height: calc(44px + max(env(safe-area-inset-top, 0px), 8px));
+    box-sizing: border-box;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0284c7 100%);
+    border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    user-select: none;
+    position: relative;
+    z-index: 101;
+  }
+
+  .app-banner-logo {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    display: block;
+  }
+
+  .app-banner-title {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  }
 }
 
 @media (max-width: 640px) and (orientation: portrait), (max-width: 500px) {
@@ -7111,33 +7159,39 @@ body.in-cockpit .pm5-hud-overlay {
   }
 }
 
-/* Theme overrides for .cockpit-top-banner */
+/* Theme overrides for top banners */
+[data-theme="nordic"] .app-top-color-banner,
 [data-theme="nordic"] .cockpit-top-banner {
   background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #38bdf8 100%) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.35) !important;
   box-shadow: 0 4px 16px rgba(2, 132, 199, 0.25) !important;
 }
 
+[data-theme="nordic"] .app-banner-title,
 [data-theme="nordic"] .cockpit-banner-title {
   color: #ffffff !important;
 }
 
+[data-theme="cyberpunk"] .app-top-color-banner,
 [data-theme="cyberpunk"] .cockpit-top-banner {
   background: linear-gradient(135deg, #ff007f 0%, #7928ca 50%, #00f0ff 100%) !important;
   border-bottom: 1px solid #ff007f !important;
   box-shadow: 0 4px 20px rgba(255, 0, 127, 0.4) !important;
 }
 
+[data-theme="cyberpunk"] .app-banner-title,
 [data-theme="cyberpunk"] .cockpit-banner-title {
   color: #ffffff !important;
 }
 
+[data-theme="retro-pm5"] .app-top-color-banner,
 [data-theme="retro-pm5"] .cockpit-top-banner {
   background: linear-gradient(180deg, #1f271f 0%, #2b332b 100%) !important;
   border-bottom: 1px solid #5a6650 !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
 }
 
+[data-theme="retro-pm5"] .app-banner-title,
 [data-theme="retro-pm5"] .cockpit-banner-title {
   font-family: 'VT323', monospace !important;
   font-size: 1.3rem !important;
