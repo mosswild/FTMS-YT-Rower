@@ -69,15 +69,16 @@ def ensure_default_quick_workouts() -> None:
             chosen_track_id = _match_track_id(tracks, cfg["track_hint"], cfg["fallback_track_id"], idx)
             cursor.execute("""
             INSERT OR IGNORE INTO quick_workouts (
-                id, user_id, title, description, track_id, workout_id, is_default, created_at
-            ) VALUES (?, NULL, ?, ?, ?, ?, 1, ?)
+                id, user_id, title, description, track_id, workout_id, is_default, created_at, sort_order
+            ) VALUES (?, NULL, ?, ?, ?, ?, 1, ?, ?)
             """, (
                 cfg["id"],
                 cfg["title"],
                 cfg["description"],
                 chosen_track_id,
                 cfg["workout_id"],
-                now_iso
+                now_iso,
+                idx
             ))
 
     cursor.execute("INSERT OR REPLACE INTO app_metadata (key, val) VALUES ('default_quick_workouts_seeded', '1')")
@@ -143,7 +144,7 @@ def _enrich_card(row_dict: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def list_quick_workouts(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Returns default cards combined with user-specific cards."""
+    """Returns default cards combined with user-specific cards ordered by sort_order and recency."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -151,13 +152,13 @@ def list_quick_workouts(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         cursor.execute("""
         SELECT * FROM quick_workouts
         WHERE is_default = 1 OR user_id = ?
-        ORDER BY is_default DESC, created_at DESC
+        ORDER BY sort_order ASC, created_at DESC
         """, (user_id,))
     else:
         cursor.execute("""
         SELECT * FROM quick_workouts
         WHERE is_default = 1
-        ORDER BY created_at ASC
+        ORDER BY sort_order ASC, created_at DESC
         """)
 
     rows = [dict(r) for r in cursor.fetchall()]
@@ -180,7 +181,7 @@ def get_quick_workout(card_id: str) -> Optional[Dict[str, Any]]:
 
 
 def create_quick_workout(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Creates a custom user quick workout card."""
+    """Creates a custom user quick workout card placed at the front of the queue."""
     card_id = data.get("id") or f"card_{int(time.time() * 1000)}"
     user_id = data.get("user_id")
     title = (data.get("title") or "Custom Workout").strip()
@@ -191,10 +192,24 @@ def create_quick_workout(data: Dict[str, Any]) -> Dict[str, Any]:
 
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    # Shift existing cards for this user / default by 1 so new card takes index 0 (front of queue)
+    if user_id:
+        cursor.execute("""
+        UPDATE quick_workouts
+        SET sort_order = sort_order + 1
+        WHERE is_default = 1 OR user_id = ?
+        """, (user_id,))
+    else:
+        cursor.execute("""
+        UPDATE quick_workouts
+        SET sort_order = sort_order + 1
+        """)
+
     cursor.execute("""
     INSERT INTO quick_workouts (
-        id, user_id, title, description, track_id, workout_id, is_default, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+        id, user_id, title, description, track_id, workout_id, is_default, created_at, sort_order
+    ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, 0)
     """, (
         card_id,
         user_id,
@@ -220,18 +235,30 @@ def update_quick_workout(card_id: str, data: Dict[str, Any]) -> Optional[Dict[st
     description = data.get("description", current.get("description", ""))
     track_id = data.get("track_id", current["track_id"])
     workout_id = data.get("workout_id", current.get("workout_id"))
+    sort_order = data.get("sort_order", current.get("sort_order", 0))
 
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
     UPDATE quick_workouts
-    SET title = ?, description = ?, track_id = ?, workout_id = ?
+    SET title = ?, description = ?, track_id = ?, workout_id = ?, sort_order = ?
     WHERE id = ?
-    """, (title, description, track_id, workout_id, card_id))
+    """, (title, description, track_id, workout_id, sort_order, card_id))
     conn.commit()
     conn.close()
 
     return get_quick_workout(card_id)
+
+
+def reorder_quick_workouts(card_ids: List[str], user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Updates sort_order for each card according to its index in card_ids."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    for index, cid in enumerate(card_ids):
+        cursor.execute("UPDATE quick_workouts SET sort_order = ? WHERE id = ?", (index, cid))
+    conn.commit()
+    conn.close()
+    return list_quick_workouts(user_id=user_id)
 
 
 def delete_quick_workout(card_id: str) -> bool:

@@ -900,7 +900,7 @@ function renderQuickWorkouts(cards) {
     return;
   }
 
-  container.innerHTML = cards.map(card => {
+  container.innerHTML = cards.map((card, idx) => {
     const track = card.track || (cachedTracks || []).find(t => t.id === card.track_id) || {};
     const workout = card.workout || (cachedWorkouts || []).find(w => w.id === card.workout_id) || {};
     const videoId = card.video_id || track.video_id;
@@ -945,6 +945,23 @@ function renderQuickWorkouts(cards) {
                 </svg>
               </button>
               <div class="quick-card-dropdown-menu" id="quick-card-menu-${card.id}">
+                ${idx > 0 ? `
+                  <button type="button" class="quick-card-dropdown-item btn-move-card-front" data-id="${card.id}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+                    <span>Move to Front</span>
+                  </button>
+                  <button type="button" class="quick-card-dropdown-item btn-move-card-left" data-id="${card.id}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                    <span>Move Left (←)</span>
+                  </button>
+                ` : ''}
+                ${idx < cards.length - 1 ? `
+                  <button type="button" class="quick-card-dropdown-item btn-move-card-right" data-id="${card.id}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    <span>Move Right (→)</span>
+                  </button>
+                ` : ''}
+                ${cards.length > 1 ? '<div class="quick-card-dropdown-divider"></div>' : ''}
                 <button type="button" class="quick-card-dropdown-item btn-edit-card" data-id="${card.id}">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   <span>Edit Card</span>
@@ -1022,6 +1039,63 @@ function renderQuickWorkouts(cards) {
     });
   }
 
+  // Card Reordering Listeners: Move to Front
+  container.querySelectorAll(".btn-move-card-front").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      document.querySelectorAll(".quick-card-dropdown-menu.show").forEach(m => m.classList.remove("show"));
+      document.querySelectorAll(".quick-card-more-btn.active").forEach(b => b.classList.remove("active"));
+      const id = btn.dataset.id;
+      const idx = cachedQuickWorkouts.findIndex(c => c.id === id);
+      if (idx > 0) {
+        const [targetCard] = cachedQuickWorkouts.splice(idx, 1);
+        cachedQuickWorkouts.unshift(targetCard);
+        await persistCardsOrder(cachedQuickWorkouts);
+        showHudToast(`"${targetCard.title}" moved to front`);
+        renderQuickWorkouts(cachedQuickWorkouts);
+        container.scrollTo({ left: 0, behavior: "smooth" });
+      }
+    });
+  });
+
+  // Card Reordering Listeners: Move Left
+  container.querySelectorAll(".btn-move-card-left").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      document.querySelectorAll(".quick-card-dropdown-menu.show").forEach(m => m.classList.remove("show"));
+      document.querySelectorAll(".quick-card-more-btn.active").forEach(b => b.classList.remove("active"));
+      const id = btn.dataset.id;
+      const idx = cachedQuickWorkouts.findIndex(c => c.id === id);
+      if (idx > 0) {
+        const temp = cachedQuickWorkouts[idx];
+        cachedQuickWorkouts[idx] = cachedQuickWorkouts[idx - 1];
+        cachedQuickWorkouts[idx - 1] = temp;
+        await persistCardsOrder(cachedQuickWorkouts);
+        showHudToast("Card moved left");
+        renderQuickWorkouts(cachedQuickWorkouts);
+      }
+    });
+  });
+
+  // Card Reordering Listeners: Move Right
+  container.querySelectorAll(".btn-move-card-right").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      document.querySelectorAll(".quick-card-dropdown-menu.show").forEach(m => m.classList.remove("show"));
+      document.querySelectorAll(".quick-card-more-btn.active").forEach(b => b.classList.remove("active"));
+      const id = btn.dataset.id;
+      const idx = cachedQuickWorkouts.findIndex(c => c.id === id);
+      if (idx >= 0 && idx < cachedQuickWorkouts.length - 1) {
+        const temp = cachedQuickWorkouts[idx];
+        cachedQuickWorkouts[idx] = cachedQuickWorkouts[idx + 1];
+        cachedQuickWorkouts[idx + 1] = temp;
+        await persistCardsOrder(cachedQuickWorkouts);
+        showHudToast("Card moved right");
+        renderQuickWorkouts(cachedQuickWorkouts);
+      }
+    });
+  });
+
   // Attach card event listeners
   container.querySelectorAll(".btn-start-quick-card").forEach(btn => {
     btn.addEventListener("click", (e) => {
@@ -1070,6 +1144,115 @@ function renderQuickWorkouts(cards) {
         } catch (err) {
           alert(`Failed to delete card: ${err}`);
         }
+      }
+    });
+  });
+}
+
+async function persistCardsOrder(cardsList) {
+  try {
+    const activeUserId = (window.hrZonesManager && window.hrZonesManager.activeProfileId) || "default";
+    const cardIds = cardsList.map(c => c.id);
+    await fetch("/api/quick-workouts/reorder", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ card_ids: cardIds, user_id: activeUserId })
+    });
+  } catch (err) {
+    console.error("[Quick Workouts] Failed to persist order:", err);
+  }
+}
+
+function openReorderCardsModal() {
+  const modal = document.getElementById("modal-reorder-cards");
+  if (!modal) return;
+  renderReorderModalList();
+  modal.classList.add("open");
+}
+
+function closeReorderCardsModal() {
+  const modal = document.getElementById("modal-reorder-cards");
+  if (modal) modal.classList.remove("open");
+}
+
+function renderReorderModalList() {
+  const listEl = document.getElementById("reorder-cards-list");
+  if (!listEl) return;
+
+  if (cachedQuickWorkouts.length === 0) {
+    listEl.innerHTML = `<p style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No cards to reorder.</p>`;
+    return;
+  }
+
+  listEl.innerHTML = cachedQuickWorkouts.map((card, idx) => {
+    const track = card.track || (cachedTracks || []).find(t => t.id === card.track_id) || {};
+    const videoId = card.video_id || track.video_id;
+    const thumbUrl = videoId ? `/api/media/thumbnail/${videoId}` : "";
+    const isFirst = idx === 0;
+    const isLast = idx === cachedQuickWorkouts.length - 1;
+
+    return `
+      <div class="reorder-card-row" data-id="${card.id}">
+        <div class="reorder-card-left">
+          <span class="reorder-card-num">#${idx + 1}</span>
+          ${thumbUrl ? `<img src="${thumbUrl}" alt="" class="reorder-card-thumb" onerror="this.style.display='none'">` : '<div class="reorder-card-thumb" style="display:flex;align-items:center;justify-content:center;background:#1e293b;font-size:10px;color:#94a3b8;">CARD</div>'}
+          <div class="reorder-card-info">
+            <div class="reorder-card-title">${escapeHtml(card.title)}</div>
+            <div class="reorder-card-sub">${escapeHtml(card.track_name || track.name || "Scenic Track")}</div>
+          </div>
+        </div>
+        <div class="reorder-card-actions">
+          <button type="button" class="reorder-btn btn-reorder-top" data-idx="${idx}" title="Move to Top" ${isFirst ? 'disabled' : ''}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+          </button>
+          <button type="button" class="reorder-btn btn-reorder-up" data-idx="${idx}" title="Move Up" ${isFirst ? 'disabled' : ''}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <button type="button" class="reorder-btn btn-reorder-down" data-idx="${idx}" title="Move Down" ${isLast ? 'disabled' : ''}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  listEl.querySelectorAll(".btn-reorder-top").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      if (idx > 0) {
+        const [item] = cachedQuickWorkouts.splice(idx, 1);
+        cachedQuickWorkouts.unshift(item);
+        await persistCardsOrder(cachedQuickWorkouts);
+        renderReorderModalList();
+        renderQuickWorkouts(cachedQuickWorkouts);
+      }
+    });
+  });
+
+  listEl.querySelectorAll(".btn-reorder-up").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      if (idx > 0) {
+        const temp = cachedQuickWorkouts[idx];
+        cachedQuickWorkouts[idx] = cachedQuickWorkouts[idx - 1];
+        cachedQuickWorkouts[idx - 1] = temp;
+        await persistCardsOrder(cachedQuickWorkouts);
+        renderReorderModalList();
+        renderQuickWorkouts(cachedQuickWorkouts);
+      }
+    });
+  });
+
+  listEl.querySelectorAll(".btn-reorder-down").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      if (idx < cachedQuickWorkouts.length - 1) {
+        const temp = cachedQuickWorkouts[idx];
+        cachedQuickWorkouts[idx] = cachedQuickWorkouts[idx + 1];
+        cachedQuickWorkouts[idx + 1] = temp;
+        await persistCardsOrder(cachedQuickWorkouts);
+        renderReorderModalList();
+        renderQuickWorkouts(cachedQuickWorkouts);
       }
     });
   });
@@ -1393,6 +1576,10 @@ document.getElementById("select-card-workout")?.addEventListener("change", updat
 document.getElementById("home-btn-create-card")?.addEventListener("click", () => openCardBuilderModal());
 document.getElementById("btn-close-create-card")?.addEventListener("click", closeCardBuilderModal);
 document.getElementById("btn-cancel-create-card")?.addEventListener("click", closeCardBuilderModal);
+
+document.getElementById("home-btn-reorder-cards")?.addEventListener("click", openReorderCardsModal);
+document.getElementById("btn-close-reorder-cards")?.addEventListener("click", closeReorderCardsModal);
+document.getElementById("btn-done-reorder-cards")?.addEventListener("click", closeReorderCardsModal);
 
 async function saveCardFromModal() {
   const id = document.getElementById("input-card-id")?.value;
@@ -6150,8 +6337,9 @@ function renderWorkoutsGrid() {
         </div>
       </div>
       <div class="workout-card-actions">
-        <button class="btn btn-primary btn-sm btn-load-workout" data-id="${w.id}">
-          Load in Cockpit
+        <button class="btn btn-primary btn-sm btn-create-card-from-workout" data-id="${w.id}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 4px; vertical-align: -1px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Create Workout Card
         </button>
         <div style="display: flex; gap: 0.35rem;">
           <button class="btn btn-secondary btn-sm btn-preview-workout" data-id="${w.id}" title="Preview interval details">
@@ -6170,7 +6358,14 @@ function renderWorkoutsGrid() {
     `;
 
     // Event listeners
-    card.querySelector(".btn-load-workout").addEventListener("click", () => loadWorkoutInCockpit(w.id));
+    card.querySelector(".btn-create-card-from-workout").addEventListener("click", () => {
+      openCardBuilderModal({
+        title: w.title,
+        description: w.description || "",
+        workout_id: w.id,
+        track_id: (cachedTracks && cachedTracks[0] ? cachedTracks[0].id : "")
+      });
+    });
     card.querySelector(".btn-preview-workout").addEventListener("click", () => openWorkoutPreviewModal(w.id));
     card.querySelector(".btn-download-workout-yaml").addEventListener("click", () => {
       window.location.href = `/api/workouts/${w.id}/yaml`;

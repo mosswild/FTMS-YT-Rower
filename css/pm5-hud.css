@@ -7808,6 +7808,12 @@ body.in-cockpit .app-top-color-banner {
   color: #ef4444;
 }
 
+.quick-card-dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 3px 0;
+}
+
 .quick-workout-program-tag {
   align-self: flex-start;
   font-size: 0.68rem;
@@ -8012,6 +8018,116 @@ body.in-cockpit .app-top-color-banner {
 
 .card-builder-preview-box .quick-workout-thumb-wrapper {
   height: 120px;
+}
+
+/* Reorder Cards Modal */
+.reorder-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.reorder-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.85rem;
+  background: var(--surface-card, #1e293b);
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
+  gap: 0.75rem;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.reorder-card-row:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: var(--surface-card-hover, #243248);
+}
+
+.reorder-card-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.reorder-card-num {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-dim, #64748b);
+  min-width: 24px;
+}
+
+.reorder-card-thumb {
+  width: 44px;
+  height: 30px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.reorder-card-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.reorder-card-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main, #f8fafc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reorder-card-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reorder-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.reorder-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main, #f8fafc);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.reorder-btn:hover:not(:disabled) {
+  background: var(--brand-orange, #f97316);
+  border-color: var(--brand-orange, #f97316);
+  color: #ffffff;
+}
+
+.reorder-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* Mobile Horizontal Snap-Scroll Carousel */

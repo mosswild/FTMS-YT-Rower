@@ -719,6 +719,12 @@ class QuickWorkoutModel(BaseModel):
     description: Optional[str] = ""
     track_id: str = Field(..., min_length=1)
     workout_id: Optional[str] = "free_row"
+    sort_order: Optional[int] = 0
+
+
+class ReorderQuickWorkoutsModel(BaseModel):
+    card_ids: List[str]
+    user_id: Optional[str] = None
 
 
 @app.get("/api/quick-workouts")
@@ -731,6 +737,13 @@ async def get_quick_workouts(user_id: Optional[str] = None):
 async def create_quick_workout_endpoint(req: QuickWorkoutModel):
     card = quick_workouts_mgr.create_quick_workout(req.model_dump())
     return {"card": card}
+
+
+@app.put("/api/quick-workouts/reorder")
+@app.post("/api/quick-workouts/reorder")
+async def reorder_quick_workouts_endpoint(req: ReorderQuickWorkoutsModel):
+    cards = quick_workouts_mgr.reorder_quick_workouts(req.card_ids, user_id=req.user_id)
+    return {"cards": cards}
 
 
 @app.get("/api/quick-workouts/{card_id}")

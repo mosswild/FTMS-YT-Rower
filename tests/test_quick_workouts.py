@@ -89,9 +89,18 @@ class TestQuickWorkouts(unittest.TestCase):
         self.assertEqual(created_card["user_id"], "athlete_custom_test")
         card_id = created_card["id"]
 
-        # Fetch with user_id
+        # Fetch with user_id - new card should be at the front of the queue
         user_list = self.client.get("/api/quick-workouts?user_id=athlete_custom_test").json()
         self.assertTrue(any(c["id"] == card_id for c in user_list["cards"]))
+        self.assertEqual(user_list["cards"][0]["id"], card_id)
+
+        # Test reordering cards
+        all_ids = [c["id"] for c in user_list["cards"]]
+        reversed_ids = list(reversed(all_ids))
+        reorder_resp = self.client.put("/api/quick-workouts/reorder", json={"card_ids": reversed_ids, "user_id": "athlete_custom_test"})
+        self.assertEqual(reorder_resp.status_code, 200)
+        reordered_cards = reorder_resp.json()["cards"]
+        self.assertEqual([c["id"] for c in reordered_cards], reversed_ids)
 
         # Fetch single card
         single_resp = self.client.get(f"/api/quick-workouts/{card_id}")

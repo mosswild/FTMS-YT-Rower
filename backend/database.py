@@ -143,14 +143,21 @@ def init_db():
         workout_id TEXT,
         is_default INTEGER NOT NULL DEFAULT 0,
         created_at TEXT,
+        sort_order INTEGER DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES user_profiles (id) ON DELETE CASCADE
     )
     """)
+
+    try:
+        cursor.execute("ALTER TABLE quick_workouts ADD COLUMN sort_order INTEGER DEFAULT 0")
+    except Exception:
+        pass
 
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_samples_workout ON workout_samples(workout_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_workouts_profile ON workouts(profile_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tracks_video ON tracks(video_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_quick_workouts_user ON quick_workouts(user_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_quick_workouts_sort ON quick_workouts(sort_order)")
     conn.commit()
     conn.close()
 
