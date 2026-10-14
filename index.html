@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
   <meta name="theme-color" id="meta-theme-color" content="#0284c7">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=ui-overhaul-v78">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=ui-overhaul-v79">
   <script>
     (function() {
       try {
@@ -57,16 +57,28 @@
       </div>
     </div>
 
-    <!-- Far Right: Status pills -->
+    <!-- Far Right: Status pills (Interactive Connect/Disconnect Buttons) -->
     <div class="header-status">
-      <div id="status-rower" class="status-pill">
-        <span class="status-dot"></span>
-        <span class="status-text">Rower Disconnected</span>
-      </div>
-      <div id="status-hr" class="status-pill">
-        <span class="status-dot"></span>
-        <span class="status-text">HR Disconnected</span>
-      </div>
+      <button id="status-rower" class="status-pill status-btn" type="button" title="FTMS Rower: Disconnected • Click to Connect">
+        <span class="status-icon-wrap" id="status-rower-icon">
+          <svg class="status-symbol status-symbol-rower disconnected" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5.5" y1="18.5" x2="14" y2="10" stroke-width="2" stroke-dasharray="2 2" opacity="0.6"/>
+            <line x1="3" y1="21" x2="6" y2="18" stroke-width="2.5" opacity="0.6"/>
+            <path d="M13.5 10.5 C14.5 7 18 3.5 21 3 C20.5 6.5 17 10 14 11.5 Z" fill="none" stroke-width="1.8" opacity="0.6"/>
+            <line x1="3" y1="3" x2="21" y2="21" stroke="#f87171" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="status-text" id="status-rower-text">Rower: Disconnected</span>
+      </button>
+      <button id="status-hr" class="status-pill status-btn" type="button" title="HR Strap: Disconnected • Click to Connect">
+        <span class="status-icon-wrap" id="status-hr-icon">
+          <svg class="status-symbol status-symbol-hr disconnected" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke-width="1.6" opacity="0.6"/>
+            <line x1="3" y1="3" x2="21" y2="21" stroke="#f87171" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="status-text" id="status-hr-text">HR: Disconnected</span>
+      </button>
     </div>
   </header>
 
@@ -168,12 +180,6 @@
 
   <!-- VIEW 1: COCKPIT -->
   <main id="view-cockpit" class="cockpit-view" style="display: none;">
-    <!-- Mobile Portrait Cockpit Top Gradient Canopy / Color Block -->
-    <div class="cockpit-top-banner" aria-hidden="true">
-      <img src="icon-192.png" alt="" class="cockpit-banner-logo">
-      <span class="cockpit-banner-title">FTMS Rower</span>
-    </div>
-
     <div id="viewport-container" class="scenic-viewport-container">
       <!-- Muted Scenic Video (Speed modulates dynamically) -->
       <video id="scenic-video" class="scenic-video" playsinline webkit-playsinline preload="auto" muted loop></video>
@@ -422,11 +428,6 @@
 
     <!-- Quick Controls Bar -->
     <div class="cockpit-controls-bar">
-      <div class="control-group">
-        <button id="btn-connect-rower" class="btn btn-primary">Connect FTMS Rower</button>
-        <button id="btn-connect-hr" class="btn btn-secondary">Connect HR Strap</button>
-      </div>
-
       <div class="control-group workout-audio-group">
         <div class="audio-controls">
           <button id="btn-toggle-audio" class="btn btn-audio paused" title="Toggle 1.0x soundtrack">
@@ -1566,6 +1567,6 @@
   </nav>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=ui-overhaul-v78"></script>
+  <script type="module" src="js/app.js?v=ui-overhaul-v79"></script>
 </body>
 </html>

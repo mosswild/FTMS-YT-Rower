@@ -564,12 +564,92 @@ const hrBle = new HeartRateBLE(
 const btnConnectRower = document.getElementById("btn-connect-rower");
 const btnConnectHr = document.getElementById("btn-connect-hr");
 
+// SVG Icon Generators for Rower (Paddle) and Heart Rate (Heart with Signal)
+function getRowerIconSvg(connected, isConnecting) {
+  if (isConnecting) {
+    return `<svg class="status-symbol status-symbol-rower connecting" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="21" x2="6" y2="18" stroke-width="3"/>
+      <line x1="5.5" y1="18.5" x2="14" y2="10" stroke-width="2.2"/>
+      <path d="M13.5 10.5 C14.5 7 18 3.5 21 3 C20.5 6.5 17 10 14 11.5 Z" fill="currentColor" opacity="0.8"/>
+      <circle cx="19" cy="5" r="2.5" fill="#38bdf8" stroke="none">
+        <animate attributeName="opacity" values="0.2;1;0.2" dur="1s" repeatCount="indefinite"/>
+      </circle>
+    </svg>`;
+  }
+  if (connected) {
+    return `<svg class="status-symbol status-symbol-rower connected" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="21" x2="6" y2="18" stroke-width="3"/>
+      <line x1="5.5" y1="18.5" x2="14" y2="10" stroke-width="2.2"/>
+      <path d="M13.5 10.5 C14.5 7 18 3.5 21 3 C20.5 6.5 17 10 14 11.5 Z" fill="currentColor" stroke-width="1.5"/>
+      <path d="M18.5 13.5 C19.8 12.2 20.5 10.2 20.5 8" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
+  }
+  return `<svg class="status-symbol status-symbol-rower disconnected" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="5.5" y1="18.5" x2="14" y2="10" stroke-width="2" stroke-dasharray="2 2" opacity="0.6"/>
+    <line x1="3" y1="21" x2="6" y2="18" stroke-width="2.5" opacity="0.6"/>
+    <path d="M13.5 10.5 C14.5 7 18 3.5 21 3 C20.5 6.5 17 10 14 11.5 Z" fill="none" stroke-width="1.8" opacity="0.6"/>
+    <line x1="3" y1="3" x2="21" y2="21" stroke="#f87171" stroke-width="2.2" stroke-linecap="round" class="slash-line"/>
+  </svg>`;
+}
+
+function getHrIconSvg(connected, isConnecting) {
+  if (isConnecting) {
+    return `<svg class="status-symbol status-symbol-hr connecting" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke-width="1.8"/>
+      <polyline points="4.5 12.5 8 12.5 10 9 12 16 14.5 10.5 16.5 12.5 19.5 12.5" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  }
+  if (connected) {
+    return `<svg class="status-symbol status-symbol-hr connected" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke-width="1.8" fill="rgba(16, 185, 129, 0.2)"/>
+      <polyline points="4.5 12.5 8 12.5 10 9 12 16 14.5 10.5 16.5 12.5 19.5 12.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  }
+  return `<svg class="status-symbol status-symbol-hr disconnected" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke-width="1.6" opacity="0.6"/>
+    <line x1="3" y1="3" x2="21" y2="21" stroke="#f87171" stroke-width="2.2" stroke-linecap="round" class="slash-line"/>
+  </svg>`;
+}
+
 // UI Status Helpers
-function updateRowerStatus(connected, text, mode = null, deviceName = null) {
+function updateRowerStatus(connected, text, mode = null, deviceName = null, isConnecting = false) {
   const pill = document.getElementById("status-rower");
   if (pill) {
-    pill.className = connected ? "status-pill connected" : "status-pill";
-    pill.querySelector(".status-text").textContent = text || (connected ? "Rower Connected" : "Rower Disconnected");
+    if (isConnecting) {
+      pill.className = "status-pill status-btn connecting";
+      pill.title = "FTMS Rower: Connecting...";
+    } else if (connected) {
+      pill.className = "status-pill status-btn connected";
+      if (mode === "relay") {
+        pill.title = `Rower Connected via Relay (${deviceName || "Relay"})`;
+      } else {
+        pill.title = `Rower Connected: ${deviceName || "BLE"} • Click to Disconnect`;
+      }
+    } else {
+      pill.className = "status-pill status-btn";
+      pill.title = "FTMS Rower: Disconnected • Click to Connect";
+    }
+
+    const iconWrap = document.getElementById("status-rower-icon") || pill.querySelector(".status-icon-wrap");
+    if (iconWrap) {
+      iconWrap.innerHTML = getRowerIconSvg(connected, isConnecting);
+    }
+    const textEl = document.getElementById("status-rower-text") || pill.querySelector(".status-text");
+    if (textEl) {
+      let label = "Rower: Disconnected";
+      if (isConnecting) {
+        label = "Rower: Connecting...";
+      } else if (connected) {
+        if (mode === "relay") {
+          label = `Rower: Relay (${deviceName || "Active"})`;
+        } else {
+          label = `Rower: ${deviceName || "Connected"}`;
+        }
+      } else if (text) {
+        label = text.startsWith("Rower") ? text : `Rower: ${text}`;
+      }
+      textEl.textContent = label;
+    }
   }
 
   if (btnConnectRower) {
@@ -597,11 +677,44 @@ function updateRowerStatus(connected, text, mode = null, deviceName = null) {
   }
 }
 
-function updateHrStatus(connected, text, mode = null, deviceName = null) {
+function updateHrStatus(connected, text, mode = null, deviceName = null, isConnecting = false) {
   const pill = document.getElementById("status-hr");
   if (pill) {
-    pill.className = connected ? "status-pill connected" : "status-pill";
-    pill.querySelector(".status-text").textContent = text || (connected ? "HR Connected" : "HR Disconnected");
+    if (isConnecting) {
+      pill.className = "status-pill status-btn connecting";
+      pill.title = "HR Strap: Connecting...";
+    } else if (connected) {
+      pill.className = "status-pill status-btn connected";
+      if (mode === "relay") {
+        pill.title = `Heart Rate Connected via Relay (${deviceName || "Relay"})`;
+      } else {
+        pill.title = `HR Strap Connected: ${deviceName || "BLE"} • Click to Disconnect`;
+      }
+    } else {
+      pill.className = "status-pill status-btn";
+      pill.title = "HR Strap: Disconnected • Click to Connect";
+    }
+
+    const iconWrap = document.getElementById("status-hr-icon") || pill.querySelector(".status-icon-wrap");
+    if (iconWrap) {
+      iconWrap.innerHTML = getHrIconSvg(connected, isConnecting);
+    }
+    const textEl = document.getElementById("status-hr-text") || pill.querySelector(".status-text");
+    if (textEl) {
+      let label = "HR: Disconnected";
+      if (isConnecting) {
+        label = "HR: Connecting...";
+      } else if (connected) {
+        if (mode === "relay") {
+          label = `HR: Relay (${deviceName || "Active"})`;
+        } else {
+          label = `HR: ${deviceName || "Connected"}`;
+        }
+      } else if (text) {
+        label = text.startsWith("HR") ? text : `HR: ${text}`;
+      }
+      textEl.textContent = label;
+    }
   }
 
   if (btnConnectHr) {
@@ -3885,107 +3998,128 @@ async function loadHistoryUI() {
 
 
 // ----------------- Bluetooth Hardware Pairing -----------------
-if (btnConnectRower) {
-  btnConnectRower.addEventListener("click", async () => {
-    // 1. Prevent connecting through browser if already connected through Bluetooth Relay (real or simulated)
-    if (relayActive) {
-      showHudToast(`Rower is already connected and streaming via Bluetooth Relay (${relayDeviceName || "Bridge"}).`);
-      return;
-    }
+async function handleRowerConnectClick() {
+  if (relayActive) {
+    showHudToast(`Rower is actively streaming via Bluetooth Relay (${relayDeviceName || "Bridge"}). Relay automatically connects.`);
+    return;
+  }
 
-    // 2. If already connected via direct Web Bluetooth (or simulated direct BLE), prompt to disconnect
-    if (rowerBle.isConnected || (simulator.isRunning && simulator.mimicType === "direct")) {
-      const isSim = simulator.isRunning && simulator.mimicType === "direct";
-      const confirmed = await showConfirmDialog({
-        title: isSim ? "Disconnect Simulated Rower" : "Disconnect Rower",
-        message: isSim 
-          ? "Are you sure you want to disconnect from the simulated rowing machine?"
-          : "Are you sure you want to disconnect from your FTMS rowing machine?",
-        confirmBtnText: "Disconnect",
-        isDanger: false
-      });
-      if (confirmed) {
-        if (isSim) {
-          simulator.stop();
+  if (rowerBle.isConnected || (simulator.isRunning && simulator.mimicType === "direct")) {
+    const isSim = simulator.isRunning && simulator.mimicType === "direct";
+    const confirmed = await showConfirmDialog({
+      title: isSim ? "Disconnect Simulated Rower" : "Disconnect Rower",
+      message: isSim 
+        ? "Are you sure you want to disconnect from the simulated rowing machine?"
+        : "Are you sure you want to disconnect from your FTMS rowing machine?",
+      confirmBtnText: "Disconnect",
+      isDanger: false
+    });
+    if (confirmed) {
+      if (isSim) {
+        simulator.stop();
+        if (simBtn) {
           simBtn.textContent = "Start Simulator";
           simBtn.className = "btn btn-primary btn-sm";
-          if (btnOpenSimPanel) {
-            btnOpenSimPanel.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Simulator';
-          }
-          updateRowerStatus(false, "Disconnected");
-          if (sessionTracker.state === "active") {
-            sessionTracker.finish();
-          }
-          rateController.setWorkoutLive(false);
-          if (videoEl) videoEl.pause();
-          audioEngine.pause();
-          showHudToast("Simulated rower disconnected");
-        } else {
-          rowerBle.disconnect();
-          updateRowerStatus(false, "Disconnected");
-          showHudToast("Rower disconnected");
         }
+        if (btnOpenSimPanel) {
+          btnOpenSimPanel.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Simulator';
+        }
+        updateRowerStatus(false, "Disconnected");
+        if (sessionTracker.state === "active") {
+          sessionTracker.finish();
+        }
+        rateController.setWorkoutLive(false);
+        if (videoEl) videoEl.pause();
+        audioEngine.pause();
+        showHudToast("Simulated rower disconnected");
+      } else {
+        rowerBle.disconnect();
+        updateRowerStatus(false, "Disconnected");
+        showHudToast("Rower disconnected");
       }
-      return;
     }
+    return;
+  }
 
-    // 3. Connect via Web Bluetooth
-    try {
-      updateRowerStatus(false, "Connecting...");
+  // Connect via Web Bluetooth
+  try {
+    updateRowerStatus(false, "Connecting...", null, null, true);
+    if (btnConnectRower) {
       btnConnectRower.disabled = true;
       btnConnectRower.textContent = "Connecting...";
-      const name = await rowerBle.connect();
-      btnConnectRower.disabled = false;
-      updateRowerStatus(true, name, "ble", name);
-      if (simulator.isRunning) {
-        simulator.stop();
+    }
+    const name = await rowerBle.connect();
+    if (btnConnectRower) btnConnectRower.disabled = false;
+    updateRowerStatus(true, name, "ble", name);
+    if (simulator.isRunning) {
+      simulator.stop();
+      if (simBtn) {
         simBtn.textContent = "Start Simulator";
         simBtn.className = "btn btn-secondary";
       }
-      showHudToast(`Connected to ${name}`);
-    } catch (err) {
-      btnConnectRower.disabled = false;
-      console.error("[BLE Rower Error]", err);
-      updateRowerStatus(false, "Connection Failed");
-      if (err.name !== "NotFoundError") {
-        alert("Could not connect to FTMS rower: " + err.message);
-      }
     }
-  });
+    showHudToast(`Connected to ${name}`);
+  } catch (err) {
+    if (btnConnectRower) btnConnectRower.disabled = false;
+    console.error("[BLE Rower Error]", err);
+    updateRowerStatus(false, "Connection Failed");
+    if (err.name !== "NotFoundError") {
+      alert("Could not connect to FTMS rower: " + err.message);
+    }
+  }
 }
 
-if (btnConnectHr) {
-  btnConnectHr.addEventListener("click", async () => {
-    if (simulator.isRunning && simulator.isHrEnabled) {
-      simulator.setHrEnabled(false);
-      handleTelemetryPacket({ heartRate: 0 });
-      updateHrStatus(false, "HR Disconnected");
-      syncSimHrButtons();
-      showHudToast("Simulated Heart Rate Monitor disconnected");
-      return;
-    }
+async function handleHrConnectClick() {
+  if (relayHrActive) {
+    showHudToast(`Heart Rate is streaming via Bluetooth Relay (${relayHrDeviceName || "Bridge"}).`);
+    return;
+  }
 
-    if (hrBle.isConnected) {
+  if (simulator.isRunning && simulator.isHrEnabled) {
+    simulator.setHrEnabled(false);
+    handleTelemetryPacket({ heartRate: 0 });
+    updateHrStatus(false, "HR Disconnected");
+    syncSimHrButtons();
+    showHudToast("Simulated Heart Rate Monitor disconnected");
+    return;
+  }
+
+  if (hrBle.isConnected) {
+    const confirmed = await showConfirmDialog({
+      title: "Disconnect Heart Rate Strap",
+      message: "Are you sure you want to disconnect from your Bluetooth Heart Rate monitor?",
+      confirmBtnText: "Disconnect",
+      isDanger: false
+    });
+    if (confirmed) {
       hrBle.disconnect();
       updateHrStatus(false, "Disconnected");
       showHudToast("Heart Rate strap disconnected");
-      return;
     }
+    return;
+  }
 
-    try {
-      updateHrStatus(false, "Connecting...");
-      const name = await hrBle.connect();
-      updateHrStatus(true, name, "ble", name);
-      showHudToast(`Connected to ${name}`);
-    } catch (err) {
-      console.error("[BLE HR Error]", err);
-      updateHrStatus(false, "Connection Failed");
-      if (err.name !== "NotFoundError") {
-        alert("Could not connect to BLE Heart Rate monitor: " + err.message);
-      }
+  try {
+    updateHrStatus(false, "Connecting...", null, null, true);
+    const name = await hrBle.connect();
+    updateHrStatus(true, name, "ble", name);
+    showHudToast(`Connected to ${name}`);
+  } catch (err) {
+    console.error("[BLE HR Error]", err);
+    updateHrStatus(false, "Connection Failed");
+    if (err.name !== "NotFoundError") {
+      alert("Could not connect to BLE Heart Rate monitor: " + err.message);
     }
-  });
+  }
 }
+
+// Bind to header status indicators
+document.getElementById("status-rower")?.addEventListener("click", handleRowerConnectClick);
+document.getElementById("status-hr")?.addEventListener("click", handleHrConnectClick);
+
+// Backward-compat for legacy connect buttons if present
+if (btnConnectRower) btnConnectRower.addEventListener("click", handleRowerConnectClick);
+if (btnConnectHr) btnConnectHr.addEventListener("click", handleHrConnectClick);
 
 // ----------------- Virtual Rower Simulator Controls -----------------
 const btnOpenSimPanel = document.getElementById("btn-open-sim-panel");
