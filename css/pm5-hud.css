@@ -159,11 +159,30 @@ body {
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
 }
 
-.status-pill.connected:hover,
-.status-pill.online:hover {
-  background: rgba(16, 185, 129, 0.22) !important;
-  border-color: rgba(16, 185, 129, 0.65) !important;
-  box-shadow: 0 0 14px rgba(16, 185, 129, 0.35);
+#status-rower.connected {
+  background: rgba(37, 99, 235, 0.14) !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  color: #93c5fd !important;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.25);
+}
+
+#status-rower.connected:hover {
+  background: rgba(37, 99, 235, 0.22) !important;
+  border-color: rgba(59, 130, 246, 0.65) !important;
+  box-shadow: 0 0 14px rgba(37, 99, 235, 0.4);
+}
+
+#status-hr.connected {
+  background: rgba(239, 68, 68, 0.14) !important;
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  color: #fca5a5 !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+}
+
+#status-hr.connected:hover {
+  background: rgba(239, 68, 68, 0.22) !important;
+  border-color: rgba(239, 68, 68, 0.65) !important;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.4);
 }
 
 .status-pill.connecting {
@@ -182,30 +201,38 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
+  border-radius: 50%;
 }
 
 .status-symbol {
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
   display: block;
-  transition: transform 0.2s ease, stroke 0.2s ease, fill 0.2s ease;
+  border-radius: 50%;
+  transition: transform 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
 }
 
 .status-symbol.connected {
-  filter: drop-shadow(0 0 3px currentColor);
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.4));
 }
 
 .status-symbol.disconnected {
-  opacity: 0.65;
-  color: #64748b;
+  opacity: 0.9;
 }
 
-.status-pill:hover .status-symbol.disconnected {
-  opacity: 0.9;
-  color: #94a3b8;
+.status-symbol.disconnected circle {
+  transition: fill 0.2s ease;
+}
+
+.status-pill:hover .status-symbol.disconnected circle {
+  fill: #64748b;
+}
+
+.status-pill:hover .status-symbol.connected {
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.5)) brightness(1.1);
 }
 
 .status-dot {
@@ -8649,9 +8676,10 @@ body.in-fullscreen .app-top-color-banner {
     display: none !important;
   }
   .header-status .status-pill {
-    padding: 0.35rem 0.55rem !important;
-    min-width: 38px !important;
-    height: 34px !important;
+    padding: 0.25rem !important;
+    min-width: 36px !important;
+    width: 36px !important;
+    height: 36px !important;
     justify-content: center !important;
     border-radius: 9999px !important;
     gap: 0 !important;
@@ -8671,10 +8699,10 @@ body.in-fullscreen .app-top-color-banner {
     font-size: 0.74rem !important;
   }
   .header-status .status-pill {
-    padding: 0.28rem 0.65rem !important;
+    padding: 0.25rem 0.65rem 0.25rem 0.35rem !important;
     gap: 0.45rem !important;
     min-width: auto !important;
-    height: 32px !important;
+    height: 34px !important;
   }
 }
 

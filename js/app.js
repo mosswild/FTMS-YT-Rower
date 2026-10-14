@@ -564,63 +564,69 @@ const hrBle = new HeartRateBLE(
 const btnConnectRower = document.getElementById("btn-connect-rower");
 const btnConnectHr = document.getElementById("btn-connect-hr");
 
-// SVG Icon Generators for Rower (Crossed Oars) and Heart Rate (Heart with Signal)
+// SVG Icon Generators for Rower (Boat with Oars) and Heart Rate (Heart with Signal)
 function getRowerIconSvg(connected, isConnecting) {
   if (isConnecting) {
-    return `<svg class="status-symbol status-symbol-rower connecting" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="3.5" y1="20.5" x2="11" y2="13"/>
-      <line x1="13" y1="11" x2="15.2" y2="8.8"/>
-      <line x1="20.5" y1="20.5" x2="8.8" y2="8.8"/>
-      <line x1="2" y1="19" x2="5" y2="22" stroke-width="2.5"/>
-      <line x1="19" y1="22" x2="22" y2="19" stroke-width="2.5"/>
-      <path d="M8.8 8.8 C8.2 6.5 6.8 4.2 4.98 2.44 C4.4 2.1 3.9 2.1 3.5 2.5 C2.1 3.9 2.1 4.4 2.44 4.98 C4.2 6.8 6.5 8.2 8.8 8.8 Z"/>
-      <line x1="8" y1="8" x2="4.5" y2="4.5" stroke-width="1.2"/>
-      <path d="M15.2 8.8 C15.8 6.5 17.2 4.2 19.02 2.44 C19.6 2.1 20.1 2.1 20.5 2.5 C21.9 3.9 21.9 4.4 21.56 4.98 C19.8 6.8 17.5 8.2 15.2 8.8 Z"/>
-      <line x1="16" y1="8" x2="19.5" y2="4.5" stroke-width="1.2"/>
+    return `<svg class="status-symbol status-symbol-rower connecting" width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="12" fill="#0284c7"/>
+      <g transform="translate(3, 3) scale(0.75)">
+        <path d="M12 2.8 C13.5 4.6 15.8 8 16.1 12 C16.3 15.5 16 18.2 15.5 19.8 C15.3 20.5 14.7 21 14 21 L10 21 C9.3 21 8.7 20.5 8.5 19.8 C8 18.2 7.7 15.5 7.9 12 C8.2 8 10.5 4.6 12 2.8 Z" fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <line x1="11.5" y1="10.8" x2="6.2" y2="13.8" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+        <polygon points="6.2,13.8 4.2,12.5 1.5,15.8 2.8,17.8 6.2,16.2" fill="#ffffff" stroke="#ffffff" stroke-width="0.6" stroke-linejoin="round"/>
+        <line x1="12.5" y1="10.8" x2="17.8" y2="13.8" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+        <polygon points="17.8,13.8 19.8,12.5 22.5,15.8 21.2,17.8 17.8,16.2" fill="#ffffff" stroke="#ffffff" stroke-width="0.6" stroke-linejoin="round"/>
+      </g>
     </svg>`;
   }
   if (connected) {
-    return `<svg class="status-symbol status-symbol-rower connected" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="3.5" y1="20.5" x2="11" y2="13"/>
-      <line x1="13" y1="11" x2="15.2" y2="8.8"/>
-      <line x1="20.5" y1="20.5" x2="8.8" y2="8.8"/>
-      <line x1="2" y1="19" x2="5" y2="22" stroke-width="2.5"/>
-      <line x1="19" y1="22" x2="22" y2="19" stroke-width="2.5"/>
-      <path d="M8.8 8.8 C8.2 6.5 6.8 4.2 4.98 2.44 C4.4 2.1 3.9 2.1 3.5 2.5 C2.1 3.9 2.1 4.4 2.44 4.98 C4.2 6.8 6.5 8.2 8.8 8.8 Z" fill="rgba(16, 185, 129, 0.25)"/>
-      <line x1="8" y1="8" x2="4.5" y2="4.5" stroke-width="1.2"/>
-      <path d="M15.2 8.8 C15.8 6.5 17.2 4.2 19.02 2.44 C19.6 2.1 20.1 2.1 20.5 2.5 C21.9 3.9 21.9 4.4 21.56 4.98 C19.8 6.8 17.5 8.2 15.2 8.8 Z" fill="rgba(16, 185, 129, 0.25)"/>
-      <line x1="16" y1="8" x2="19.5" y2="4.5" stroke-width="1.2"/>
+    return `<svg class="status-symbol status-symbol-rower connected" width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="12" fill="#2563eb"/>
+      <g transform="translate(3, 3) scale(0.75)">
+        <path d="M12 2.8 C13.5 4.6 15.8 8 16.1 12 C16.3 15.5 16 18.2 15.5 19.8 C15.3 20.5 14.7 21 14 21 L10 21 C9.3 21 8.7 20.5 8.5 19.8 C8 18.2 7.7 15.5 7.9 12 C8.2 8 10.5 4.6 12 2.8 Z" fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <line x1="11.5" y1="10.8" x2="6.2" y2="13.8" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+        <polygon points="6.2,13.8 4.2,12.5 1.5,15.8 2.8,17.8 6.2,16.2" fill="#ffffff" stroke="#ffffff" stroke-width="0.6" stroke-linejoin="round"/>
+        <line x1="12.5" y1="10.8" x2="17.8" y2="13.8" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+        <polygon points="17.8,13.8 19.8,12.5 22.5,15.8 21.2,17.8 17.8,16.2" fill="#ffffff" stroke="#ffffff" stroke-width="0.6" stroke-linejoin="round"/>
+      </g>
     </svg>`;
   }
-  return `<svg class="status-symbol status-symbol-rower disconnected" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <line x1="3.5" y1="20.5" x2="11" y2="13"/>
-    <line x1="13" y1="11" x2="15.2" y2="8.8"/>
-    <line x1="20.5" y1="20.5" x2="8.8" y2="8.8"/>
-    <line x1="2" y1="19" x2="5" y2="22" stroke-width="2.5"/>
-    <line x1="19" y1="22" x2="22" y2="19" stroke-width="2.5"/>
-    <path d="M8.8 8.8 C8.2 6.5 6.8 4.2 4.98 2.44 C4.4 2.1 3.9 2.1 3.5 2.5 C2.1 3.9 2.1 4.4 2.44 4.98 C4.2 6.8 6.5 8.2 8.8 8.8 Z"/>
-    <line x1="8" y1="8" x2="4.5" y2="4.5" stroke-width="1.2"/>
-    <path d="M15.2 8.8 C15.8 6.5 17.2 4.2 19.02 2.44 C19.6 2.1 20.1 2.1 20.5 2.5 C21.9 3.9 21.9 4.4 21.56 4.98 C19.8 6.8 17.5 8.2 15.2 8.8 Z"/>
-    <line x1="16" y1="8" x2="19.5" y2="4.5" stroke-width="1.2"/>
+  return `<svg class="status-symbol status-symbol-rower disconnected" width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#475569"/>
+    <g transform="translate(3, 3) scale(0.75)">
+      <path d="M12 2.8 C13.5 4.6 15.8 8 16.1 12 C16.3 15.5 16 18.2 15.5 19.8 C15.3 20.5 14.7 21 14 21 L10 21 C9.3 21 8.7 20.5 8.5 19.8 C8 18.2 7.7 15.5 7.9 12 C8.2 8 10.5 4.6 12 2.8 Z" fill="none" stroke="#e2e8f0" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <line x1="11.5" y1="10.8" x2="6.2" y2="13.8" stroke="#e2e8f0" stroke-width="1.8" stroke-linecap="round"/>
+      <polygon points="6.2,13.8 4.2,12.5 1.5,15.8 2.8,17.8 6.2,16.2" fill="#e2e8f0" stroke="#e2e8f0" stroke-width="0.6" stroke-linejoin="round"/>
+      <line x1="12.5" y1="10.8" x2="17.8" y2="13.8" stroke="#e2e8f0" stroke-width="1.8" stroke-linecap="round"/>
+      <polygon points="17.8,13.8 19.8,12.5 22.5,15.8 21.2,17.8 17.8,16.2" fill="#e2e8f0" stroke="#e2e8f0" stroke-width="0.6" stroke-linejoin="round"/>
+    </g>
   </svg>`;
 }
 
 function getHrIconSvg(connected, isConnecting) {
   if (isConnecting) {
-    return `<svg class="status-symbol status-symbol-hr connecting" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-      <polyline points="4.5 12.5 8 12.5 10 9 12 16 14.5 10.5 16.5 12.5 19.5 12.5" stroke="#38bdf8" stroke-width="2"/>
+    return `<svg class="status-symbol status-symbol-hr connecting" width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="12" fill="#0284c7"/>
+      <g transform="translate(3, 3) scale(0.75)">
+        <path d="M12 20.5 L4.2 12.8 C2.5 11.1 2.5 8.4 4.2 6.7 C5.9 5 8.6 5 10.3 6.7 L12 8.4 L13.7 6.7 C15.4 5 18.1 5 19.8 6.7 C21.5 8.4 21.5 11.1 19.8 12.8 Z" fill="#ffffff"/>
+        <polyline points="3 12 7.5 12 9.5 8.5 11.5 15.5 13.5 10.5 15 12 21 12" fill="none" stroke="#0284c7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
     </svg>`;
   }
   if (connected) {
-    return `<svg class="status-symbol status-symbol-hr connected" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="rgba(16, 185, 129, 0.2)"/>
-      <polyline points="4.5 12.5 8 12.5 10 9 12 16 14.5 10.5 16.5 12.5 19.5 12.5" stroke-width="2"/>
+    return `<svg class="status-symbol status-symbol-hr connected" width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="12" fill="#ef4444"/>
+      <g transform="translate(3, 3) scale(0.75)">
+        <path d="M12 20.5 L4.2 12.8 C2.5 11.1 2.5 8.4 4.2 6.7 C5.9 5 8.6 5 10.3 6.7 L12 8.4 L13.7 6.7 C15.4 5 18.1 5 19.8 6.7 C21.5 8.4 21.5 11.1 19.8 12.8 Z" fill="#ffffff"/>
+        <polyline points="3 12 7.5 12 9.5 8.5 11.5 15.5 13.5 10.5 15 12 21 12" fill="none" stroke="#ef4444" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
     </svg>`;
   }
-  return `<svg class="status-symbol status-symbol-hr disconnected" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-    <polyline points="4.5 12.5 8 12.5 10 9 12 16 14.5 10.5 16.5 12.5 19.5 12.5" stroke-width="2"/>
+  return `<svg class="status-symbol status-symbol-hr disconnected" width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#475569"/>
+    <g transform="translate(3, 3) scale(0.75)">
+      <path d="M12 20.5 L4.2 12.8 C2.5 11.1 2.5 8.4 4.2 6.7 C5.9 5 8.6 5 10.3 6.7 L12 8.4 L13.7 6.7 C15.4 5 18.1 5 19.8 6.7 C21.5 8.4 21.5 11.1 19.8 12.8 Z" fill="#e2e8f0" opacity="0.9"/>
+      <polyline points="3 12 7.5 12 9.5 8.5 11.5 15.5 13.5 10.5 15 12 21 12" fill="none" stroke="#475569" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
   </svg>`;
 }
 
