@@ -195,11 +195,17 @@ body {
 }
 
 .status-symbol.connected {
-  filter: drop-shadow(0 0 4px currentColor);
+  filter: drop-shadow(0 0 3px currentColor);
 }
 
-.status-symbol.disconnected .slash-line {
-  stroke: #ef4444;
+.status-symbol.disconnected {
+  opacity: 0.65;
+  color: #64748b;
+}
+
+.status-pill:hover .status-symbol.disconnected {
+  opacity: 0.9;
+  color: #94a3b8;
 }
 
 .status-dot {
