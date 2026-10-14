@@ -820,12 +820,8 @@ function switchView(viewName) {
 
   const metaTheme = document.getElementById("meta-theme-color");
   if (metaTheme) {
-    if (viewName === "cockpit") {
-      metaTheme.content = "#000000";
-    } else {
-      const isNordic = document.documentElement.getAttribute("data-theme") === "nordic";
-      metaTheme.content = isNordic ? "#ffffff" : "#0f172a";
-    }
+    const curTheme = document.documentElement.getAttribute("data-theme") || "default";
+    metaTheme.content = curTheme === "nordic" ? "#0284c7" : (curTheme === "cyberpunk" ? "#ff007f" : (curTheme === "retro-pm5" ? "#1f271f" : "#0f172a"));
   }
 
   if (viewName === "profiles") {
@@ -5175,11 +5171,7 @@ function applyTheme(themeId) {
 
   const metaTheme = document.getElementById("meta-theme-color");
   if (metaTheme) {
-    if (document.body.classList.contains("in-cockpit")) {
-      metaTheme.content = "#000000";
-    } else {
-      metaTheme.content = themeId === "nordic" ? "#ffffff" : "#0f172a";
-    }
+    metaTheme.content = themeId === "nordic" ? "#0284c7" : (themeId === "cyberpunk" ? "#ff007f" : (themeId === "retro-pm5" ? "#1f271f" : "#0f172a"));
   }
 
   // Update active state in settings modal

@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="FTMS Rower">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -17,15 +17,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  <meta name="theme-color" id="meta-theme-color" content="#ffffff">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=ui-overhaul-v74">
+  <meta name="theme-color" id="meta-theme-color" content="#0284c7">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=ui-overhaul-v75">
   <script>
     (function() {
       try {
         const theme = localStorage.getItem("ftms_hud_theme");
         if (theme && theme !== "default") document.documentElement.setAttribute("data-theme", theme);
         const meta = document.getElementById("meta-theme-color");
-        if (meta) meta.content = (theme === "nordic" ? "#ffffff" : "#0f172a");
+        if (meta) {
+          meta.content = (theme === "nordic" ? "#0284c7" : (theme === "cyberpunk" ? "#ff007f" : (theme === "retro-pm5" ? "#1f271f" : "#0f172a")));
+        }
       } catch (e) {}
     })();
   </script>
@@ -157,6 +159,7 @@
     <!-- Mobile Portrait Cockpit Top Gradient Canopy / Color Block -->
     <div class="cockpit-top-banner" aria-hidden="true">
       <img src="icon-192.png" alt="" class="cockpit-banner-logo">
+      <span class="cockpit-banner-title">FTMS Rower</span>
     </div>
 
     <div id="viewport-container" class="scenic-viewport-container">
