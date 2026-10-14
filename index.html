@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
   <meta name="theme-color" id="meta-theme-color" content="#0284c7">
-  <link rel="stylesheet" href="css/pm5-hud.css?v=ui-overhaul-v81">
+  <link rel="stylesheet" href="css/pm5-hud.css?v=ui-overhaul-v82">
   <script>
     (function() {
       try {
@@ -431,24 +431,6 @@
       <button id="btn-track-fwd10" class="track-btn" title="Pan forward 10 seconds">⏩ +10s</button>
       <input type="range" id="track-scrubber" class="track-scrubber" min="0" max="100" value="0" step="0.1" title="Scrub Track Position">
       <span id="track-time-display" class="track-time-readout">00:00 / 00:00</span>
-    </div>
-
-    <!-- Quick Controls Bar -->
-    <div class="cockpit-controls-bar">
-      <div class="control-group workout-audio-group">
-        <div class="audio-controls">
-          <button id="btn-toggle-audio" class="btn btn-audio paused" title="Toggle 1.0x soundtrack">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-            <span id="btn-audio-label">Play Audio</span>
-          </button>
-          <select id="audio-track-select" class="select-dropdown">
-            <option value="original">Original Video Audio (1.0×)</option>
-            <option value="mute">Mute</option>
-          </select>
-          <input type="range" id="audio-volume-slider" class="volume-slider" min="0" max="1" step="0.05" value="1.0" title="Soundtrack Volume">
-        </div>
-        <button id="btn-toggle-workout" class="btn btn-success">Start Workout</button>
-      </div>
     </div>
   </main>
 
@@ -1574,6 +1556,6 @@
   </nav>
 
   <!-- Application Logic -->
-  <script type="module" src="js/app.js?v=ui-overhaul-v81"></script>
+  <script type="module" src="js/app.js?v=ui-overhaul-v82"></script>
 </body>
 </html>
