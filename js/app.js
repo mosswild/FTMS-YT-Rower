@@ -807,6 +807,13 @@ function switchView(viewName) {
 
   document.body.classList.toggle("in-cockpit", viewName === "cockpit");
 
+  // Reset scroll to top so controls are immediately visible and never clipped
+  window.scrollTo(0, 0);
+  if (viewName === "cockpit") {
+    const cockpitEl = document.getElementById("view-cockpit");
+    if (cockpitEl) cockpitEl.scrollTop = 0;
+  }
+
   Object.keys(views).forEach(key => {
     if (views[key]) {
       views[key].style.display = (key === viewName) ? "block" : "none";
