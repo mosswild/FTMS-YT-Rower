@@ -20,8 +20,8 @@
 FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you row, your stroke cadence dynamically modulates video playback speed ($0.3\times \dots 2.5\times$), while soundtrack audio remains crystal-clear and locked at a steady $1.0\times$. Forked and reimagined from [manuelkamp/FTMS-rower](https://github.com/manuelkamp/FTMS-rower).
 
 <p align="center">
-  <img src="docs/screenshots/cockpit-nordic-minimalist.png" alt="FTMS-Rower Cockpit HUD (Nordic Minimalist Theme)" width="100%">
-  <em>Scenic Cockpit in Nordic Minimalist theme (translucent frosted glass) with real-time PM5 telemetry HUD, Lake Louise route, decoupled audio, and transport controls.</em>
+  <img src="docs/screenshots/cockpit-modern-slate.png" alt="FTMS-Rower Cockpit HUD (Modern Slate Theme)" width="100%">
+  <em>Scenic Cockpit in default Modern Slate theme with real-time PM5 telemetry HUD, live Bluetooth rower and heart rate connectivity indicators, Thames River route, and decoupled 1.0× soundtrack audio.</em>
 </p>
 
 ---
@@ -109,14 +109,31 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   - **Concept2 PM5 LCD:** Matte bezel with authentic phosphorescent green LCD styling.
 
 <p align="center">
-  <img src="docs/screenshots/cockpit-neon-cyberpunk.png" alt="Neon Cyberpunk HUD Theme" width="49%">
-  <img src="docs/screenshots/cockpit-modern-slate.png" alt="Modern Slate HUD Theme" width="49%">
+  <img src="docs/screenshots/cockpit-modern-slate.png" alt="Modern Slate HUD Theme (Default)" width="49%">
+  <img src="docs/screenshots/cockpit-nordic-minimalist.png" alt="Nordic Minimalist HUD Theme" width="49%">
 </p>
 <p align="center">
-  <em>Left: Neon Cyberpunk theme on ambient route. Right: Modern Slate (default dark theme) during a high-cadence sprint.</em>
+  <img src="docs/screenshots/cockpit-neon-cyberpunk.png" alt="Neon Cyberpunk HUD Theme" width="49%">
+  <img src="docs/screenshots/cockpit-concept2-pm5.png" alt="Concept2 PM5 LCD HUD Theme" width="49%">
+</p>
+<p align="center">
+  <em>Four visual themes: Top-left: Modern Slate (default dark glass). Top-right: Nordic Minimalist (frosted glass & gold). Bottom-left: Neon Cyberpunk (OLED dark & laser cyan/magenta). Bottom-right: Concept2 PM5 (authentic phosphorescent green LCD).</em>
 </p>
 
-### 6. ⏱️ Structured Training Programs & Real-Time Interval Pacing
+### 6. 📱 Responsive Layouts: Tablet Landscape vs. Mobile Portrait
+- **Fluid Multi-Form Factor Engine:** Built from the ground up to feel like a native mobile app on phones and tablets while delivering a cinematic widescreen experience on desktops and smart TVs.
+- **Landscape Mode:** Expansive widescreen layout featuring edge-to-edge scenic video, floating PM5 telemetry cards with full parameter labels, docked transport bar, and optional full-width interval progress ribbon.
+- **Portrait / Mobile Mode:** Streamlined vertical dashboard tailored for smartphone row holders. Telemetry automatically condenses into high-contrast readable tiles, top bar displays compact circular badges (paddle and heart) with pulsating telemetry activity, and bottom tab navigation allows single-thumb switching between Home, Cockpit, Media, Programs, and Profile.
+
+<p align="center">
+  <img src="docs/screenshots/home-quick-workouts.png" alt="Athlete Home Dashboard - Landscape Mode" width="62%">
+  <img src="docs/screenshots/mobile-portrait-home.png" alt="Athlete Home Dashboard - Mobile Portrait Mode" width="35%">
+</p>
+<p align="center">
+  <em>Athlete Home experience: Left: Landscape view featuring athlete profile greeting, connected gear badges, and Quick Workout cards. Right: Mobile portrait view optimized for single-thumb smartphone navigation.</em>
+</p>
+
+### 7. ⏱️ Structured Training Programs & Real-Time Interval Pacing
 - **Curated Program Library:** Preloaded routines designed for diverse training goals:
   - *Endurance & Aerobic Base:* 30-Minute Zone 2 Aerobic Base, 4 × 1000m Aerobic Threshold, 5K Negative Split & Rate Ladder.
   - *Intervals & HIIT:* 5 × 500m Power Intervals, Tabata Rowing Sprints (8 cycles of 20s work / 10s rest).
@@ -149,10 +166,10 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   <img src="docs/screenshots/cockpit-workout-bar.png" alt="Cockpit HUD with Docked Workout Interval Ribbon" width="100%">
 </p>
 <p align="center">
-  <em>Cockpit HUD during an active structured workout: Docked interval ribbon with step countdown, GPU-composited progress bar, real-time target compliance chips (SPM and HR), and Concept2 PM5 theme.</em>
+  <em>Cockpit HUD during an active structured workout: Docked interval ribbon with step countdown, GPU-composited progress bar, real-time target compliance chips (SPM and HR), and default Modern Slate theme.</em>
 </p>
 
-### 7. 🔌 Dual-Source Telemetry & Virtual Simulator
+### 8. 🔌 Dual-Source Telemetry & Virtual Simulator
 - **Web Bluetooth FTMS:** Direct connection to FTMS rowers (`0x2AD1`) including Merach Q1S, Concept2 PM5, WaterRower ComModule, and standard BLE Heart Rate monitors (`0x180D`).
 - **Dynamic Workout Simulator:** Built-in simulator featuring:
   - **Dynamic Program:** Automatically cycles through Warmup, Surge, Sprint, Paddle Down, Rest (testing auto-pause), and Recovery.
@@ -161,7 +178,7 @@ FTMS-Rower transforms indoor rowing into an immersive outdoor experience. As you
   - **Manual Slider:** Fine-tune target SPM ($14 \dots 38$) with live split and watt calculations.
   - **Instant Pause / Resume:** Test boat glide decay and auto-pause behavior instantly.
 
-### 8. 💾 Session History & Multi-Lap TCX Export (Garmin & Strava)
+### 9. 💾 Session History & Multi-Lap TCX Export (Garmin & Strava)
 - **Local Persistence:** Workouts and per-second trackpoint telemetry are stored locally in SQLite (`data/sessions.db`).
 - **Interval-by-Interval Lap Breakdown:** Structured program sessions record discrete `<Lap>` blocks with `Active`/`Resting` intensity classifications, average watts (`<LX><AvgWatts>`), cadence, and heart rate for automatic interval breakdown in Garmin Connect and Strava Workout Analysis.
 - **Batch Export & Management:** Export workouts individually or in bulk (`.zip`) to standard **Garmin Training Center XML (`.TCX`)** format, with multi-session selection and batch deletion.
