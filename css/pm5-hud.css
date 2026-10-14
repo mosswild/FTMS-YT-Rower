@@ -219,6 +219,52 @@ body {
   filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.4));
 }
 
+.status-pill.connected .status-symbol-rower,
+.status-symbol-rower.connected {
+  animation: rowerConnectedPulse 2s infinite ease-in-out;
+  transform-origin: center center;
+}
+
+.status-pill.connected .status-symbol-hr,
+.status-symbol-hr.connected {
+  animation: hrConnectedPulse 1.25s infinite ease-in-out;
+  transform-origin: center center;
+}
+
+@keyframes rowerConnectedPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 3px rgba(37, 99, 235, 0.5));
+  }
+  50% {
+    transform: scale(1.09);
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.85));
+  }
+}
+
+@keyframes hrConnectedPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.5));
+  }
+  15% {
+    transform: scale(1.12);
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.85));
+  }
+  30% {
+    transform: scale(1.02);
+    filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.55));
+  }
+  45% {
+    transform: scale(1.16);
+    filter: drop-shadow(0 0 10px rgba(244, 63, 94, 0.95));
+  }
+  65% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.5));
+  }
+}
+
 .status-symbol.disconnected {
   opacity: 0.9;
 }
@@ -1087,11 +1133,76 @@ body.in-fullscreen .app-header {
   75% { transform: scale(1.15); }
 }
 
+/* ----------------- Cockpit Video Controls Toggle ----------------- */
+.cockpit-video-controls-toggle-wrap {
+  width: 100%;
+  max-width: 1280px;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.btn-video-controls-toggle {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-border);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.8rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.btn-video-controls-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-video-controls-toggle.active {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+.btn-video-controls-toggle .toggle-arrow {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  transition: transform 0.2s ease;
+}
+
+.hud-icon-btn.active {
+  background: rgba(56, 189, 248, 0.2) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+
+.track-btn-close {
+  margin-left: auto;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.55rem;
+  opacity: 0.75;
+}
+
+.track-btn-close:hover {
+  opacity: 1;
+  color: #ef4444;
+}
+
 /* ----------------- Cockpit Track Transport Bar ----------------- */
 .cockpit-track-bar {
   width: 100%;
   max-width: 1280px;
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
   background: rgba(15, 23, 42, 0.75);
   border: 1px solid var(--surface-border);
   backdrop-filter: blur(12px);

@@ -2330,6 +2330,50 @@ if (trackScrubber) {
   });
 }
 
+// Cockpit Video Controls Bar Visibility Toggle
+function setCockpitVideoControlsVisible(visible) {
+  const bar = document.getElementById("cockpit-track-bar");
+  const toggleBtn = document.getElementById("btn-toggle-video-controls");
+  const hudBtn = document.getElementById("hud-toggle-video-controls-btn");
+  const arrowEl = document.getElementById("video-controls-arrow");
+
+  if (bar) {
+    bar.style.display = visible ? "flex" : "none";
+  }
+  if (toggleBtn) {
+    toggleBtn.classList.toggle("active", visible);
+    if (arrowEl) arrowEl.textContent = visible ? "▴" : "▾";
+  }
+  if (hudBtn) {
+    hudBtn.classList.toggle("active", visible);
+  }
+  try {
+    localStorage.setItem("ftms_show_video_controls", visible ? "true" : "false");
+  } catch (e) {}
+}
+
+function toggleCockpitVideoControls() {
+  const bar = document.getElementById("cockpit-track-bar");
+  const isCurrentlyVisible = bar && bar.style.display !== "none";
+  setCockpitVideoControlsVisible(!isCurrentlyVisible);
+}
+
+document.getElementById("btn-toggle-video-controls")?.addEventListener("click", toggleCockpitVideoControls);
+document.getElementById("hud-toggle-video-controls-btn")?.addEventListener("click", toggleCockpitVideoControls);
+document.getElementById("btn-close-track-bar")?.addEventListener("click", () => setCockpitVideoControlsVisible(false));
+
+// Initialize Video Controls visibility (hidden by default)
+try {
+  const savedVideoControlsState = localStorage.getItem("ftms_show_video_controls");
+  if (savedVideoControlsState === "true") {
+    setCockpitVideoControlsVisible(true);
+  } else {
+    setCockpitVideoControlsVisible(false);
+  }
+} catch (e) {
+  setCockpitVideoControlsVisible(false);
+}
+
 // Track Creation Modal Form
 const modalCreateTrack = document.getElementById("modal-create-track");
 const btnOpenCreateTrack = document.getElementById("btn-open-create-track");
@@ -6146,6 +6190,9 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault();
     const btnFs = document.getElementById("hud-fullscreen-btn");
     if (btnFs) btnFs.click();
+  } else if (e.key === "v" || e.key === "V") {
+    e.preventDefault();
+    toggleCockpitVideoControls();
   }
 });
 
