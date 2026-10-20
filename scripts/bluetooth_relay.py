@@ -702,6 +702,7 @@ async def rower_loop(
                 publisher.publish({
                     "event": "connected",
                     "device_name": state.rower_name,
+                    "deviceName": state.rower_name,
                     "device_type": "rower",
                     "source": "ble-relay",
                     "timestamp": time.time()
@@ -734,6 +735,7 @@ async def rower_loop(
                 publisher.publish({
                     "event": "disconnected",
                     "device_name": state.rower_name,
+                    "deviceName": state.rower_name,
                     "device_type": "rower",
                     "source": "ble-relay",
                     "timestamp": time.time()
@@ -906,6 +908,8 @@ async def hr_loop(
                 publisher.publish({
                     "event": "hr_connected",
                     "device_name": state.hr_name,
+                    "deviceName": state.hr_name,
+                    "hr_device_name": state.hr_name,
                     "device_type": "hr",
                     "source": "ble-relay",
                     "timestamp": time.time()
@@ -928,6 +932,8 @@ async def hr_loop(
                 publisher.publish({
                     "event": "hr_disconnected",
                     "device_name": state.hr_name,
+                    "deviceName": state.hr_name,
+                    "hr_device_name": state.hr_name,
                     "device_type": "hr",
                     "source": "ble-relay",
                     "timestamp": time.time()
@@ -1190,20 +1196,20 @@ async def handle_interactive_disconnect(state: RelayState, publisher: RelayPubli
     if choice == "1":
         state.rower_paused = True
         await state.disconnect_rower()
-        publisher.publish({"event": "disconnected", "device_name": state.rower_name, "device_type": "rower", "source": "ble-relay", "timestamp": time.time()})
+        publisher.publish({"event": "disconnected", "device_name": state.rower_name, "deviceName": state.rower_name, "device_type": "rower", "source": "ble-relay", "timestamp": time.time()})
         print(f"[OK] Disconnected rower {state.rower_name}.")
     elif choice == "2":
         state.hr_paused = True
         await state.disconnect_hr()
-        publisher.publish({"event": "hr_disconnected", "device_name": state.hr_name, "device_type": "hr", "source": "ble-relay", "timestamp": time.time()})
+        publisher.publish({"event": "hr_disconnected", "device_name": state.hr_name, "deviceName": state.hr_name, "hr_device_name": state.hr_name, "device_type": "hr", "source": "ble-relay", "timestamp": time.time()})
         print(f"[OK] Disconnected HR monitor {state.hr_name}.")
     elif choice == "3":
         state.rower_paused = True
         state.hr_paused = True
         await state.disconnect_rower()
         await state.disconnect_hr()
-        publisher.publish({"event": "disconnected", "device_name": state.rower_name, "device_type": "rower", "source": "ble-relay", "timestamp": time.time()})
-        publisher.publish({"event": "hr_disconnected", "device_name": state.hr_name, "device_type": "hr", "source": "ble-relay", "timestamp": time.time()})
+        publisher.publish({"event": "disconnected", "device_name": state.rower_name, "deviceName": state.rower_name, "device_type": "rower", "source": "ble-relay", "timestamp": time.time()})
+        publisher.publish({"event": "hr_disconnected", "device_name": state.hr_name, "deviceName": state.hr_name, "hr_device_name": state.hr_name, "device_type": "hr", "source": "ble-relay", "timestamp": time.time()})
         print("[OK] Disconnected both devices.")
     else:
         print("Cancelled.")

@@ -1,3 +1,5 @@
+import { getSharedAudioContext, playCountdownBeep, playTransitionChime } from "./sound-fx.js";
+
 /**
  * FTMS-Rower Workout Engine
  * Manages structured interval programs, step triggers, compliance checking,
@@ -124,64 +126,17 @@ export class WorkoutEngine {
   }
 
   initAudio() {
-    if (!this.audioCtx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        this.audioCtx = new AudioCtx();
-      }
-    }
-    if (this.audioCtx && this.audioCtx.state === "suspended") {
-      this.audioCtx.resume();
-    }
+    this.audioCtx = getSharedAudioContext();
   }
 
   playBeep(freq = 440, durationSec = 0.08) {
     if (!this.soundAlerts) return;
-    try {
-      this.initAudio();
-      if (!this.audioCtx) return;
-
-      const osc = this.audioCtx.createOscillator();
-      const gain = this.audioCtx.createGain();
-
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
-
-      gain.gain.setValueAtTime(0.25, this.audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + durationSec);
-
-      osc.connect(gain);
-      gain.connect(this.audioCtx.destination);
-
-      osc.start();
-      osc.stop(this.audioCtx.currentTime + durationSec);
-    } catch (e) {}
+    playCountdownBeep(freq, durationSec);
   }
 
   playTransitionChime() {
     if (!this.soundAlerts) return;
-    try {
-      this.initAudio();
-      if (!this.audioCtx) return;
-
-      const now = this.audioCtx.currentTime;
-      [880, 1320].forEach((freq, idx) => {
-        const osc = this.audioCtx.createOscillator();
-        const gain = this.audioCtx.createGain();
-
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, now + idx * 0.05);
-
-        gain.gain.setValueAtTime(0.2, now + idx * 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.35);
-
-        osc.connect(gain);
-        gain.connect(this.audioCtx.destination);
-
-        osc.start(now + idx * 0.05);
-        osc.stop(now + idx * 0.05 + 0.35);
-      });
-    } catch (e) {}
+    playTransitionChime();
   }
 
   loadWorkout(workoutData) {

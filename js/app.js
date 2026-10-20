@@ -11,6 +11,10 @@ import { WebSocketTelemetry } from "./modules/ws-telemetry.js?v=workout-improvem
 import { WorkoutEngine } from "./modules/workout-engine.js?v=workout-improvements-v50";
 import { KeepAwake } from "./modules/keep-awake.js?v=workout-improvements-v50";
 import { HrZonesManager } from "./modules/hr-zones.js?v=workout-improvements-v50";
+import { setupGlobalAudioUnlock, unlockAudio, playMessageChime } from "./modules/sound-fx.js?v=workout-improvements-v50";
+
+// Arm user-gesture audio unlocker on the very first touch/click
+setupGlobalAudioUnlock();
 
 // DOM Elements
 const videoEl = document.getElementById("scenic-video");
@@ -397,6 +401,13 @@ const workoutEngine = new WorkoutEngine({
           sessionTracker.resetBaselines();
         }
       }
+      if (typeof rateController !== "undefined" && rateController) {
+        if (!rateController.isWorkoutLive) rateController.setWorkoutLive(true);
+        if (videoEl && videoEl.paused) rateController.resumeVideo();
+      }
+      if (typeof audioEngine !== "undefined" && audioEngine && audioEngine.mode !== "mute" && !audioEngine.isPlaying) {
+        audioEngine.play();
+      }
     } else if (status === "paused") {
       pm5Hud.showWorkoutBar(true);
       pm5Hud.showNotice("Program Paused", 2500);
@@ -506,6 +517,23 @@ function handleTelemetryPacket(data) {
     if ((data.strokeRate && data.strokeRate > 0) || (data.watts && data.watts > 0)) {
       startActiveWorkout();
     }
+  } else if ((!workoutEngine || !workoutEngine.workout || workoutEngine.status === "idle") &&
+             (!rateController.isWorkoutLive || (sessionTracker && sessionTracker.state === "idle"))) {
+    // Free Row auto-start on stroke pull if in cockpit with video/track loaded
+    if ((data.strokeRate && data.strokeRate > 0) || (data.watts && data.watts > 0)) {
+      if (sessionTracker && sessionTracker.state === "idle") {
+        sessionTracker.start();
+      }
+      if (rateController && !rateController.isWorkoutLive) {
+        rateController.setWorkoutLive(true);
+      }
+      if (videoEl && videoEl.paused) {
+        rateController.resumeVideo();
+      }
+      if (audioEngine && audioEngine.mode !== "mute" && !audioEngine.isPlaying) {
+        audioEngine.play();
+      }
+    }
   }
 
   sessionTracker.updateTelemetry(data);
@@ -514,8 +542,8 @@ function handleTelemetryPacket(data) {
     workoutEngine.onTelemetry(data);
   }
 
-  // Auto-sync: ensure soundtrack plays if workout is live, video is actively playing, and audio is not muted
-  if (rateController.isWorkoutLive && videoEl && !videoEl.paused && !audioEngine.isPlaying && audioEngine.mode !== "mute") {
+  // Auto-sync: ensure soundtrack plays if workout is live and audio is not muted
+  if (rateController.isWorkoutLive && !audioEngine.isPlaying && audioEngine.mode !== "mute") {
     audioEngine.play();
   }
 }
@@ -776,7 +804,7 @@ const wsTelemetry = new WebSocketTelemetry(
     // Explicit relay connection lifecycle events from bluetooth_relay.py
     if (data.event === "connected") {
       relayActive = true;
-      relayDeviceName = data.deviceName || "Rower";
+      relayDeviceName = data.deviceName || data.device_name || "Rower";
       if (!rowerBle.isConnected && !simulator.isRunning) {
         updateRowerStatus(true, `${relayDeviceName} (Relay)`, "relay", relayDeviceName);
       }
@@ -795,7 +823,7 @@ const wsTelemetry = new WebSocketTelemetry(
 
     if (data.event === "hr_connected") {
       relayHrActive = true;
-      relayHrDeviceName = data.deviceName || "HR Monitor";
+      relayHrDeviceName = data.deviceName || data.device_name || data.hr_device_name || "HR Monitor";
       if (!hrBle.isConnected) {
         updateHrStatus(true, `${relayHrDeviceName} (Relay)`, "relay", relayHrDeviceName);
       }
@@ -815,28 +843,23 @@ const wsTelemetry = new WebSocketTelemetry(
       return;
     }
 
-    // If local BLE rower is not actively connected and simulator is not running, relay drives the cockpit
-    if (!rowerBle.isConnected && !simulator.isRunning) {
+    // Discriminate packet types: Rower telemetry vs Heart Rate telemetry
+    const hasRowerData = (data.device_type === "rower") ||
+      (data.strokeRate !== undefined || data.stroke_rate !== undefined ||
+       data.watts !== undefined || data.distance !== undefined ||
+       data.split_seconds !== undefined || data.instantaneousPace !== undefined);
+
+    const hasHrData = (data.device_type === "hr") ||
+      (data.heartRate !== undefined || data.hr !== undefined);
+
+    // 1. Process Rower Telemetry ONLY if packet actually contains rower metrics!
+    if (hasRowerData && !rowerBle.isConnected && !simulator.isRunning) {
       handleTelemetryPacket(data);
-      if (!relayActive) {
+      const rowerDev = data.deviceName || data.device_name || relayDeviceName || "Rower";
+      if (!relayActive || (data.deviceName || data.device_name)) {
         relayActive = true;
-        relayDeviceName = data.deviceName || relayDeviceName || "Rower";
+        relayDeviceName = rowerDev;
         updateRowerStatus(true, `${relayDeviceName} (Relay)`, "relay", relayDeviceName);
-      } else if (data.deviceName && !relayDeviceName) {
-        relayDeviceName = data.deviceName;
-        updateRowerStatus(true, `${relayDeviceName} (Relay)`, "relay", relayDeviceName);
-      }
-      if (data.heartRate !== undefined && !hrBle.isConnected) {
-        relayHrActive = true;
-        relayHrDeviceName = data.hrDeviceName || relayHrDeviceName || "HR";
-        updateHrStatus(true, `${relayHrDeviceName} (Relay)`, "relay", relayHrDeviceName);
-        if (relayHrTimeout) clearTimeout(relayHrTimeout);
-        relayHrTimeout = setTimeout(() => {
-          relayHrActive = false;
-          if (!hrBle.isConnected) {
-            updateHrStatus(false, "Relay HR Idle");
-          }
-        }, 10000);
       }
       if (relayTimeout) clearTimeout(relayTimeout);
       relayTimeout = setTimeout(() => {
@@ -845,15 +868,21 @@ const wsTelemetry = new WebSocketTelemetry(
           updateRowerStatus(false, "Relay Idle");
         }
       }, 10000);
-    } else if (!hrBle.isConnected && data.heartRate !== undefined) {
-      // Decoupled Mixed-Mode: Rower is connected locally (or simulated), but relay provides Heart Rate!
-      pm5Hud.updateMetrics({ heartRate: data.heartRate });
-      sessionTracker.updateTelemetry({ heartRate: data.heartRate });
-      if (workoutEngine && workoutEngine.isRunning) {
-        workoutEngine.onTelemetry({ heartRate: data.heartRate });
+    }
+
+    // 2. Process Heart Rate Telemetry
+    if (hasHrData && !hrBle.isConnected) {
+      const hrVal = data.heartRate !== undefined ? data.heartRate : data.hr;
+      if (hrVal !== undefined && hrVal > 0) {
+        pm5Hud.updateMetrics({ heartRate: hrVal });
+        sessionTracker.updateTelemetry({ heartRate: hrVal });
+        if (workoutEngine && workoutEngine.isRunning) {
+          workoutEngine.onTelemetry({ heartRate: hrVal });
+        }
       }
+      const hrDev = data.hr_device_name || data.hrDeviceName || (data.device_type === "hr" ? (data.deviceName || data.device_name) : null) || relayHrDeviceName || "HR";
       relayHrActive = true;
-      relayHrDeviceName = data.hrDeviceName || relayHrDeviceName || "HR";
+      relayHrDeviceName = hrDev;
       updateHrStatus(true, `${relayHrDeviceName} (Relay)`, "relay", relayHrDeviceName);
       if (relayHrTimeout) clearTimeout(relayHrTimeout);
       relayHrTimeout = setTimeout(() => {
@@ -5625,14 +5654,18 @@ const THEME_NAMES = {
 
 let hudToastTimeout = null;
 function showHudToast(text, duration = 1800) {
-  const toast = document.getElementById("hud-notice-toast");
-  if (!toast) return;
-  toast.textContent = text;
-  toast.style.display = "block";
-  clearTimeout(hudToastTimeout);
-  hudToastTimeout = setTimeout(() => {
-    toast.style.display = "none";
-  }, duration);
+  if (typeof pm5Hud !== "undefined" && pm5Hud) {
+    pm5Hud.showNotice(text, duration, true);
+  } else {
+    const toast = document.getElementById("hud-notice-toast");
+    if (!toast) return;
+    toast.textContent = text;
+    toast.style.display = "block";
+    clearTimeout(hudToastTimeout);
+    hudToastTimeout = setTimeout(() => {
+      toast.style.display = "none";
+    }, duration);
+  }
 }
 
 function cycleTheme() {
@@ -6270,6 +6303,8 @@ if (btnWorkoutPause) {
       }
       if (videoEl && videoEl.paused) {
         rateController.resumeVideo();
+      }
+      if (audioEngine && audioEngine.mode !== "mute" && !audioEngine.isPlaying) {
         audioEngine.play();
       }
       syncWorkoutPauseButton();
@@ -6699,6 +6734,13 @@ function startActiveWorkout() {
   workoutEngine.start(curTelemetry);
   if (sessionTracker && sessionTracker.state !== "active") {
     sessionTracker.start();
+  }
+  if (typeof rateController !== "undefined" && rateController) {
+    rateController.setWorkoutLive(true);
+    rateController.resumeVideo();
+  }
+  if (typeof audioEngine !== "undefined" && audioEngine && audioEngine.mode !== "mute" && !audioEngine.isPlaying) {
+    audioEngine.play();
   }
 }
 

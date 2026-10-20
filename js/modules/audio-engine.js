@@ -1,3 +1,5 @@
+import { getSharedAudioContext, unlockAudio } from "./sound-fx.js";
+
 /**
  * Decoupled Audio Pipeline Engine
  * Strictly muted scenic video + independent soundtrack audio fixed at 1.0x native speed.
@@ -99,6 +101,15 @@ export class AudioEngine {
   }
 
   setupAudioUnlock() {
+    const unlockHandler = () => {
+      unlockAudio();
+      this.initAudioContext();
+    };
+
+    ["pointerdown", "touchstart", "click"].forEach((evt) => {
+      window.addEventListener(evt, unlockHandler, { passive: true, capture: true });
+    });
+
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible" && this.isPlaying && this.audioContext && this.audioContext.state === "suspended") {
         this.audioContext.resume().catch(() => {});
@@ -114,11 +125,10 @@ export class AudioEngine {
       return;
     }
 
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass || !this.audio) return;
-
     try {
-      this.audioContext = new AudioContextClass();
+      this.audioContext = getSharedAudioContext();
+      if (!this.audioContext || !this.audio) return;
+
       this.gainNode = this.audioContext.createGain();
 
       // Ensure MediaElementAudioSourceNode is only created ONCE per HTMLAudioElement
@@ -270,6 +280,9 @@ export class AudioEngine {
       if (this.cadenceVolumeModulation) {
         this.startVolumeRamping();
       }
+      if (this.audio.readyState === 0 && this.currentSrc) {
+        this.audio.load();
+      }
       await this.audio.play();
       this.isPlaying = true;
       this.emitStatus(false);
@@ -277,6 +290,18 @@ export class AudioEngine {
       console.warn("[AudioEngine] Playback trigger prevented by browser policy:", err);
       this.isPlaying = false;
       this.emitStatus(true);
+      // Auto-recover on the very next user tap anywhere on the screen
+      const retryOnTap = () => {
+        window.removeEventListener("pointerdown", retryOnTap);
+        window.removeEventListener("touchstart", retryOnTap);
+        window.removeEventListener("click", retryOnTap);
+        if (!this.isPlaying && this.mode !== "mute" && this.currentSrc) {
+          this.play();
+        }
+      };
+      window.addEventListener("pointerdown", retryOnTap, { once: true, passive: true });
+      window.addEventListener("touchstart", retryOnTap, { once: true, passive: true });
+      window.addEventListener("click", retryOnTap, { once: true, passive: true });
     }
   }
 

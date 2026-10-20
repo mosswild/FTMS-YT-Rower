@@ -1,3 +1,5 @@
+import { playMessageChime } from "./sound-fx.js";
+
 /**
  * Concept2 PM5-Style Telemetry HUD Controller
  * Manages high-contrast digital overlays, fullscreen handling, and 4-second inactivity auto-fade.
@@ -183,7 +185,7 @@ export class PM5Hud {
     }
   }
 
-  showNotice(msg, durationMs = 2500) {
+  showNotice(msg, durationMs = 2500, playSound = true) {
     if (!this.elements.noticeToast) return;
     this.elements.noticeToast.textContent = msg;
     this.elements.noticeToast.style.display = "block";
@@ -191,6 +193,11 @@ export class PM5Hud {
     this.toastTimeout = setTimeout(() => {
       this.elements.noticeToast.style.display = "none";
     }, durationMs);
+
+    // Audio chime cue so user knows to read pop-up message (suppress during countdown ticks)
+    if (playSound && !msg.startsWith("Workout starting in")) {
+      playMessageChime();
+    }
   }
 
   updateMetrics(data) {
@@ -687,7 +694,7 @@ export class PM5Hud {
     }
   }
 
-  showWorkoutCue(text, durationMs = 4500) {
+  showWorkoutCue(text, durationMs = 4500, playSound = true) {
     if (!this.elements.workoutCueToast) return;
     this.elements.workoutCueToast.textContent = `💡 ${text}`;
     this.elements.workoutCueToast.style.display = "block";
@@ -695,6 +702,10 @@ export class PM5Hud {
     this.cueTimeout = setTimeout(() => {
       this.elements.workoutCueToast.style.display = "none";
     }, durationMs);
+
+    if (playSound) {
+      playMessageChime();
+    }
   }
 
   setWorkoutCompliance(compliance = {}) {
